@@ -18,7 +18,7 @@ const auth = async (req, res, next) => {
     
     // Find user by ID
     const user = await User.findOne({ 
-      _id: decoded._id,
+      id: decoded.id,
       'tokens.token': token 
     });
     
