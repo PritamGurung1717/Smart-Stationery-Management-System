@@ -24,6 +24,7 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const categoryRoutes = require('./routes/categoryRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 
 // Check for required environment variables
 if (!process.env.JWT_SECRET) {
@@ -56,6 +57,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api', wishlistRoutes); // Add wishlist routes
 
 // Health check route
 app.get("/api/health", (req, res) => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Container, Row, Col, Card, Button, Table, Badge, Form, Spinner, Alert } from "react-bootstrap";
+import { FaArrowLeft } from "react-icons/fa";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const CartPage = () => {
     city: "",
     state: "",
     zipCode: "",
-    country: "India"
+    country: "Nepal"
   });
 
   useEffect(() => {
@@ -124,6 +125,14 @@ const CartPage = () => {
     navigate("/products");
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   if (loading) {
     return (
       <Container className="py-5">
@@ -137,6 +146,17 @@ const CartPage = () => {
 
   return (
     <Container className="py-5">
+      {/* Back Button */}
+      <div className="mb-4">
+        <Button 
+          variant="outline-secondary" 
+          onClick={handleGoBack}
+          className="d-flex align-items-center gap-2"
+        >
+          <FaArrowLeft /> Back
+        </Button>
+      </div>
+      
       <h1 className="mb-4">🛒 Your Shopping Cart</h1>
       
       {cart.items.length === 0 ? (
@@ -145,9 +165,14 @@ const CartPage = () => {
             <div className="mb-4" style={{ fontSize: "4rem" }}>🛒</div>
             <h3>Your cart is empty</h3>
             <p className="text-muted mb-4">Looks like you haven't added any products to your cart yet.</p>
-            <Button variant="primary" size="lg" onClick={continueShopping}>
-              Continue Shopping
-            </Button>
+            <div className="d-flex justify-content-center gap-2">
+              <Button variant="outline-secondary" onClick={handleGoBack}>
+                Go Back
+              </Button>
+              <Button variant="primary" onClick={continueShopping}>
+                Continue Shopping
+              </Button>
+            </div>
           </Card.Body>
         </Card>
       ) : (

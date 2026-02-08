@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Container, Table, Badge, Button, Spinner, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 
 const UserOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -36,8 +37,28 @@ const UserOrders = () => {
     }
   };
 
+  const handleGoBack = () => {
+    // Go back to previous page or dashboard
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   return (
     <Container className="py-5">
+      {/* Single Back Button at Top */}
+      <div className="mb-4">
+        <Button 
+          variant="outline-secondary" 
+          onClick={handleGoBack}
+          className="d-flex align-items-center gap-2"
+        >
+          <FaArrowLeft /> Back
+        </Button>
+      </div>
+      
       <h1 className="mb-4">My Orders</h1>
       
       {loading ? (
@@ -51,9 +72,14 @@ const UserOrders = () => {
             <div className="mb-4" style={{ fontSize: "4rem" }}>📦</div>
             <h3>No orders yet</h3>
             <p className="text-muted mb-4">You haven't placed any orders yet.</p>
-            <Button variant="primary" onClick={() => navigate("/products")}>
-              Browse Products
-            </Button>
+            <div className="d-flex justify-content-center gap-2">
+              <Button variant="outline-secondary" onClick={handleGoBack}>
+                Go Back
+              </Button>
+              <Button variant="primary" onClick={() => navigate("/products")}>
+                Browse Products
+              </Button>
+            </div>
           </Card.Body>
         </Card>
       ) : (
