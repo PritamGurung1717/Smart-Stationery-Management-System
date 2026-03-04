@@ -37,9 +37,10 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // Add user and token to request
+    // Add user, token, and decoded data to request
     req.user = user;
     req.token = token;
+    req.decoded = decoded; // Add decoded token data
     
     next();
   } catch (error) {

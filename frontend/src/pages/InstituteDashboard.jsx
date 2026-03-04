@@ -15,6 +15,7 @@ import {
   InputGroup,
   Alert,
 } from "react-bootstrap";
+import BookSetSection from "../components/BookSetSection.jsx";
 
 const InstituteDashboard = ({ setUser }) => {
   const navigate = useNavigate();
@@ -24,7 +25,6 @@ const InstituteDashboard = ({ setUser }) => {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [bookSets, setBookSets] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [verificationStatus, setVerificationStatus] = useState("pending");
 
@@ -57,14 +57,22 @@ const InstituteDashboard = ({ setUser }) => {
   const fetchDashboardData = async (userData) => {
     try {
       setLoading(true);
-      const [productsRes, ordersRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/products"),
-        axios.get("http://localhost:5000/api/orders/institute/bulk-orders")
-      ]);
-
+      
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      // Fetch products
+      const productsRes = await axios.get("http://localhost:5000/api/products", { headers });
       setProducts(productsRes.data.products || []);
-      setOrders(ordersRes.data.orders || []);
-      setBookSets(userData.instituteInfo?.bookSets || []);
+      
+      // Fetch institute's own orders using my-orders endpoint
+      try {
+        const ordersRes = await axios.get("http://localhost:5000/api/orders/my-orders", { headers });
+        setOrders(ordersRes.data.orders || []);
+      } catch (orderError) {
+        console.log("Could not fetch orders:", orderError.response?.data?.message || orderError.message);
+        setOrders([]);
+      }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -196,13 +204,7 @@ const InstituteDashboard = ({ setUser }) => {
 
       {/* Stats cards */}
       <Row className="g-3 mt-3">
-        <Col md={3}>
-          <Card className="text-center shadow-sm p-3">
-            <Card.Title>Book Sets</Card.Title>
-            <Card.Text className="fs-4">{bookSets.length}</Card.Text>
-          </Card>
-        </Col>
-        <Col md={3}>
+        <Col md={4}>
           <Card className="text-center shadow-sm p-3">
             <Card.Title>Pending Orders</Card.Title>
             <Card.Text className="fs-4">
@@ -210,7 +212,7 @@ const InstituteDashboard = ({ setUser }) => {
             </Card.Text>
           </Card>
         </Col>
-        <Col md={3}>
+        <Col md={4}>
           <Card className="text-center shadow-sm p-3">
             <Card.Title>Total Spent</Card.Title>
             <Card.Text className="fs-4">
@@ -218,7 +220,7 @@ const InstituteDashboard = ({ setUser }) => {
             </Card.Text>
           </Card>
         </Col>
-        <Col md={3}>
+        <Col md={4}>
           <Card className="text-center shadow-sm p-3">
             <Card.Title>Cart Items</Card.Title>
             <Card.Text className="fs-4">{cart.length}</Card.Text>
@@ -233,9 +235,18 @@ const InstituteDashboard = ({ setUser }) => {
           <Button
             variant="outline-primary"
             className="w-100"
-            onClick={() => setActiveTab("book-sets")}
+            onClick={() => navigate("/institute/book-set-request")}
           >
-            📚 Book Sets
+            📚 Book Set Request
+          </Button>
+        </Col>
+        <Col xs={6} md={3}>
+          <Button
+            variant="outline-primary"
+            className="w-100"
+            onClick={() => navigate("/book-sets")}
+          >
+            📖 Browse Book Sets
           </Button>
         </Col>
         <Col xs={6} md={3}>
@@ -266,50 +277,11 @@ const InstituteDashboard = ({ setUser }) => {
           </Button>
         </Col>
       </Row>
-    </>
-  );
 
-  const renderBookSets = () => (
-    <>
-      <h3>Book Sets Management</h3>
-      <Card className="p-3 mt-3">
-        <Card.Title>Your Book Sets</Card.Title>
-        {bookSets.length === 0 ? (
-          <p className="text-muted">No book sets added yet.</p>
-        ) : (
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Grade</th>
-                <th>Book Name</th>
-                <th>Publication</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookSets.map((book, idx) => (
-                <tr key={idx}>
-                  <td>{book.grade}</td>
-                  <td>{book.bookName}</td>
-                  <td>{book.publication}</td>
-                  <td>{book.quantity}</td>
-                  <td>{book.price ? `₹${book.price}` : "N/A"}</td>
-                  <td>
-                    <Badge bg={
-                      book.status === "approved" ? "success" :
-                      book.status === "pending" ? "warning" : "danger"
-                    }>
-                      {book.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </Card>
+      {/* Book Set Section */}
+      <div className="mt-4">
+        <BookSetSection />
+      </div>
     </>
   );
 
@@ -545,7 +517,7 @@ const InstituteDashboard = ({ setUser }) => {
         </Nav.Item>
       </Nav>
 
-      <Row noGutters>
+      <Row className="g-0">
         {/* Sidebar */}
         <Col
           md={2}
@@ -560,10 +532,14 @@ const InstituteDashboard = ({ setUser }) => {
               📊 Dashboard
             </Nav.Link>
             <Nav.Link
-              active={activeTab === "book-sets"}
-              onClick={() => setActiveTab("book-sets")}
+              onClick={() => navigate("/institute/book-set-request")}
             >
-              📚 Book Sets
+              📚 Book Set Request
+            </Nav.Link>
+            <Nav.Link
+              onClick={() => navigate("/book-sets")}
+            >
+              📖 Browse Book Sets
             </Nav.Link>
             <Nav.Link
               active={activeTab === "bulk-order"}
@@ -587,9 +563,6 @@ const InstituteDashboard = ({ setUser }) => {
           <div className="mt-4">
             <h6>Quick Stats</h6>
             <p className="mb-1">
-              Book Sets: <strong>{bookSets.length}</strong>
-            </p>
-            <p className="mb-1">
               Pending Orders:{" "}
               <strong>
                 {orders.filter((o) => o.orderStatus === "pending").length}
@@ -604,7 +577,6 @@ const InstituteDashboard = ({ setUser }) => {
         {/* Main area */}
         <Col md={10} className="p-4">
           {activeTab === "dashboard" && renderDashboard()}
-          {activeTab === "book-sets" && renderBookSets()}
           {activeTab === "bulk-order" && renderBulkOrder()}
           {activeTab === "orders" && renderOrders()}
         </Col>

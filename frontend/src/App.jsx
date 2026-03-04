@@ -16,9 +16,12 @@ import ProductsPage from "./pages/ProductsPage.jsx";
 import UserOrders from "./pages/UserOrders.jsx";
 import OrderDetails from "./pages/OrderDetails.jsx";
 import InstituteVerification from "./pages/InstituteVerification.jsx";
+import InstituteBookSetRequest from "./pages/InstituteBookSetRequest.jsx";
 import AddProduct from "./pages/admin/AddProduct.jsx";
 import EditProduct from "./pages/admin/EditProduct.jsx";
 import UserProfile from "./pages/UserProfile.jsx";
+import BookSetBrowser from "./components/BookSetBrowser.jsx";
+import BookSetDetails from "./pages/BookSetDetails.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -146,6 +149,20 @@ function App() {
           }
         />
 
+        <Route
+          path="/book-sets"
+          element={
+            user ? <BookSetBrowser /> : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="/book-sets/:id"
+          element={
+            user ? <BookSetDetails /> : <Navigate to="/login" replace />
+          }
+        />
+
         {/* Institute Routes */}
         <Route
           path="/institute-dashboard"
@@ -163,6 +180,17 @@ function App() {
           element={
             user && user.role === "institute" ? (
               <InstituteVerification setUser={setUser} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/institute/book-set-request"
+          element={
+            user && user.role === "institute" ? (
+              <InstituteBookSetRequest />
             ) : (
               <Navigate to="/login" replace />
             )

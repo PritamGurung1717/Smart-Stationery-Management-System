@@ -37,6 +37,7 @@ const AdminDashboard = ({ setUser }) => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
+  const [bookSetRequests, setBookSetRequests] = useState([]);
 
   // User names mapping for orders
   const [userNames, setUserNames] = useState({});
@@ -294,6 +295,24 @@ const AdminDashboard = ({ setUser }) => {
     }
   };
 
+  const fetchBookSetRequests = async (page = 1) => {
+    try {
+      setFetchingData(true);
+      let url = `http://localhost:5000/api/admin/book-set-requests?page=${page}&limit=${itemsPerPage}`;
+
+      const response = await axios.get(url);
+      setBookSetRequests(response.data.requests || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error("Fetch book set requests error:", err.response?.data || err.message);
+      setError("Failed to load book set requests: " + (err.response?.data?.message || err.message));
+    } finally {
+      setFetchingData(false);
+    }
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
@@ -310,6 +329,9 @@ const AdminDashboard = ({ setUser }) => {
         break;
       case "verifications":
         fetchVerifications();
+        break;
+      case "book-set-requests":
+        fetchBookSetRequests(1);
         break;
       default:
         fetchDashboard();
@@ -428,6 +450,43 @@ const AdminDashboard = ({ setUser }) => {
     } catch (err) {
       console.error("Update verification error:", err);
       setError("Failed to update verification");
+    }
+  };
+
+  const handleApproveBookSetRequest = async (requestId) => {
+    if (!window.confirm("Are you sure you want to approve this book set request?")) return;
+
+    try {
+      await axios.put(
+        `http://localhost:5000/api/admin/book-set-requests/${requestId}/approve`
+      );
+      fetchBookSetRequests(currentPage);
+      setSuccess("Book set request approved successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Approve book set request error:", err);
+      setError(err.response?.data?.message || "Failed to approve book set request");
+    }
+  };
+
+  const handleRejectBookSetRequest = async (requestId) => {
+    const remark = prompt("Enter rejection reason:");
+    if (!remark || remark.trim() === "") {
+      setError("Rejection reason is required");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `http://localhost:5000/api/admin/book-set-requests/${requestId}/reject`,
+        { admin_remark: remark }
+      );
+      fetchBookSetRequests(currentPage);
+      setSuccess("Book set request rejected successfully");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Reject book set request error:", err);
+      setError(err.response?.data?.message || "Failed to reject book set request");
     }
   };
 
@@ -555,6 +614,13 @@ const AdminDashboard = ({ setUser }) => {
                   {stats.pendingVerifications}
                 </Badge>
               )}
+            </Nav.Link>
+            <Nav.Link
+              onClick={() => handleTabChange("book-set-requests")}
+              className={`text-white mb-2 d-flex align-items-center ${activeTab === "book-set-requests" ? "bg-primary rounded" : ""}`}
+            >
+              <FaBox className="me-2" />
+              Book Set Requests
             </Nav.Link>
             <Button
               variant="outline-danger"
@@ -1408,6 +1474,142 @@ const AdminDashboard = ({ setUser }) => {
                     "No verifications found matching your search criteria." :
                     "All verifications have been processed. No pending verifications."
                   }
+                </Alert>
+              )}
+            </>
+          )}
+
+          {activeTab === "book-set-requests" && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">
+                  <FaBox className="me-2" />
+                  Book Set Requests
+                </h3>
+                <Badge bg="info">Total: {totalItems}</Badge>
+              </div>
+
+              {fetchingData ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" />
+                  <p className="mt-2">Loading book set requests...</p>
+                </div>
+              ) : bookSetRequests.length > 0 ? (
+                <>
+                  <Card className="shadow-sm border-0">
+                    <Card.Body className="p-0">
+                      <Table striped hover responsive className="mb-0">
+                        <thead className="table-dark">
+                          <tr>
+                            <th>ID</th>
+                            <th>Institute</th>
+                            <th>School</th>
+                            <th>Grade</th>
+                            <th>Books</th>
+                            <th>Total Price</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bookSetRequests.map((request) => (
+                            <tr key={request.id}>
+                              <td>{request.id}</td>
+                              <td>
+                                <div>
+                                  <strong>{request.institute_name}</strong>
+                                  <br />
+                                  <small className="text-muted">{request.institute_email}</small>
+                                </div>
+                              </td>
+                              <td>{request.school_name}</td>
+                              <td>{request.grade}</td>
+                              <td>{request.item_count}</td>
+                              <td>₹{request.total_estimated_price?.toFixed(2)}</td>
+                              <td>
+                                <Badge bg={
+                                  request.status === "approved" ? "success" :
+                                  request.status === "rejected" ? "danger" : "warning"
+                                }>
+                                  {request.status}
+                                </Badge>
+                              </td>
+                              <td>{new Date(request.created_at).toLocaleDateString()}</td>
+                              <td>
+                                <Button
+                                  variant="info"
+                                  size="sm"
+                                  className="me-2"
+                                  onClick={() => navigate(`/admin/book-set-requests/${request.id}`)}
+                                >
+                                  <FaEye />
+                                </Button>
+                                {request.status === "pending" && (
+                                  <>
+                                    <Button
+                                      variant="success"
+                                      size="sm"
+                                      className="me-2"
+                                      onClick={() => handleApproveBookSetRequest(request.id)}
+                                    >
+                                      <FaCheckCircle />
+                                    </Button>
+                                    <Button
+                                      variant="danger"
+                                      size="sm"
+                                      onClick={() => handleRejectBookSetRequest(request.id)}
+                                    >
+                                      Reject
+                                    </Button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </Card.Body>
+                  </Card>
+
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-4">
+                      <Pagination>
+                        <Pagination.First onClick={() => fetchBookSetRequests(1)} disabled={currentPage === 1} />
+                        <Pagination.Prev onClick={() => fetchBookSetRequests(currentPage - 1)} disabled={currentPage === 1} />
+                        {[...Array(totalPages)].map((_, i) => {
+                          const pageNum = i + 1;
+                          if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                          ) {
+                            return (
+                              <Pagination.Item
+                                key={`page-${pageNum}`}
+                                active={pageNum === currentPage}
+                                onClick={() => fetchBookSetRequests(pageNum)}
+                              >
+                                {pageNum}
+                              </Pagination.Item>
+                            );
+                          } else if (
+                            pageNum === currentPage - 3 ||
+                            pageNum === currentPage + 3
+                          ) {
+                            return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
+                          }
+                          return null;
+                        })}
+                        <Pagination.Next onClick={() => fetchBookSetRequests(currentPage + 1)} disabled={currentPage === totalPages} />
+                        <Pagination.Last onClick={() => fetchBookSetRequests(totalPages)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Alert variant="info">
+                  No book set requests found.
                 </Alert>
               )}
             </>

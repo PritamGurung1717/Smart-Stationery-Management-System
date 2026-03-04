@@ -7,6 +7,7 @@ import {
   FaShieldAlt, FaHeadset, FaStar, FaEdit, FaHistory, FaKey, 
   FaSignOutAlt, FaTimes 
 } from "react-icons/fa";
+import BookSetSection from "../components/BookSetSection.jsx";
 
 const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
@@ -805,6 +806,19 @@ const Dashboard = ({ setUser }) => {
                   <Button 
                     variant="outline-light" 
                     size="lg"
+                    onClick={() => navigate("/book-sets")}
+                    style={{
+                      padding: '0.875rem 2rem',
+                      borderRadius: '50px',
+                      fontWeight: 600,
+                      border: '2px solid white'
+                    }}
+                  >
+                    📚 Browse Book Sets
+                  </Button>
+                  <Button 
+                    variant="outline-light" 
+                    size="lg"
                     onClick={() => navigate("/cart")}
                     style={{
                       padding: '0.875rem 2rem',
@@ -1241,6 +1255,13 @@ const Dashboard = ({ setUser }) => {
         </Container>
       </section>
 
+      {/* Book Set Section */}
+      <section style={{ background: '#f9fafb' }}>
+        <Container>
+          <BookSetSection />
+        </Container>
+      </section>
+
       {/* Footer */}
       <footer style={{
         background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
@@ -1299,6 +1320,7 @@ const Dashboard = ({ setUser }) => {
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {[
                   { label: 'Products', path: '/products' },
+                  { label: 'Book Sets', path: '/book-sets' },
                   { label: 'Cart', path: '/cart' },
                   { label: 'My Orders', path: '/my-orders' },
                   { label: 'Profile', path: '/profile' },
