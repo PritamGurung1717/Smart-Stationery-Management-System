@@ -16,6 +16,9 @@ import {
   Alert,
 } from "react-bootstrap";
 import BookSetSection from "../components/BookSetSection.jsx";
+import DonationSection from "../components/DonationSection.jsx";
+import TokenErrorAlert from "../components/TokenErrorAlert.jsx";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 const InstituteDashboard = ({ setUser }) => {
   const navigate = useNavigate();
@@ -27,6 +30,9 @@ const InstituteDashboard = ({ setUser }) => {
   const [orders, setOrders] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [verificationStatus, setVerificationStatus] = useState("pending");
+  const [myDonations, setMyDonations] = useState([]);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [showTokenError, setShowTokenError] = useState(false);
 
   const categories = ["all", "book", "stationery"];
 
@@ -52,6 +58,7 @@ const InstituteDashboard = ({ setUser }) => {
     }
 
     fetchDashboardData(storedUser);
+    fetchMyDonations();
   }, [navigate]);
 
   const fetchDashboardData = async (userData) => {
@@ -77,6 +84,56 @@ const InstituteDashboard = ({ setUser }) => {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMyDonations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, skipping donation fetch');
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.get(
+        'http://localhost:5000/api/donations/user/donations',
+        { headers }
+      );
+      
+      const donations = response.data.donations || [];
+      
+      // Get request counts for each donation
+      const donationsWithCounts = await Promise.all(
+        donations.map(async (donation) => {
+          try {
+            const reqRes = await axios.get(
+              `http://localhost:5000/api/donations/${donation.id}/requests`,
+              { headers }
+            );
+            const pendingCount = reqRes.data.requests?.filter(r => r.status === 'pending').length || 0;
+            return { ...donation, pendingRequestCount: pendingCount };
+          } catch (err) {
+            console.log(`Could not fetch requests for donation ${donation.id}:`, err.message);
+            return { ...donation, pendingRequestCount: 0 };
+          }
+        })
+      );
+      
+      setMyDonations(donationsWithCounts);
+      
+      // Calculate total pending requests
+      const total = donationsWithCounts.reduce((sum, d) => sum + (d.pendingRequestCount || 0), 0);
+      setPendingRequestCount(total);
+    } catch (err) {
+      console.error('Error fetching donations:', err.response?.data?.message || err.message);
+      // If JWT error, show alert and silently fail - user can still use dashboard
+      if (err.response?.status === 401 || err.message?.includes('jwt') || err.response?.data?.error === 'JsonWebTokenError') {
+        console.log('Token issue detected - donation notifications disabled');
+        setShowTokenError(true);
+        setMyDonations([]);
+        setPendingRequestCount(0);
+      }
     }
   };
 
@@ -220,10 +277,18 @@ const InstituteDashboard = ({ setUser }) => {
             </Card.Text>
           </Card>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Card className="text-center shadow-sm p-3">
             <Card.Title>Cart Items</Card.Title>
             <Card.Text className="fs-4">{cart.length}</Card.Text>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center shadow-sm p-3" style={{ borderLeft: pendingRequestCount > 0 ? '4px solid #ef4444' : 'none' }}>
+            <Card.Title>Donation Requests</Card.Title>
+            <Card.Text className="fs-4" style={{ color: pendingRequestCount > 0 ? '#ef4444' : 'inherit' }}>
+              {pendingRequestCount}
+            </Card.Text>
           </Card>
         </Col>
       </Row>
@@ -276,11 +341,45 @@ const InstituteDashboard = ({ setUser }) => {
             🛒 View Cart
           </Button>
         </Col>
+        <Col xs={6} md={3}>
+          <Button
+            variant={pendingRequestCount > 0 ? "danger" : "outline-primary"}
+            className="w-100"
+            onClick={() => navigate("/my-donations")}
+            style={{ position: 'relative' }}
+          >
+            🎁 My Donations
+            {pendingRequestCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 'bold'
+              }}>
+                {pendingRequestCount}
+              </span>
+            )}
+          </Button>
+        </Col>
       </Row>
 
       {/* Book Set Section */}
       <div className="mt-4">
         <BookSetSection />
+      </div>
+
+      {/* Donation Section */}
+      <div className="mt-4">
+        <DonationSection />
       </div>
     </>
   );
@@ -498,6 +597,13 @@ const InstituteDashboard = ({ setUser }) => {
 
   return (
     <Container fluid className="p-0">
+      {/* Token Error Alert */}
+      {showTokenError && (
+        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, maxWidth: '500px' }}>
+          <TokenErrorAlert show={showTokenError} onClose={() => setShowTokenError(false)} />
+        </div>
+      )}
+      
       {/* Top navbar */}
       <Nav
         bg="dark"
@@ -507,7 +613,10 @@ const InstituteDashboard = ({ setUser }) => {
         <Nav.Item className="text-white fw-bold fs-5">
           ✏️ Smart Stationery
         </Nav.Item>
-        <Nav.Item className="d-flex align-items-center">
+        <Nav.Item className="d-flex align-items-center gap-3">
+          {/* Notification Bell */}
+          <NotificationBell />
+          
           <span className="me-3">
             Welcome, {user.name} (Institute)
           </span>

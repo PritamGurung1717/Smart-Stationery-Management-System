@@ -45,9 +45,21 @@ const auth = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
+    
+    // Provide specific error messages for different JWT errors
+    let message = 'Authentication failed. Please login again.';
+    
+    if (error.name === 'JsonWebTokenError') {
+      message = 'Invalid token format. Please clear your browser cache and login again.';
+      console.error('JWT Malformed - Token value:', req.header('Authorization')?.substring(0, 50) + '...');
+    } else if (error.name === 'TokenExpiredError') {
+      message = 'Your session has expired. Please login again.';
+    }
+    
     res.status(401).json({ 
       success: false,
-      message: 'Authentication failed. Please login again.' 
+      message: message,
+      error: error.name
     });
   }
 };

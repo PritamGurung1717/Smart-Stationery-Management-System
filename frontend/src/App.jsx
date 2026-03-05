@@ -23,6 +23,14 @@ import UserProfile from "./pages/UserProfile.jsx";
 import BookSetBrowser from "./components/BookSetBrowser.jsx";
 import BookSetDetails from "./pages/BookSetDetails.jsx";
 
+// Import donation pages
+import CreateDonation from "./pages/CreateDonation.jsx";
+import DonationList from "./pages/DonationList.jsx";
+import DonationDetails from "./pages/DonationDetails.jsx";
+import MyDonations from "./pages/MyDonations.jsx";
+import MyRequests from "./pages/MyRequests.jsx";
+import DonationChat from "./pages/DonationChat.jsx";
+
 function App() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -191,6 +199,73 @@ function App() {
           element={
             user && user.role === "institute" ? (
               <InstituteBookSetRequest />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Donation Routes - Available to both personal and institute users */}
+        <Route
+          path="/donations"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <DonationList />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/donations/create"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <CreateDonation />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/donations/:id"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <DonationDetails />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/my-donations"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <MyDonations />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/my-requests"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <MyRequests />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/donations/:id/chat"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <DonationChat />
             ) : (
               <Navigate to="/login" replace />
             )

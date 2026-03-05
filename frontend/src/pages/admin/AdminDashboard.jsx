@@ -11,8 +11,9 @@ import {
   FaUsers, FaBox, FaShoppingCart, FaCheckCircle,
   FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
   FaRupeeSign, FaCube, FaListOl, FaSync, FaSearch, FaFilter,
-  FaSort, FaSortUp, FaSortDown, FaIdCard
+  FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift
 } from "react-icons/fa";
+import NotificationBell from "../../components/NotificationBell.jsx";
 
 const AdminDashboard = ({ setUser }) => {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const AdminDashboard = ({ setUser }) => {
     pendingVerifications: 0,
     outOfStock: 0,
     lowStock: 0,
+    totalDonations: 0,
   });
 
   // States for each tab
@@ -38,6 +40,7 @@ const AdminDashboard = ({ setUser }) => {
   const [orders, setOrders] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
   const [bookSetRequests, setBookSetRequests] = useState([]);
+  const [donations, setDonations] = useState([]);
 
   // User names mapping for orders
   const [userNames, setUserNames] = useState({});
@@ -313,6 +316,44 @@ const AdminDashboard = ({ setUser }) => {
     }
   };
 
+  const fetchDonations = async (page = 1) => {
+    try {
+      setFetchingData(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:5000/api/donations/admin/all?page=${page}&limit=${itemsPerPage}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDonations(response.data.donations || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error("Fetch donations error:", err);
+      setError("Failed to load donations: " + (err.response?.data?.message || err.message));
+    } finally {
+      setFetchingData(false);
+    }
+  };
+
+  const handleDeleteDonation = async (donationId, donationTitle) => {
+    if (!window.confirm(`Delete donation "${donationTitle}"? This action cannot be undone.`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:5000/api/donations/admin/${donationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuccess(`Donation "${donationTitle}" deleted successfully`);
+      fetchDonations(currentPage);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Delete donation error:", err);
+      setError("Failed to delete donation: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
@@ -332,6 +373,9 @@ const AdminDashboard = ({ setUser }) => {
         break;
       case "book-set-requests":
         fetchBookSetRequests(1);
+        break;
+      case "donations":
+        fetchDonations(1);
         break;
       default:
         fetchDashboard();
@@ -565,6 +609,11 @@ const AdminDashboard = ({ setUser }) => {
             <Badge bg="danger" className="ms-2">Admin</Badge>
           </div>
 
+          {/* Notification Bell */}
+          <div className="text-center mb-3">
+            <NotificationBell />
+          </div>
+
           <Nav className="flex-column mt-2">
             <Nav.Link
               onClick={() => handleTabChange("dashboard")}
@@ -621,6 +670,18 @@ const AdminDashboard = ({ setUser }) => {
             >
               <FaBox className="me-2" />
               Book Set Requests
+            </Nav.Link>
+            <Nav.Link
+              onClick={() => handleTabChange("donations")}
+              className={`text-white mb-2 d-flex align-items-center ${activeTab === "donations" ? "bg-primary rounded" : ""}`}
+            >
+              <FaGift className="me-2" />
+              Donations
+              {stats.totalDonations > 0 && (
+                <Badge bg="warning" className="ms-auto">
+                  {stats.totalDonations}
+                </Badge>
+              )}
             </Nav.Link>
             <Button
               variant="outline-danger"
@@ -1610,6 +1671,142 @@ const AdminDashboard = ({ setUser }) => {
               ) : (
                 <Alert variant="info">
                   No book set requests found.
+                </Alert>
+              )}
+            </>
+          )}
+
+          {activeTab === "donations" && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">
+                  <FaGift className="me-2" />
+                  Donations Management
+                </h3>
+                <Badge bg="info">Total: {totalItems}</Badge>
+              </div>
+
+              {fetchingData ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" />
+                  <p className="mt-2">Loading donations...</p>
+                </div>
+              ) : donations.length > 0 ? (
+                <>
+                  <Card className="shadow-sm border-0">
+                    <Card.Body className="p-0">
+                      <Table striped hover responsive className="mb-0">
+                        <thead className="table-dark">
+                          <tr>
+                            <th>Title</th>
+                            <th>Donor</th>
+                            <th>Category</th>
+                            <th>Condition</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {donations.map((donation) => (
+                            <tr key={donation.id}>
+                              <td>
+                                <div className="d-flex align-items-center">
+                                  {donation.images && donation.images[0] && (
+                                    <img
+                                      src={`http://localhost:5000${donation.images[0]}`}
+                                      alt={donation.title}
+                                      style={{ width: '40px', height: '40px', objectFit: 'cover', marginRight: '10px', borderRadius: '4px' }}
+                                      onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                  )}
+                                  <span>{donation.title}</span>
+                                </div>
+                              </td>
+                              <td>{userNames[donation.donor_id] || `User #${donation.donor_id}`}</td>
+                              <td>
+                                <Badge bg="light" text="dark">{donation.category}</Badge>
+                              </td>
+                              <td>
+                                <Badge bg={
+                                  donation.condition === 'new' ? 'success' :
+                                  donation.condition === 'like_new' ? 'info' :
+                                  donation.condition === 'good' ? 'primary' : 'secondary'
+                                }>
+                                  {donation.condition.replace('_', ' ')}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Badge bg={
+                                  donation.status === 'available' ? 'success' :
+                                  donation.status === 'reserved' ? 'warning' : 'secondary'
+                                }>
+                                  {donation.status}
+                                </Badge>
+                              </td>
+                              <td>{new Date(donation.created_at).toLocaleDateString()}</td>
+                              <td>
+                                <Button
+                                  variant="info"
+                                  size="sm"
+                                  className="me-2"
+                                  onClick={() => navigate(`/donations/${donation.id}`)}
+                                >
+                                  <FaEye />
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteDonation(donation.id, donation.title)}
+                                >
+                                  <FaTrash />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </Card.Body>
+                  </Card>
+
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-4">
+                      <Pagination>
+                        <Pagination.First onClick={() => fetchDonations(1)} disabled={currentPage === 1} />
+                        <Pagination.Prev onClick={() => fetchDonations(currentPage - 1)} disabled={currentPage === 1} />
+                        {[...Array(totalPages)].map((_, i) => {
+                          const pageNum = i + 1;
+                          if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                          ) {
+                            return (
+                              <Pagination.Item
+                                key={`donation-page-${pageNum}`}
+                                active={pageNum === currentPage}
+                                onClick={() => fetchDonations(pageNum)}
+                              >
+                                {pageNum}
+                              </Pagination.Item>
+                            );
+                          } else if (
+                            pageNum === currentPage - 3 ||
+                            pageNum === currentPage + 3
+                          ) {
+                            return <Pagination.Ellipsis key={`donation-ellipsis-${pageNum}`} />;
+                          }
+                          return null;
+                        })}
+                        <Pagination.Next onClick={() => fetchDonations(currentPage + 1)} disabled={currentPage === totalPages} />
+                        <Pagination.Last onClick={() => fetchDonations(totalPages)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Alert variant="info">
+                  No donations found.
                 </Alert>
               )}
             </>

@@ -8,6 +8,9 @@ import {
   FaSignOutAlt, FaTimes 
 } from "react-icons/fa";
 import BookSetSection from "../components/BookSetSection.jsx";
+import DonationSection from "../components/DonationSection.jsx";
+import TokenErrorAlert from "../components/TokenErrorAlert.jsx";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
@@ -23,6 +26,9 @@ const Dashboard = ({ setUser }) => {
   const [wishlist, setWishlist] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState({});
   const [showWishlistModal, setShowWishlistModal] = useState(false);
+  const [myDonations, setMyDonations] = useState([]);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [showTokenError, setShowTokenError] = useState(false);
   
   const categories = [
     { id: "all", name: "All Products", icon: "📦" },
@@ -59,6 +65,7 @@ const Dashboard = ({ setUser }) => {
 
     fetchDashboardData();
     fetchWishlist();
+    fetchMyDonations();
   }, [navigate]);
 
   const fetchDashboardData = async () => {
@@ -110,10 +117,16 @@ const Dashboard = ({ setUser }) => {
       const headers = { Authorization: `Bearer ${token}` };
       
       try {
-        const response = await axios.get("http://localhost:5000/api/users/wishlist", { headers });
+        const response = await axios.get("http://localhost:5000/api/wishlist", { headers });
         if (response.data.success) {
-          setWishlist(response.data.wishlist);
-          localStorage.setItem("wishlist", JSON.stringify(response.data.wishlist));
+          // Transform wishlist items to match expected format
+          const transformedWishlist = response.data.wishlist.map(item => ({
+            ...item.product,
+            wishlistId: item._id,
+            product_id: item.product._id
+          }));
+          setWishlist(transformedWishlist);
+          localStorage.setItem("wishlist", JSON.stringify(transformedWishlist));
         }
       } catch (apiError) {
         // If API doesn't exist, use localStorage
@@ -128,6 +141,56 @@ const Dashboard = ({ setUser }) => {
     }
   };
 
+  const fetchMyDonations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No token found, skipping donation fetch');
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.get(
+        'http://localhost:5000/api/donations/user/donations',
+        { headers }
+      );
+      
+      const donations = response.data.donations || [];
+      
+      // Get request counts for each donation
+      const donationsWithCounts = await Promise.all(
+        donations.map(async (donation) => {
+          try {
+            const reqRes = await axios.get(
+              `http://localhost:5000/api/donations/${donation.id}/requests`,
+              { headers }
+            );
+            const pendingCount = reqRes.data.requests?.filter(r => r.status === 'pending').length || 0;
+            return { ...donation, pendingRequestCount: pendingCount };
+          } catch (err) {
+            console.log(`Could not fetch requests for donation ${donation.id}:`, err.message);
+            return { ...donation, pendingRequestCount: 0 };
+          }
+        })
+      );
+      
+      setMyDonations(donationsWithCounts);
+      
+      // Calculate total pending requests
+      const total = donationsWithCounts.reduce((sum, d) => sum + (d.pendingRequestCount || 0), 0);
+      setPendingRequestCount(total);
+    } catch (err) {
+      console.error('Error fetching donations:', err.response?.data?.message || err.message);
+      // If JWT error, show alert and silently fail - user can still use dashboard
+      if (err.response?.status === 401 || err.message?.includes('jwt') || err.response?.data?.error === 'JsonWebTokenError') {
+        console.log('Token issue detected - donation notifications disabled');
+        setShowTokenError(true);
+        setMyDonations([]);
+        setPendingRequestCount(0);
+      }
+    }
+  };
+
   const addToWishlist = async (product) => {
     try {
       setWishlistLoading(prev => ({ ...prev, [product.id]: true }));
@@ -137,7 +200,7 @@ const Dashboard = ({ setUser }) => {
       
       if (token) {
         try {
-          await axios.post("http://localhost:5000/api/users/wishlist/add", 
+          await axios.post("http://localhost:5000/api/wishlist/add", 
             { productId }, 
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -168,7 +231,7 @@ const Dashboard = ({ setUser }) => {
       
       if (token) {
         try {
-          await axios.delete(`http://localhost:5000/api/users/wishlist/remove/${productId}`, 
+          await axios.delete(`http://localhost:5000/api/wishlist/remove/${productId}`, 
             { headers: { Authorization: `Bearer ${token}` } }
           );
         } catch (apiError) {
@@ -179,7 +242,7 @@ const Dashboard = ({ setUser }) => {
       
       // Remove from local state and localStorage
       const updatedWishlist = wishlist.filter(item => 
-        (item.id !== productId) && (item.product_id !== productId)
+        item._id !== productId && item.product_id !== productId && item.id !== productId
       );
       setWishlist(updatedWishlist);
       localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
@@ -194,7 +257,7 @@ const Dashboard = ({ setUser }) => {
 
   const isInWishlist = (productId) => {
     return wishlist.some(item => 
-      item.id === productId || item.product_id === productId
+      item._id === productId || item.product_id === productId || item.id === productId
     );
   };
 
@@ -352,6 +415,13 @@ const Dashboard = ({ setUser }) => {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       
+      {/* Token Error Alert */}
+      {showTokenError && (
+        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, maxWidth: '500px' }}>
+          <TokenErrorAlert show={showTokenError} onClose={() => setShowTokenError(false)} />
+        </div>
+      )}
+      
       {/* Navigation Header */}
       <nav style={{
         background: 'white',
@@ -428,6 +498,9 @@ const Dashboard = ({ setUser }) => {
               alignItems: 'center',
               gap: '1rem'
             }}>
+              {/* Notification Bell */}
+              <NotificationBell />
+              
               <Button 
                 variant="link" 
                 onClick={() => setShowWishlistModal(true)}
@@ -780,6 +853,23 @@ const Dashboard = ({ setUser }) => {
                       Wishlist
                     </div>
                   </div>
+                  <div>
+                    <div style={{
+                      fontSize: '2.5rem',
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      color: pendingRequestCount > 0 ? '#ef4444' : 'inherit'
+                    }}>
+                      {pendingRequestCount}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      opacity: 0.9,
+                      fontWeight: 500
+                    }}>
+                      Donation Requests
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Action Buttons */}
@@ -844,6 +934,35 @@ const Dashboard = ({ setUser }) => {
                       View Wishlist
                     </Button>
                   )}
+                  <Button 
+                    variant="outline-light" 
+                    size="lg"
+                    onClick={() => navigate("/my-donations")}
+                    style={{
+                      padding: '0.875rem 2rem',
+                      borderRadius: '50px',
+                      fontWeight: 600,
+                      border: '2px solid white',
+                      position: 'relative'
+                    }}
+                  >
+                    🎁 My Donations
+                    {pendingRequestCount > 0 && (
+                      <Badge 
+                        bg="danger" 
+                        pill
+                        style={{
+                          position: 'absolute',
+                          top: '-8px',
+                          right: '-8px',
+                          fontSize: '0.75rem',
+                          padding: '0.4rem 0.6rem'
+                        }}
+                      >
+                        {pendingRequestCount}
+                      </Badge>
+                    )}
+                  </Button>
                 </div>
               </div>
             </Col>
@@ -1259,6 +1378,13 @@ const Dashboard = ({ setUser }) => {
       <section style={{ background: '#f9fafb' }}>
         <Container>
           <BookSetSection />
+        </Container>
+      </section>
+
+      {/* Donation Section */}
+      <section style={{ background: '#f9fafb' }}>
+        <Container>
+          <DonationSection />
         </Container>
       </section>
 
