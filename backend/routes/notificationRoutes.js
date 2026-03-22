@@ -10,11 +10,11 @@ router.get('/', auth, notificationController.getNotifications);
 // Get unread count
 router.get('/unread-count', auth, notificationController.getUnreadCount);
 
+// Mark all as read (must be before /:notificationId routes)
+router.put('/mark-all-read', auth, notificationController.markAllAsRead);
+
 // Mark notification as read
 router.put('/:notificationId/read', auth, notificationController.markAsRead);
-
-// Mark all as read
-router.put('/mark-all-read', auth, notificationController.markAllAsRead);
 
 // Delete notification
 router.delete('/:notificationId', auth, notificationController.deleteNotification);

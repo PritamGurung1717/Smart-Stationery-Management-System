@@ -1,255 +1,406 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Container, Card, Table, Badge, Button, Row, Col, Spinner, Alert } from "react-bootstrap";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Badge, Spinner, Alert } from 'react-bootstrap';
+import {
+  FaArrowLeft, FaFileInvoice, FaTimes, FaCheckCircle,
+  FaBox, FaCheck, FaTruck, FaMapMarkerAlt, FaClock, FaBan
+} from 'react-icons/fa';
+import axios from 'axios';
+
+const STATUS_CONFIG = {
+  pending:          { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b', label: 'Pending' },
+  confirmed:        { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6', label: 'Confirmed' },
+  preparing:        { bg: '#ede9fe', color: '#5b21b6', dot: '#8b5cf6', label: 'Preparing' },
+  shipped:          { bg: '#d1fae5', color: '#065f46', dot: '#10b981', label: 'Shipped' },
+  out_for_delivery: { bg: '#d1fae5', color: '#065f46', dot: '#10b981', label: 'Out for Delivery' },
+  delivered:        { bg: '#d1fae5', color: '#065f46', dot: '#059669', label: 'Delivered' },
+  cancelled:        { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444', label: 'Cancelled' },
+};
+
+// All possible steps in order flow
+const FLOW_STEPS = [
+  { key: 'pending',          icon: <FaClock />,       label: 'Order Placed' },
+  { key: 'confirmed',        icon: <FaCheck />,       label: 'Confirmed' },
+  { key: 'preparing',        icon: <FaBox />,         label: 'Preparing' },
+  { key: 'shipped',          icon: <FaTruck />,       label: 'Shipped' },
+  { key: 'out_for_delivery', icon: <FaMapMarkerAlt />,label: 'Out for Delivery' },
+  { key: 'delivered',        icon: <FaCheckCircle />, label: 'Delivered' },
+];
+
+const StatusBadge = ({ status }) => {
+  const cfg = STATUS_CONFIG[status] || { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af', label: status };
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+      background: cfg.bg, color: cfg.color,
+      padding: '0.4rem 1rem', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 600
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {cfg.label}
+    </span>
+  );
+};
+
+const OrderTimeline = ({ timeline, currentStatus }) => {
+  if (!timeline || timeline.length === 0) return null;
+
+  const isCancelled = currentStatus === 'cancelled';
+
+  // Build a map of status → timeline entry
+  const historyMap = {};
+  timeline.forEach(entry => { historyMap[entry.status] = entry; });
+
+  // Determine which step index is current
+  const currentIdx = FLOW_STEPS.findIndex(s => s.key === currentStatus);
+
+  return (
+    <div style={{ padding: '1rem 0' }}>
+      {isCancelled ? (
+        // Cancelled state — show simple cancelled card
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', background: '#fee2e2', borderRadius: '12px' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem', flexShrink: 0 }}>
+            <FaBan />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: '#991b1b' }}>Order Cancelled</div>
+            {historyMap['cancelled'] && (
+              <div style={{ fontSize: '0.8rem', color: '#b91c1c', marginTop: '0.2rem' }}>
+                {new Date(historyMap['cancelled'].timestamp).toLocaleString('en-IN')}
+                {historyMap['cancelled'].note && ` — ${historyMap['cancelled'].note}`}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        // Normal flow timeline
+        <div style={{ position: 'relative' }}>
+          {/* Connecting line */}
+          <div style={{
+            position: 'absolute', left: 21, top: 22, bottom: 22,
+            width: 2, background: '#e5e7eb', zIndex: 0
+          }} />
+
+          {FLOW_STEPS.map((step, idx) => {
+            const isDone = idx <= currentIdx;
+            const isCurrent = idx === currentIdx;
+            const entry = historyMap[step.key];
+
+            return (
+              <div key={step.key} style={{ display: 'flex', gap: '1rem', marginBottom: idx < FLOW_STEPS.length - 1 ? '1.5rem' : 0, position: 'relative', zIndex: 1 }}>
+                {/* Circle */}
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1rem',
+                  background: isDone ? (isCurrent ? '#4f46e5' : '#10b981') : 'white',
+                  color: isDone ? 'white' : '#d1d5db',
+                  border: isDone ? 'none' : '2px solid #e5e7eb',
+                  boxShadow: isCurrent ? '0 0 0 4px rgba(79,70,229,0.2)' : 'none',
+                  transition: 'all 0.3s'
+                }}>
+                  {step.icon}
+                </div>
+
+                {/* Content */}
+                <div style={{ paddingTop: '0.6rem' }}>
+                  <div style={{
+                    fontWeight: isCurrent ? 700 : isDone ? 600 : 400,
+                    color: isDone ? '#1f2937' : '#9ca3af',
+                    fontSize: '0.95rem'
+                  }}>
+                    {step.label}
+                    {isCurrent && (
+                      <Badge bg="primary" pill style={{ fontSize: '0.65rem', marginLeft: '0.5rem' }}>Current</Badge>
+                    )}
+                  </div>
+                  {entry && (
+                    <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '0.15rem' }}>
+                      {new Date(entry.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {entry.note && <span style={{ marginLeft: '0.5rem', color: '#9ca3af' }}>— {entry.note}</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const OrderDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState('');
 
-  useEffect(() => {
-    fetchOrderDetails();
-  }, [id]);
+  useEffect(() => { fetchOrder(); }, [id]);
 
-  const fetchOrderDetails = async () => {
+  const fetchOrder = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const token = localStorage.getItem("token");
-      
-      console.log("Fetching order with integer ID:", id);
-      
-      // ALWAYS use integer ID - convert to number
+      setError('');
+      const token = localStorage.getItem('token');
       const orderId = parseInt(id);
-      if (isNaN(orderId) || orderId <= 0) {
-        setError("Invalid order ID");
-        setLoading(false);
-        return;
-      }
-      
-      const response = await axios.get(`http://localhost:5000/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        setOrder(response.data.order);
+      if (isNaN(orderId)) { setError('Invalid order ID'); return; }
+
+      const [orderRes, timelineRes] = await Promise.all([
+        axios.get(`http://localhost:5000/api/orders/${orderId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`http://localhost:5000/api/orders/${orderId}/timeline`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { timeline: [] } }))
+      ]);
+
+      if (orderRes.data.success) {
+        setOrder(orderRes.data.order);
+        setTimeline(timelineRes.data.timeline || []);
       } else {
-        setError(response.data.message || "Order not found");
+        setError(orderRes.data.message || 'Order not found');
       }
-    } catch (error) {
-      console.error("Error fetching order details:", error);
-      
-      if (error.response?.status === 404) {
-        setError("Order not found");
-      } else if (error.response?.status === 403) {
-        setError("You don't have permission to view this order");
-      } else if (error.response?.status === 500 && error.response?.data?.error?.includes("Cast to Number")) {
-        setError("Invalid order ID format. Please use the correct order number.");
-      } else {
-        setError("Failed to load order details. Please try again.");
-      }
+    } catch (err) {
+      if (err.response?.status === 404) setError('Order not found');
+      else if (err.response?.status === 403) setError('Access denied');
+      else if (err.response?.status === 401) navigate('/login');
+      else setError('Failed to load order details');
     } finally {
       setLoading(false);
     }
   };
 
-  const cancelOrder = async () => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
-    
+  const handleCancel = async () => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
     try {
-      const token = localStorage.getItem("token");
-      const orderId = parseInt(id);
-      
-      await axios.put(
-        `http://localhost:5000/api/orders/${orderId}/cancel`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert("Order cancelled successfully!");
-      fetchOrderDetails();
-    } catch (error) {
-      console.error("Error cancelling order:", error);
-      alert(error.response?.data?.message || "Failed to cancel order");
+      setActionLoading('cancel');
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/orders/${order.id}/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchOrder();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setActionLoading('');
     }
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5">
-        <div className="text-center">
-          <Spinner animation="border" />
-          <p className="mt-2">Loading order details...</p>
-        </div>
-      </Container>
-    );
-  }
+  const handleConfirmDelivery = async () => {
+    if (!window.confirm('Confirm that you received this order?')) return;
+    try {
+      setActionLoading('confirm');
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/orders/${order.id}/confirm-delivery`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchOrder();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to confirm delivery');
+    } finally {
+      setActionLoading('');
+    }
+  };
 
-  if (error || !order) {
-    return (
-      <Container className="py-5">
-        <Alert variant="danger">
-          <h4>Error</h4>
-          <p>{error || "Order not found"}</p>
-          <div className="d-flex gap-2">
-            <Button variant="primary" onClick={() => navigate("/my-orders")}>
-              Back to Orders
-            </Button>
-            <Button variant="secondary" onClick={fetchOrderDetails}>
-              Try Again
-            </Button>
-          </div>
-        </Alert>
-      </Container>
-    );
-  }
+  const handleInvoice = () => {
+    const token = localStorage.getItem('token');
+    window.open(`http://localhost:5000/api/orders/${order.id}/invoice?token=${token}`, '_blank');
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Spinner animation="border" variant="primary" />
+    </div>
+  );
+
+  if (error || !order) return (
+    <Container className="py-5">
+      <Alert variant="danger">
+        <h5>{error || 'Order not found'}</h5>
+        <Button variant="primary" size="sm" onClick={() => navigate('/my-orders')}>Back to Orders</Button>
+      </Alert>
+    </Container>
+  );
 
   return (
-    <Container className="py-5">
-      <Button variant="outline-secondary" className="mb-4" onClick={() => navigate("/my-orders")}>
-        ← Back to Orders
-      </Button>
-      
-      <h1 className="mb-4">Order #{order.id}</h1>
-      
-      <Row className="g-4">
-        <Col lg={8}>
-          {/* Order Items */}
-          <Card className="mb-4">
-            <Card.Body>
-              <Card.Title>Order Items</Card.Title>
-              <Table responsive>
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.products && order.products.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div>
-                            <h6 className="mb-0">{item.productName || `Product ${item.product}`}</h6>
-                            <small className="text-muted">Product ID: {item.product}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{item.quantity}</td>
-                      <td>₹{item.unitPrice || 0}</td>
-                      <td>₹{item.subtotal || 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-
-          {/* Order Status */}
-          <Card className="mb-4">
-            <Card.Body>
-              <Card.Title>Order Status</Card.Title>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <Badge 
-                  bg={
-                    order.orderStatus === "delivered" ? "success" :
-                    order.orderStatus === "cancelled" ? "danger" :
-                    order.orderStatus === "shipped" ? "info" :
-                    order.orderStatus === "processing" ? "primary" : "warning"
-                  }
-                  className="fs-6"
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', paddingBottom: '3rem' }}>
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', color: 'white', padding: '2rem 0', marginBottom: '2rem' }}>
+        <Container>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Button variant="outline-light" size="sm" onClick={() => navigate('/my-orders')}><FaArrowLeft /></Button>
+              <div>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>Order ORD-{order.id}</h1>
+                <p style={{ margin: '0.25rem 0 0', opacity: 0.9, fontSize: '0.9rem' }}>
+                  Placed on {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Button variant="outline-light" onClick={handleInvoice}>
+                <FaFileInvoice style={{ marginRight: '0.5rem' }} /> Download Invoice
+              </Button>
+              {order.orderStatus === 'pending' && (
+                <Button
+                  variant="danger"
+                  onClick={handleCancel}
+                  disabled={actionLoading === 'cancel'}
                 >
-                  {order.orderStatus?.toUpperCase()}
-                </Badge>
-                
-                {order.orderStatus === "pending" && (
-                  <Button variant="danger" size="sm" onClick={cancelOrder}>
-                    Cancel Order
-                  </Button>
-                )}
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+                  <FaTimes style={{ marginRight: '0.5rem' }} />
+                  {actionLoading === 'cancel' ? 'Cancelling...' : 'Cancel Order'}
+                </Button>
+              )}
+              {(order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery') && (
+                <Button
+                  variant="success"
+                  onClick={handleConfirmDelivery}
+                  disabled={actionLoading === 'confirm'}
+                >
+                  <FaCheckCircle style={{ marginRight: '0.5rem' }} />
+                  {actionLoading === 'confirm' ? 'Confirming...' : 'Confirm Delivery'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Container>
+      </div>
 
-        <Col lg={4}>
-          {/* Order Summary */}
-          <Card className="mb-4">
-            <Card.Body>
-              <Card.Title>Order Summary</Card.Title>
-              <div className="mb-3">
-                <p><strong>Order ID:</strong> #{order.id}</p>
-                <p><strong>Order Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
-                <p><strong>Order Type:</strong> 
-                  <Badge bg={order.orderType === "bulk" ? "primary" : "secondary"} className="ms-2">
-                    {order.orderType}
-                  </Badge>
-                </p>
-              </div>
-              
-              <div className="mb-3">
-                <h5>Payment Details</h5>
-                <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
-                <p><strong>Payment Status:</strong> 
-                  <Badge bg={order.paymentStatus === "completed" ? "success" : "warning"} className="ms-2">
-                    {order.paymentStatus}
-                  </Badge>
-                </p>
-              </div>
-
-              <div className="mb-3">
-                <h5>Amount Details</h5>
-                <div className="d-flex justify-content-between">
-                  <span>Subtotal:</span>
-                  <span>₹{order.subtotal || 0}</span>
+      <Container>
+        <Row className="g-4">
+          {/* Left column */}
+          <Col lg={8}>
+            {/* Order Items */}
+            <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
+              <Card.Body style={{ padding: '1.5rem' }}>
+                <h5 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Order Items</h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(order.products || []).map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'linear-gradient(135deg, #e0e7ff, #ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                          📦
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{item.productName}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Qty: {item.quantity} × ₹{item.unitPrice}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#4f46e5' }}>₹{item.subtotal}</div>
+                    </div>
+                  ))}
                 </div>
-                {order.discount > 0 && (
-                  <div className="d-flex justify-content-between text-success">
-                    <span>Discount:</span>
-                    <span>-₹{order.discount}</span>
+
+                {/* Totals */}
+                <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#6b7280' }}>
+                    <span>Subtotal</span><span>₹{order.subtotal}</span>
+                  </div>
+                  {order.discount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', color: '#10b981' }}>
+                      <span>Discount</span><span>-₹{order.discount}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: '#1f2937', borderTop: '2px solid #e5e7eb', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                    <span>Total</span><span style={{ color: '#4f46e5' }}>₹{order.totalAmount}</span>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            {/* Tracking Timeline */}
+            <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+              <Card.Body style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <h5 style={{ fontWeight: 700, margin: 0 }}>Order Tracking</h5>
+                  <StatusBadge status={order.orderStatus} />
+                </div>
+                <OrderTimeline timeline={timeline} currentStatus={order.orderStatus} />
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* Right column */}
+          <Col lg={4}>
+            {/* Order Summary */}
+            <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
+              <Card.Body style={{ padding: '1.5rem' }}>
+                <h5 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Order Summary</h5>
+                {[
+                  { label: 'Order ID', value: `ORD-${order.id}` },
+                  { label: 'Order Type', value: <Badge bg={order.orderType === 'bulk' ? 'primary' : 'secondary'}>{order.orderType}</Badge> },
+                  { label: 'Date', value: new Date(order.orderDate).toLocaleDateString('en-IN') },
+                  { label: 'Payment', value: order.paymentMethod?.toUpperCase() },
+                  { label: 'Pay Status', value: <Badge bg={order.paymentStatus === 'completed' ? 'success' : 'warning'}>{order.paymentStatus}</Badge> },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0', borderBottom: '1px solid #f3f4f6', fontSize: '0.9rem' }}>
+                    <span style={{ color: '#6b7280' }}>{row.label}</span>
+                    <span style={{ fontWeight: 600 }}>{row.value}</span>
+                  </div>
+                ))}
+                {order.trackingNumber && (
+                  <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f0fdf4', borderRadius: '8px', fontSize: '0.85rem' }}>
+                    <div style={{ color: '#6b7280', marginBottom: '0.25rem' }}>Tracking Number</div>
+                    <div style={{ fontWeight: 700, color: '#065f46' }}>{order.trackingNumber}</div>
                   </div>
                 )}
-                <hr />
-                <div className="d-flex justify-content-between">
-                  <strong>Total:</strong>
-                  <strong>₹{order.totalAmount || 0}</strong>
-                </div>
-              </div>
+              </Card.Body>
+            </Card>
 
-              {order.trackingNumber && (
-                <div className="mt-3">
-                  <h6>Tracking Information</h6>
-                  <p className="mb-0">Tracking #: {order.trackingNumber}</p>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
+            {/* Shipping Address */}
+            <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
+              <Card.Body style={{ padding: '1.5rem' }}>
+                <h5 style={{ fontWeight: 700, marginBottom: '1rem' }}>
+                  <FaMapMarkerAlt style={{ marginRight: '0.5rem', color: '#ef4444' }} />
+                  Shipping Address
+                </h5>
+                {order.shippingAddress ? (
+                  <div style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.7 }}>
+                    <div>{order.shippingAddress.address}</div>
+                    <div>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}</div>
+                    <div>{order.shippingAddress.country}</div>
+                  </div>
+                ) : (
+                  <p style={{ color: '#9ca3af', margin: 0 }}>No address provided</p>
+                )}
+              </Card.Body>
+            </Card>
 
-          {/* Shipping Address */}
-          <Card>
-            <Card.Body>
-              <Card.Title>Shipping Address</Card.Title>
-              {order.shippingAddress ? (
-                <div>
-                  <p className="mb-1">{order.shippingAddress.address}</p>
-                  <p className="mb-1">
-                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-                  </p>
-                  <p className="mb-0">{order.shippingAddress.country}</p>
-                </div>
-              ) : (
-                <p className="text-muted">No shipping address provided</p>
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <Button variant="outline-primary" onClick={handleInvoice} style={{ borderRadius: '10px', fontWeight: 600 }}>
+                <FaFileInvoice style={{ marginRight: '0.5rem' }} /> Download Invoice
+              </Button>
+              {order.orderStatus === 'pending' && (
+                <Button
+                  variant="outline-danger"
+                  onClick={handleCancel}
+                  disabled={actionLoading === 'cancel'}
+                  style={{ borderRadius: '10px', fontWeight: 600 }}
+                >
+                  <FaTimes style={{ marginRight: '0.5rem' }} />
+                  {actionLoading === 'cancel' ? 'Cancelling...' : 'Cancel Order'}
+                </Button>
               )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+              {(order.orderStatus === 'shipped' || order.orderStatus === 'out_for_delivery') && (
+                <Button
+                  variant="success"
+                  onClick={handleConfirmDelivery}
+                  disabled={actionLoading === 'confirm'}
+                  style={{ borderRadius: '10px', fontWeight: 600 }}
+                >
+                  <FaCheckCircle style={{ marginRight: '0.5rem' }} />
+                  {actionLoading === 'confirm' ? 'Confirming...' : 'Confirm Delivery'}
+                </Button>
+              )}
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
 };
 

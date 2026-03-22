@@ -11,7 +11,7 @@ import {
   FaUsers, FaBox, FaShoppingCart, FaCheckCircle,
   FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
   FaRupeeSign, FaCube, FaListOl, FaSync, FaSearch, FaFilter,
-  FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift
+  FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen
 } from "react-icons/fa";
 import NotificationBell from "../../components/NotificationBell.jsx";
 
@@ -41,6 +41,8 @@ const AdminDashboard = ({ setUser }) => {
   const [pendingVerifications, setPendingVerifications] = useState([]);
   const [bookSetRequests, setBookSetRequests] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [itemRequests, setItemRequests] = useState([]);
+  const [itemRequestFilter, setItemRequestFilter] = useState('all');
 
   // User names mapping for orders
   const [userNames, setUserNames] = useState({});
@@ -336,6 +338,59 @@ const AdminDashboard = ({ setUser }) => {
     }
   };
 
+  const fetchItemRequests = async (page = 1) => {
+    try {
+      setFetchingData(true);
+      const token = localStorage.getItem('token');
+      let url = `http://localhost:5000/api/requests/admin/all?page=${page}&limit=${itemsPerPage}`;
+      if (itemRequestFilter && itemRequestFilter !== 'all') url += `&status=${itemRequestFilter}`;
+      const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+      setItemRequests(response.data.requests || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error("Fetch item requests error:", err);
+      setError("Failed to load item requests: " + (err.response?.data?.message || err.message));
+    } finally {
+      setFetchingData(false);
+    }
+  };
+
+  const handleApproveItemRequest = async (requestId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/requests/admin/${requestId}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess("Request approved successfully!");
+      fetchItemRequests(currentPage);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to approve request");
+    }
+  };
+
+  const handleRejectItemRequest = async (requestId) => {
+    const remark = prompt("Enter rejection reason (required):");
+    if (!remark || remark.trim().length < 3) {
+      setError("Rejection reason is required (min 3 characters)");
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/requests/admin/${requestId}/reject`,
+        { admin_remark: remark },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuccess("Request rejected");
+      fetchItemRequests(currentPage);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to reject request");
+    }
+  };
+
   const handleDeleteDonation = async (donationId, donationTitle) => {
     if (!window.confirm(`Delete donation "${donationTitle}"? This action cannot be undone.`)) return;
 
@@ -376,6 +431,9 @@ const AdminDashboard = ({ setUser }) => {
         break;
       case "donations":
         fetchDonations(1);
+        break;
+      case "item-requests":
+        fetchItemRequests(1);
         break;
       default:
         fetchDashboard();
@@ -682,6 +740,13 @@ const AdminDashboard = ({ setUser }) => {
                   {stats.totalDonations}
                 </Badge>
               )}
+            </Nav.Link>
+            <Nav.Link
+              onClick={() => handleTabChange("item-requests")}
+              className={`text-white mb-2 d-flex align-items-center ${activeTab === "item-requests" ? "bg-primary rounded" : ""}`}
+            >
+              <FaBoxOpen className="me-2" />
+              Item Requests
             </Nav.Link>
             <Button
               variant="outline-danger"
@@ -1671,6 +1736,166 @@ const AdminDashboard = ({ setUser }) => {
               ) : (
                 <Alert variant="info">
                   No book set requests found.
+                </Alert>
+              )}
+            </>
+          )}
+
+          {activeTab === "item-requests" && (
+            <>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="mb-0">
+                  <FaBoxOpen className="me-2" />
+                  Item Requests Management
+                </h3>
+                <Badge bg="info">Total: {totalItems}</Badge>
+              </div>
+
+              <Card className="mb-4 shadow-sm">
+                <Card.Body>
+                  <Row className="g-3 align-items-center">
+                    <Col md={4}>
+                      <Form.Label className="fw-semibold mb-1">Filter by Status</Form.Label>
+                      <Form.Select
+                        value={itemRequestFilter}
+                        onChange={(e) => {
+                          setItemRequestFilter(e.target.value);
+                          fetchItemRequests(1);
+                        }}
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
+                      </Form.Select>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {fetchingData ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" />
+                  <p className="mt-2">Loading item requests...</p>
+                </div>
+              ) : itemRequests.length > 0 ? (
+                <>
+                  <Card className="shadow-sm border-0">
+                    <Card.Body className="p-0">
+                      <Table striped hover responsive className="mb-0">
+                        <thead className="table-dark">
+                          <tr>
+                            <th>#</th>
+                            <th>User</th>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Qty</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {itemRequests.map((req, idx) => (
+                            <tr key={req.id} style={{ verticalAlign: 'middle' }}>
+                              <td className="text-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                              <td>{userNames[req.user_id] || `User #${req.user_id}`}</td>
+                              <td className="fw-semibold">{req.item_name}</td>
+                              <td>
+                                <Badge bg="light" text="dark" style={{ textTransform: 'capitalize' }}>
+                                  {req.category}
+                                </Badge>
+                              </td>
+                              <td>{req.quantity_requested}</td>
+                              <td style={{ maxWidth: '200px', fontSize: '0.85rem', color: '#6b7280' }}>
+                                {req.description
+                                  ? req.description.substring(0, 80) + (req.description.length > 80 ? '...' : '')
+                                  : <span className="text-muted">—</span>}
+                              </td>
+                              <td>
+                                <Badge bg={
+                                  req.status === 'approved' ? 'success' :
+                                  req.status === 'rejected' ? 'danger' :
+                                  req.status === 'cancelled' ? 'secondary' : 'warning'
+                                }>
+                                  {req.status}
+                                </Badge>
+                                {req.admin_remark && (
+                                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                                    {req.admin_remark.substring(0, 40)}{req.admin_remark.length > 40 ? '...' : ''}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                {new Date(req.created_at).toLocaleDateString()}
+                              </td>
+                              <td>
+                                {req.status === 'pending' && (
+                                  <>
+                                    <Button
+                                      variant="success"
+                                      size="sm"
+                                      className="me-2"
+                                      onClick={() => handleApproveItemRequest(req.id)}
+                                    >
+                                      <FaCheckCircle className="me-1" />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      variant="danger"
+                                      size="sm"
+                                      onClick={() => handleRejectItemRequest(req.id)}
+                                    >
+                                      Reject
+                                    </Button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </Card.Body>
+                  </Card>
+
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-4">
+                      <Pagination>
+                        <Pagination.First onClick={() => fetchItemRequests(1)} disabled={currentPage === 1} />
+                        <Pagination.Prev onClick={() => fetchItemRequests(currentPage - 1)} disabled={currentPage === 1} />
+                        {[...Array(totalPages)].map((_, i) => {
+                          const pageNum = i + 1;
+                          if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                          ) {
+                            return (
+                              <Pagination.Item
+                                key={`ir-page-${pageNum}`}
+                                active={pageNum === currentPage}
+                                onClick={() => fetchItemRequests(pageNum)}
+                              >
+                                {pageNum}
+                              </Pagination.Item>
+                            );
+                          } else if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
+                            return <Pagination.Ellipsis key={`ir-ellipsis-${pageNum}`} />;
+                          }
+                          return null;
+                        })}
+                        <Pagination.Next onClick={() => fetchItemRequests(currentPage + 1)} disabled={currentPage === totalPages} />
+                        <Pagination.Last onClick={() => fetchItemRequests(totalPages)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Alert variant="info">
+                  <FaBoxOpen className="me-2" />
+                  No item requests found{itemRequestFilter !== 'all' ? ` with status "${itemRequestFilter}"` : ''}.
                 </Alert>
               )}
             </>

@@ -108,7 +108,7 @@ const BookSetDetails = () => {
           <Alert variant="danger">
             {error || "Book set not found"}
           </Alert>
-          <Button variant="primary" onClick={() => navigate(-1)}>
+          <Button variant="primary" onClick={() => navigate('/book-sets')}>
             <FaArrowLeft style={{ marginRight: '0.5rem' }} />
             Go Back
           </Button>
@@ -134,7 +134,7 @@ const BookSetDetails = () => {
         <Container>
           <Button
             variant="link"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/book-sets')}
             style={{
               color: 'white',
               textDecoration: 'none',
@@ -484,7 +484,7 @@ const BookSetDetails = () => {
           <Button
             variant="outline-secondary"
             size="lg"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/book-sets')}
             style={{
               borderRadius: '12px',
               padding: '1rem 2rem',

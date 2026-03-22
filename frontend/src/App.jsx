@@ -30,6 +30,8 @@ import DonationDetails from "./pages/DonationDetails.jsx";
 import MyDonations from "./pages/MyDonations.jsx";
 import MyRequests from "./pages/MyRequests.jsx";
 import DonationChat from "./pages/DonationChat.jsx";
+import MyItemRequests from "./pages/MyItemRequests.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -269,6 +271,24 @@ function App() {
             ) : (
               <Navigate to="/login" replace />
             )
+          }
+        />
+
+        <Route
+          path="/my-item-requests"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <MyItemRequests />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            user ? <NotificationsPage /> : <Navigate to="/login" replace />
           }
         />
 

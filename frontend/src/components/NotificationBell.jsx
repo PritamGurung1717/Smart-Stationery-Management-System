@@ -16,13 +16,13 @@ const NotificationBell = () => {
     fetchNotifications();
     fetchUnreadCount();
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 10 seconds
     intervalRef.current = setInterval(() => {
       fetchUnreadCount();
       if (show) {
         fetchNotifications();
       }
-    }, 30000);
+    }, 10000);
 
     return () => {
       if (intervalRef.current) {

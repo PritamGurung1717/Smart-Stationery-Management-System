@@ -125,13 +125,7 @@ const CartPage = () => {
     navigate("/products");
   };
 
-  const handleGoBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/dashboard");
-    }
-  };
+  const handleGoBack = () => navigate('/products');
 
   if (loading) {
     return (

@@ -28,6 +28,7 @@ const wishlistRoutes = require('./routes/wishlistRoutes');
 const bookSetRoutes = require('./routes/bookSetRoutes');
 const donationRoutes = require('./routes/donationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const requestRoutes = require('./routes/requestRoutes');
 
 // Check for required environment variables
 if (!process.env.JWT_SECRET) {
@@ -64,6 +65,7 @@ app.use('/api', wishlistRoutes); // Add wishlist routes
 app.use('/api', bookSetRoutes); // Add book set routes
 app.use('/api/donations', donationRoutes); // Add donation routes
 app.use('/api/notifications', notificationRoutes); // Add notification routes
+app.use('/api/requests', requestRoutes); // Add item request routes
 
 // Health check route
 app.get("/api/health", (req, res) => {

@@ -108,6 +108,7 @@ router.post("/", auth, async (req, res) => {
       orderStatus: "pending",
       orderType: orderType || "regular",
       orderDate: new Date(),
+      statusHistory: [{ status: "pending", updated_by: null, note: "Order placed" }],
     });
 
     await order.save();
@@ -526,8 +527,14 @@ router.put("/:id", auth, async (req, res) => {
 
     order.orderStatus = orderStatus;
     order.updatedAt = new Date();
-    
+    order.statusHistory.push({ status: orderStatus, updated_by: req.user.id, note: `Status updated by admin` });
     await order.save();
+
+    // Send notification to user
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.createOrderNotification(order.user, order.id, orderStatus, order.totalAmount);
+    } catch (e) { /* non-blocking */ }
 
     res.json({
       success: true,
@@ -699,6 +706,221 @@ router.get("/stats/overview", adminAuth, async (req, res) => {
       message: "Error fetching stats",
       error: error.message,
     });
+  }
+});
+
+// ─── CANCEL ORDER (user, pending only) ───────────────────────────────────────
+router.put("/:id/cancel", auth, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = await Order.findOne({ id: orderId });
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (order.user !== req.user.id && req.user.role !== "admin")
+      return res.status(403).json({ success: false, message: "Access denied" });
+    if (order.orderStatus !== "pending")
+      return res.status(400).json({ success: false, message: "Only pending orders can be cancelled" });
+
+    order.orderStatus = "cancelled";
+    order.statusHistory.push({ status: "cancelled", updated_by: req.user.id, note: "Cancelled by user" });
+    await order.save();
+
+    // Notify user
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.createOrderNotification(order.user, order.id, 'cancelled', order.totalAmount);
+    } catch (e) { /* non-blocking */ }
+
+    res.json({ success: true, message: "Order cancelled successfully", order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── CONFIRM DELIVERY (user, shipped only) ────────────────────────────────────
+router.put("/:id/confirm-delivery", auth, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = await Order.findOne({ id: orderId });
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (order.user !== req.user.id)
+      return res.status(403).json({ success: false, message: "Access denied" });
+    if (order.orderStatus !== "shipped" && order.orderStatus !== "out_for_delivery")
+      return res.status(400).json({ success: false, message: "Order must be shipped before confirming delivery" });
+
+    order.orderStatus = "delivered";
+    order.statusHistory.push({ status: "delivered", updated_by: req.user.id, note: "Delivery confirmed by customer" });
+    await order.save();
+
+    // Notify user
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.createOrderNotification(order.user, order.id, 'delivered', order.totalAmount);
+    } catch (e) { /* non-blocking */ }
+
+    res.json({ success: true, message: "Delivery confirmed successfully", order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── ORDER TIMELINE ───────────────────────────────────────────────────────────
+router.get("/:id/timeline", auth, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = await Order.findOne({ id: orderId }).select('id user orderStatus statusHistory orderDate');
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (order.user !== req.user.id && req.user.role !== "admin")
+      return res.status(403).json({ success: false, message: "Access denied" });
+
+    // If no history yet, synthesize from orderDate
+    let timeline = order.statusHistory || [];
+    if (timeline.length === 0) {
+      timeline = [{ status: "pending", timestamp: order.orderDate, note: "Order placed" }];
+    }
+
+    res.json({ success: true, timeline, currentStatus: order.orderStatus });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── INVOICE (inline HTML, printable) ────────────────────────────────────────
+// Supports ?token= query param so it can be opened in a new browser tab
+const invoiceAuth = async (req, res, next) => {
+  // Allow token from query string for browser tab opens
+  if (req.query.token && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  return auth(req, res, next);
+};
+
+router.get("/:id/invoice", invoiceAuth, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const order = await Order.findOne({ id: orderId });
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (order.user !== req.user.id && req.user.role !== "admin")
+      return res.status(403).json({ success: false, message: "Access denied" });
+
+    const user = await User.findOne({ id: order.user }).select('name email phone');
+    const invoiceNumber = `INV-${String(order.id).padStart(6, '0')}`;
+    const date = new Date(order.orderDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const itemRows = (order.products || []).map(item => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;">${item.productName}</td>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:center;">${item.quantity}</td>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">₹${item.unitPrice}</td>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">₹${item.subtotal}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice ${invoiceNumber}</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 40px; color: #1f2937; background: #f9fafb; }
+    .invoice { max-width: 800px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 40px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header h1 { margin: 0; font-size: 2rem; font-weight: 800; }
+    .header p { margin: 4px 0 0; opacity: 0.85; }
+    .invoice-meta { text-align: right; }
+    .invoice-meta h2 { margin: 0; font-size: 1.5rem; }
+    .invoice-meta p { margin: 4px 0 0; opacity: 0.85; font-size: 0.9rem; }
+    .body { padding: 40px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+    .info-box h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 8px; }
+    .info-box p { margin: 2px 0; font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    thead tr { background: #f3f4f6; }
+    thead th { padding: 12px 10px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
+    thead th:last-child, thead th:nth-child(3), thead th:nth-child(2) { text-align: right; }
+    thead th:nth-child(2) { text-align: center; }
+    .totals { margin-left: auto; width: 280px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.95rem; }
+    .totals-row.total { border-top: 2px solid #e5e7eb; margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 1.1rem; color: #4f46e5; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .footer { background: #f9fafb; padding: 24px 40px; text-align: center; color: #9ca3af; font-size: 0.85rem; border-top: 1px solid #e5e7eb; }
+    @media print { body { padding: 0; background: white; } .invoice { box-shadow: none; border-radius: 0; } .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align:center;margin-bottom:24px;">
+    <button onclick="window.print()" style="background:#4f46e5;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600;">🖨️ Print / Save as PDF</button>
+    <button onclick="window.close()" style="background:#e5e7eb;color:#374151;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600;margin-left:12px;">Close</button>
+  </div>
+  <div class="invoice">
+    <div class="header">
+      <div>
+        <h1>Smart Stationery</h1>
+        <p>Management System</p>
+      </div>
+      <div class="invoice-meta">
+        <h2>INVOICE</h2>
+        <p>${invoiceNumber}</p>
+        <p>${date}</p>
+      </div>
+    </div>
+    <div class="body">
+      <div class="info-grid">
+        <div class="info-box">
+          <h3>Bill To</h3>
+          <p><strong>${user?.name || 'Customer'}</strong></p>
+          <p>${user?.email || ''}</p>
+          <p>${user?.phone || ''}</p>
+        </div>
+        <div class="info-box">
+          <h3>Ship To</h3>
+          <p>${order.shippingAddress?.address || ''}</p>
+          <p>${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} ${order.shippingAddress?.zipCode || ''}</p>
+          <p>${order.shippingAddress?.country || ''}</p>
+        </div>
+        <div class="info-box">
+          <h3>Order Details</h3>
+          <p>Order ID: <strong>ORD-${order.id}</strong></p>
+          <p>Type: ${order.orderType}</p>
+          <p>Status: <span class="badge ${order.orderStatus === 'delivered' ? 'badge-success' : 'badge-warning'}">${order.orderStatus}</span></p>
+        </div>
+        <div class="info-box">
+          <h3>Payment</h3>
+          <p>Method: <strong>${order.paymentMethod?.toUpperCase()}</strong></p>
+          <p>Status: <span class="badge ${order.paymentStatus === 'completed' ? 'badge-success' : 'badge-warning'}">${order.paymentStatus}</span></p>
+          ${order.transactionId ? `<p>Txn: ${order.transactionId}</p>` : ''}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+
+      <div class="totals">
+        <div class="totals-row"><span>Subtotal</span><span>₹${order.subtotal}</span></div>
+        ${order.discount > 0 ? `<div class="totals-row" style="color:#10b981;"><span>Discount</span><span>-₹${order.discount}</span></div>` : ''}
+        <div class="totals-row total"><span>Total</span><span>₹${order.totalAmount}</span></div>
+      </div>
+    </div>
+    <div class="footer">
+      Thank you for your order! For support, contact us at support@smartstationery.com
+    </div>
+  </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

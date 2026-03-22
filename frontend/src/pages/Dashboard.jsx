@@ -1388,6 +1388,44 @@ const Dashboard = ({ setUser }) => {
         </Container>
       </section>
 
+      {/* Request Box Section */}
+      <section style={{ padding: '4rem 0', background: 'white' }}>
+        <Container>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#1f2937', marginBottom: '0.5rem' }}>
+              📦 Can't Find What You Need?
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: '1.1rem', maxWidth: '500px', margin: '0 auto' }}>
+              Submit a request for any item not available in our store. We'll review and add it for you!
+            </p>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <Button
+              size="lg"
+              onClick={() => navigate('/my-item-requests')}
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                border: 'none',
+                borderRadius: '50px',
+                padding: '0.875rem 2.5rem',
+                fontWeight: 600,
+                fontSize: '1rem'
+              }}
+            >
+              📝 Submit Item Request
+            </Button>
+            <Button
+              size="lg"
+              variant="outline-primary"
+              onClick={() => navigate('/my-item-requests')}
+              style={{ borderRadius: '50px', padding: '0.875rem 2.5rem', fontWeight: 600 }}
+            >
+              📋 View My Requests
+            </Button>
+          </div>
+        </Container>
+      </section>
+
       {/* Footer */}
       <footer style={{
         background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',

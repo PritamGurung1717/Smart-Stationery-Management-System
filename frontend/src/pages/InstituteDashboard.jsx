@@ -381,6 +381,30 @@ const InstituteDashboard = ({ setUser }) => {
       <div className="mt-4">
         <DonationSection />
       </div>
+
+      {/* Request Box */}
+      <div className="mt-4 p-4" style={{ background: 'linear-gradient(135deg, #eff6ff, #e0e7ff)', borderRadius: '16px', textAlign: 'center' }}>
+        <h4 style={{ fontWeight: 700, color: '#1f2937', marginBottom: '0.5rem' }}>📦 Can't Find What You Need?</h4>
+        <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
+          Submit a request for unavailable items. We'll review and add them to the store!
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Button
+            variant="primary"
+            onClick={() => navigate('/my-item-requests')}
+            style={{ borderRadius: '50px', padding: '0.625rem 1.75rem', fontWeight: 600 }}
+          >
+            📝 Submit Request
+          </Button>
+          <Button
+            variant="outline-primary"
+            onClick={() => navigate('/my-item-requests')}
+            style={{ borderRadius: '50px', padding: '0.625rem 1.75rem', fontWeight: 600 }}
+          >
+            📋 My Requests
+          </Button>
+        </div>
+      </div>
     </>
   );
 
