@@ -774,8 +774,8 @@ router.put("/admin/book-set-requests/:id/reject", adminAuth, async (req, res) =>
 
 // ==================== PUBLIC ROUTES ====================
 
-// Get all approved book sets (for customers)
-router.get("/book-sets", auth, async (req, res) => {
+// Get all approved book sets (for customers) — no auth required
+router.get("/book-sets", async (req, res) => {
   try {
     const { school, grade, page = 1, limit = 20 } = req.query;
 
@@ -824,8 +824,8 @@ router.get("/book-sets", auth, async (req, res) => {
   }
 });
 
-// Get single book set by ID
-router.get("/book-sets/:id", auth, async (req, res) => {
+// Get single book set by ID — no auth required
+router.get("/book-sets/:id", async (req, res) => {
   try {
     const bookSet = await BookSet.findById(req.params.id);
 

@@ -819,76 +819,94 @@ router.get("/:id/invoice", invoiceAuth, async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <title>Invoice ${invoiceNumber}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 40px; color: #1f2937; background: #f9fafb; }
-    .invoice { max-width: 800px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); overflow: hidden; }
-    .header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 40px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .header h1 { margin: 0; font-size: 2rem; font-weight: 800; }
-    .header p { margin: 4px 0 0; opacity: 0.85; }
-    .invoice-meta { text-align: right; }
-    .invoice-meta h2 { margin: 0; font-size: 1.5rem; }
-    .invoice-meta p { margin: 4px 0 0; opacity: 0.85; font-size: 0.9rem; }
-    .body { padding: 40px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
-    .info-box h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 8px; }
-    .info-box p { margin: 2px 0; font-size: 0.95rem; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 32px 16px; color: #111; background: #fafafa; }
+    .invoice { max-width: 780px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; }
+    .header { background: #111; color: #fff; padding: 36px 40px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .brand { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.75rem; font-weight: 400; letter-spacing: -0.02em; margin: 0; }
+    .brand-sub { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .inv-meta { text-align: right; }
+    .inv-meta .inv-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+    .inv-meta .inv-number { font-size: 1.1rem; font-weight: 700; }
+    .inv-meta .inv-date { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .body { padding: 36px 40px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #e5e7eb; }
+    .info-box .box-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px; }
+    .info-box p { margin: 2px 0; font-size: 0.875rem; color: #374151; line-height: 1.5; }
+    .info-box strong { color: #111; font-weight: 700; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    thead tr { background: #f3f4f6; }
-    thead th { padding: 12px 10px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
-    thead th:last-child, thead th:nth-child(3), thead th:nth-child(2) { text-align: right; }
+    thead tr { border-bottom: 2px solid #111; }
+    thead th { padding: 10px 8px; text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; }
     thead th:nth-child(2) { text-align: center; }
-    .totals { margin-left: auto; width: 280px; }
-    .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.95rem; }
-    .totals-row.total { border-top: 2px solid #e5e7eb; margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 1.1rem; color: #4f46e5; }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    thead th:nth-child(3), thead th:nth-child(4) { text-align: right; }
+    tbody td { padding: 11px 8px; font-size: 0.875rem; color: #374151; border-bottom: 1px solid #f3f4f6; }
+    tbody td:nth-child(2) { text-align: center; }
+    tbody td:nth-child(3), tbody td:nth-child(4) { text-align: right; font-weight: 500; }
+    .totals { margin-left: auto; width: 260px; padding-top: 16px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.875rem; color: #6b7280; }
+    .totals-row.grand { border-top: 2px solid #111; margin-top: 8px; padding-top: 12px; font-weight: 800; font-size: 1rem; color: #111; }
+    .totals-row.discount { color: #059669; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
     .badge-success { background: #d1fae5; color: #065f46; }
     .badge-warning { background: #fef3c7; color: #92400e; }
-    .footer { background: #f9fafb; padding: 24px 40px; text-align: center; color: #9ca3af; font-size: 0.85rem; border-top: 1px solid #e5e7eb; }
-    @media print { body { padding: 0; background: white; } .invoice { box-shadow: none; border-radius: 0; } .no-print { display: none; } }
+    .footer { background: #fafafa; border-top: 1px solid #e5e7eb; padding: 20px 40px; text-align: center; color: #9ca3af; font-size: 0.8rem; }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .invoice { border: none; border-radius: 0; }
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="no-print" style="text-align:center;margin-bottom:24px;">
-    <button onclick="window.print()" style="background:#4f46e5;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600;">🖨️ Print / Save as PDF</button>
-    <button onclick="window.close()" style="background:#e5e7eb;color:#374151;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600;margin-left:12px;">Close</button>
+  <div class="no-print" style="text-align:center;margin-bottom:24px;display:flex;justify-content:center;gap:12px;">
+    <button onclick="window.print()" style="background:#111;color:#fff;border:none;padding:11px 28px;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;">
+      🖨️ Print / Save as PDF
+    </button>
+    <button onclick="window.close()" style="background:#fff;color:#374151;border:1px solid #e5e7eb;padding:11px 28px;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;font-family:'Inter',sans-serif;">
+      Close
+    </button>
   </div>
+
   <div class="invoice">
     <div class="header">
       <div>
-        <h1>Smart Stationery</h1>
-        <p>Management System</p>
+        <div class="brand">smartstationery.</div>
+        <div class="brand-sub">Order Invoice</div>
       </div>
-      <div class="invoice-meta">
-        <h2>INVOICE</h2>
-        <p>${invoiceNumber}</p>
-        <p>${date}</p>
+      <div class="inv-meta">
+        <div class="inv-label">Invoice</div>
+        <div class="inv-number">${invoiceNumber}</div>
+        <div class="inv-date">${date}</div>
       </div>
     </div>
+
     <div class="body">
       <div class="info-grid">
         <div class="info-box">
-          <h3>Bill To</h3>
+          <div class="box-label">Bill To</div>
           <p><strong>${user?.name || 'Customer'}</strong></p>
           <p>${user?.email || ''}</p>
-          <p>${user?.phone || ''}</p>
+          ${user?.phone ? `<p>${user.phone}</p>` : ''}
         </div>
         <div class="info-box">
-          <h3>Ship To</h3>
-          <p>${order.shippingAddress?.address || ''}</p>
-          <p>${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} ${order.shippingAddress?.zipCode || ''}</p>
+          <div class="box-label">Ship To</div>
+          <p>${order.shippingAddress?.address || '—'}</p>
+          <p>${[order.shippingAddress?.city, order.shippingAddress?.state, order.shippingAddress?.zipCode].filter(Boolean).join(', ')}</p>
           <p>${order.shippingAddress?.country || ''}</p>
         </div>
         <div class="info-box">
-          <h3>Order Details</h3>
+          <div class="box-label">Order Details</div>
           <p>Order ID: <strong>ORD-${order.id}</strong></p>
           <p>Type: ${order.orderType}</p>
           <p>Status: <span class="badge ${order.orderStatus === 'delivered' ? 'badge-success' : 'badge-warning'}">${order.orderStatus}</span></p>
         </div>
         <div class="info-box">
-          <h3>Payment</h3>
-          <p>Method: <strong>${order.paymentMethod?.toUpperCase()}</strong></p>
+          <div class="box-label">Payment</div>
+          <p>Method: <strong>${(order.paymentMethod || '').toUpperCase()}</strong></p>
           <p>Status: <span class="badge ${order.paymentStatus === 'completed' ? 'badge-success' : 'badge-warning'}">${order.paymentStatus}</span></p>
-          ${order.transactionId ? `<p>Txn: ${order.transactionId}</p>` : ''}
+          ${order.transactionId ? `<p style="font-size:0.8rem;color:#9ca3af;">Txn: ${order.transactionId}</p>` : ''}
         </div>
       </div>
 
@@ -906,12 +924,13 @@ router.get("/:id/invoice", invoiceAuth, async (req, res) => {
 
       <div class="totals">
         <div class="totals-row"><span>Subtotal</span><span>₹${order.subtotal}</span></div>
-        ${order.discount > 0 ? `<div class="totals-row" style="color:#10b981;"><span>Discount</span><span>-₹${order.discount}</span></div>` : ''}
-        <div class="totals-row total"><span>Total</span><span>₹${order.totalAmount}</span></div>
+        ${order.discount > 0 ? `<div class="totals-row discount"><span>Discount</span><span>−₹${order.discount}</span></div>` : ''}
+        <div class="totals-row grand"><span>Total</span><span>₹${order.totalAmount}</span></div>
       </div>
     </div>
+
     <div class="footer">
-      Thank you for your order! For support, contact us at support@smartstationery.com
+      Thank you for your order — smartstationery. &nbsp;·&nbsp; support@smartstationery.com
     </div>
   </div>
 </body>

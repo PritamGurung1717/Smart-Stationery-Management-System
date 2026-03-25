@@ -16,11 +16,11 @@ const {
 
 // ==================== PUBLIC ROUTES (Authenticated Users) ====================
 
-// Get all donations (with filters)
-router.get("/", auth, donationController.getDonations);
+// Get all donations (with filters) — no auth required for browsing
+router.get("/", donationController.getDonations);
 
-// Get single donation
-router.get("/:id", auth, donationController.getDonation);
+// Get single donation — no auth required for browsing
+router.get("/:id", donationController.getDonation);
 
 // Create donation (with image upload)
 router.post(

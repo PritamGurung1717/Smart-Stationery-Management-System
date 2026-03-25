@@ -3,10 +3,14 @@ const User = require('../models/user');
 
 const auth = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Get token from header — strip all leading "Bearer " prefixes defensively
+    let token = req.header('Authorization') || '';
+    while (/^Bearer\s+/i.test(token)) {
+      token = token.replace(/^Bearer\s+/i, '').trim();
+    }
     
-    if (!token) {
+    // Silently reject null/undefined string tokens (e.g. after logout)
+    if (!token || token === 'null' || token === 'undefined') {
       return res.status(401).json({ 
         success: false,
         message: 'Access denied. No token provided.' 
@@ -44,16 +48,16 @@ const auth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    
-    // Provide specific error messages for different JWT errors
     let message = 'Authentication failed. Please login again.';
     
     if (error.name === 'JsonWebTokenError') {
       message = 'Invalid token format. Please clear your browser cache and login again.';
-      console.error('JWT Malformed - Token value:', req.header('Authorization')?.substring(0, 50) + '...');
+      // Silently reject — no console spam for expected post-logout requests
     } else if (error.name === 'TokenExpiredError') {
       message = 'Your session has expired. Please login again.';
+    } else {
+      // Only log truly unexpected errors
+      console.error('Auth middleware error:', error);
     }
     
     res.status(401).json({ 
