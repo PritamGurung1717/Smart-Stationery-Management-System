@@ -1,30 +1,23 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Badge,
-  Spinner,
-  Alert,
-  Modal,
-  Form,
-  Carousel,
-} from "react-bootstrap";
-import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaClock,
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaEdit,
-  FaTrash,
-  FaComments,
-} from "react-icons/fa";
+import { FaChevronLeft, FaMapMarkerAlt, FaClock, FaUser, FaEnvelope, FaPhone, FaEdit, FaTrash, FaComments, FaTimes } from "react-icons/fa";
 import axios from "axios";
+import SharedLayout from "../components/SharedLayout.jsx";
+
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+const getTimeAgo = (date) => {
+  const s = Math.floor((new Date() - new Date(date)) / 1000);
+  if (s < 60) return "Just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(date).toLocaleDateString();
+};
+
+const CONDITION_MAP = { new: "New", like_new: "Like New", good: "Good", used: "Used" };
+const CAT_ICON = { books: "📚", stationery: "✏️", electronics: "💻", furniture: "🪑", other: "📦" };
 
 const DonationDetails = () => {
   const { id } = useParams();
@@ -32,522 +25,194 @@ const DonationDetails = () => {
   const [donation, setDonation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestMessage, setRequestMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [requestMsg, setRequestMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [imgIdx, setImgIdx] = useState(0);
+  const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setCurrentUser(user);
-    fetchDonationDetails();
-  }, [id]);
+  useEffect(() => { fetchDonation(); }, [id]);
 
-  const fetchDonationDetails = async () => {
+  const fetchDonation = async () => {
     try {
       setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please login to view donation details");
-        setLoading(false);
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(`http://localhost:5000/api/donations/${id}`, {
-        headers,
-      });
-
-      if (response.data.success) {
-        setDonation(response.data.donation);
-      }
+      const r = await axios.get(`${API}/donations/${id}`, { headers: authH() });
+      if (r.data.success) setDonation(r.data.donation);
     } catch (err) {
-      console.error("Error fetching donation details:", err);
       setError(err.response?.data?.message || "Failed to load donation details");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const handleRequestDonation = async () => {
-    if (!requestMessage || requestMessage.trim().length < 10) {
-      alert("Please write a message (at least 10 characters)");
-      return;
-    }
-
+  const handleRequest = async () => {
+    if (!requestMsg.trim() || requestMsg.trim().length < 10) { alert("Please write at least 10 characters"); return; }
     try {
       setSubmitting(true);
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      await axios.post(
-        `http://localhost:5000/api/donations/${id}/request`,
-        { message: requestMessage },
-        { headers }
-      );
-
-      alert("Request sent successfully! The donor will review your request.");
-      setShowRequestModal(false);
-      setRequestMessage("");
-      fetchDonationDetails();
-    } catch (err) {
-      console.error("Error requesting donation:", err);
-      alert(err.response?.data?.message || "Failed to send request");
-    } finally {
-      setSubmitting(false);
-    }
+      await axios.post(`${API}/donations/${id}/request`, { message: requestMsg }, { headers: authH() });
+      alert("Request sent! The donor will review your request.");
+      setShowModal(false); setRequestMsg(""); fetchDonation();
+    } catch (err) { alert(err.response?.data?.message || "Failed to send request"); }
+    finally { setSubmitting(false); }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this donation?")) {
-      return;
-    }
-
+    if (!window.confirm("Delete this donation?")) return;
     try {
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-
-      await axios.delete(`http://localhost:5000/api/donations/${id}`, { headers });
-
-      alert("Donation deleted successfully");
-      navigate("/donations");
-    } catch (err) {
-      console.error("Error deleting donation:", err);
-      alert(err.response?.data?.message || "Failed to delete donation");
-    }
+      await axios.delete(`${API}/donations/${id}`, { headers: authH() });
+      alert("Deleted successfully"); navigate("/donations");
+    } catch (err) { alert(err.response?.data?.message || "Failed to delete"); }
   };
 
-  const getConditionBadge = (condition) => {
-    const badges = {
-      new: { bg: "success", text: "New" },
-      like_new: { bg: "info", text: "Like New" },
-      good: { bg: "primary", text: "Good" },
-      used: { bg: "secondary", text: "Used" },
-    };
-    return badges[condition] || badges.used;
-  };
-
-  const getCategoryIcon = (category) => {
-    const icons = {
-      books: "📚",
-      stationery: "✏️",
-      electronics: "💻",
-      furniture: "🪑",
-      other: "📦",
-    };
-    return icons[category] || "📦";
-  };
-
-  const getTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return "Just now";
-  };
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        }}
-      >
-        <div className="text-center">
-          <Spinner animation="border" variant="primary" style={{ width: "3rem", height: "3rem" }} />
-          <p style={{ marginTop: "1rem", fontSize: "1.1rem", fontWeight: 600 }}>
-            Loading donation details...
-          </p>
-        </div>
+  if (loading) return (
+    <SharedLayout>
+      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
-    );
-  }
+    </SharedLayout>
+  );
 
-  if (error || !donation) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-          padding: "2rem",
-        }}
-      >
-        <Container>
-          <Alert variant="danger">{error || "Donation not found"}</Alert>
-          <Button variant="primary" onClick={() => navigate("/donations")}>
-            <FaArrowLeft style={{ marginRight: "0.5rem" }} />
-            Back to Donations
-          </Button>
-        </Container>
+  if (error || !donation) return (
+    <SharedLayout>
+      <div style={{ maxWidth: 600, margin: "4rem auto", padding: "0 1.5rem", textAlign: "center" }}>
+        <p style={{ color: "#ef4444", marginBottom: "1.5rem" }}>{error || "Donation not found"}</p>
+        <button onClick={() => navigate("/donations")} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Back to Donations</button>
       </div>
-    );
-  }
+    </SharedLayout>
+  );
 
-  const conditionBadge = getConditionBadge(donation.condition);
-  const categoryIcon = getCategoryIcon(donation.category);
   const isOwner = currentUser && donation.donor_id === currentUser.id;
   const canRequest = donation.status === "available" && !isOwner;
   const canChat = donation.status === "reserved" && (isOwner || donation.accepted_requester_id === currentUser?.id);
+  const imgs = donation.images || [];
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        paddingBottom: "3rem",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-          color: "white",
-          padding: "2rem 0",
-          marginBottom: "2rem",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-        }}
-      >
-        <Container>
-          <Button
-            variant="link"
-            onClick={() => navigate("/donations")}
-            style={{
-              color: "white",
-              textDecoration: "none",
-              fontSize: "1rem",
-              fontWeight: 600,
-              padding: "0.5rem 1rem",
-              marginBottom: "1rem",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <FaArrowLeft />
-            Back to Donations
-          </Button>
-          <h1
-            style={{
-              fontSize: "2.5rem",
-              fontWeight: 800,
-              marginBottom: "0.5rem",
-            }}
-          >
-            {donation.title}
-          </h1>
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            <Badge
-              bg={donation.status === "available" ? "success" : "warning"}
-              style={{ fontSize: "1rem", padding: "0.5rem 1rem", textTransform: "capitalize" }}
-            >
-              {donation.status}
-            </Badge>
-            <Badge
-              bg={conditionBadge.bg}
-              style={{ fontSize: "1rem", padding: "0.5rem 1rem" }}
-            >
-              {conditionBadge.text}
-            </Badge>
-            <Badge
-              bg="light"
-              text="dark"
-              style={{ fontSize: "1rem", padding: "0.5rem 1rem", textTransform: "capitalize" }}
-            >
-              {categoryIcon} {donation.category}
-            </Badge>
+    <SharedLayout activeLink="Donate">
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "3rem 1.5rem" }}>
+        <button onClick={() => navigate("/donations")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "2rem", padding: 0 }}>
+          <FaChevronLeft style={{ fontSize: "0.75rem" }} /> Back to Donations
+        </button>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2.5rem", alignItems: "start" }}>
+          {/* Left — images */}
+          <div>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden", marginBottom: "0.75rem" }}>
+              {imgs.length > 0
+                ? <img src={`http://localhost:5000${imgs[imgIdx]}`} alt={donation.title} style={{ width: "100%", height: 380, objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/400x380?text=No+Image"} />
+                : <div style={{ height: 380, display: "flex", alignItems: "center", justifyContent: "center", background: "#f9fafb", fontSize: "5rem" }}>{CAT_ICON[donation.category] || "📦"}</div>}
+            </div>
+            {imgs.length > 1 && (
+              <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto" }}>
+                {imgs.map((img, i) => (
+                  <img key={i} src={`http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
+                    style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 4, cursor: "pointer", border: i === imgIdx ? "2px solid #111" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
+                ))}
+              </div>
+            )}
           </div>
-        </Container>
-      </div>
 
-      <Container>
-        <Row>
-          {/* Images */}
-          <Col lg={6}>
-            <Card
-              style={{
-                border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                marginBottom: "2rem",
-                overflow: "hidden",
-              }}
-            >
-              {donation.images && donation.images.length > 0 ? (
-                <Carousel>
-                  {donation.images.map((image, index) => (
-                    <Carousel.Item key={index}>
-                      <img
-                        src={`http://localhost:5000${image}`}
-                        alt={`${donation.title} - ${index + 1}`}
-                        style={{
-                          width: "100%",
-                          height: "400px",
-                          objectFit: "cover",
-                        }}
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/400x400?text=No+Image";
-                        }}
-                      />
-                    </Carousel.Item>
-                  ))}
-                </Carousel>
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "400px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-                    fontSize: "5rem",
-                  }}
-                >
-                  {categoryIcon}
+          {/* Right — details */}
+          <div>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+              <span style={{ background: donation.status === "available" ? "#dcfce7" : "#fef3c7", color: donation.status === "available" ? "#166534" : "#92400e", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4, textTransform: "capitalize" }}>{donation.status}</span>
+              <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4 }}>{CONDITION_MAP[donation.condition] || donation.condition}</span>
+              <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4, textTransform: "capitalize" }}>{CAT_ICON[donation.category]} {donation.category}</span>
+            </div>
+
+            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em" }}>{donation.title}</h1>
+
+            <p style={{ color: "#4b5563", lineHeight: 1.7, marginBottom: "1.5rem", fontSize: "0.95rem" }}>{donation.description}</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <FaMapMarkerAlt style={{ color: "#ef4444", fontSize: "1rem", flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>Pickup Location</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{donation.pickup_location}</div>
                 </div>
-              )}
-            </Card>
-          </Col>
-
-          {/* Details */}
-          <Col lg={6}>
-            {/* Description */}
-            <Card
-              style={{
-                border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                marginBottom: "2rem",
-              }}
-            >
-              <Card.Body style={{ padding: "2rem" }}>
-                <h3 style={{ fontWeight: 700, marginBottom: "1rem" }}>Description</h3>
-                <p style={{ fontSize: "1rem", color: "#4b5563", lineHeight: 1.7 }}>
-                  {donation.description}
-                </p>
-
-                <hr style={{ margin: "1.5rem 0" }} />
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <FaMapMarkerAlt style={{ fontSize: "1.5rem", color: "#ef4444" }} />
-                    <div>
-                      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>Pickup Location</div>
-                      <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                        {donation.pickup_location}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <FaClock style={{ fontSize: "1.5rem", color: "#3b82f6" }} />
-                    <div>
-                      <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>Posted</div>
-                      <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                        {getTimeAgo(donation.created_at)}
-                      </div>
-                    </div>
-                  </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <FaClock style={{ color: "#3b82f6", fontSize: "1rem", flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>Posted</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{getTimeAgo(donation.created_at)}</div>
                 </div>
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
 
-            {/* Donor Info */}
+            {/* Donor info */}
             {donation.donor && (
-              <Card
-                style={{
-                  border: "none",
-                  borderRadius: "16px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  marginBottom: "2rem",
-                }}
-              >
-                <Card.Body style={{ padding: "2rem" }}>
-                  <h3 style={{ fontWeight: 700, marginBottom: "1rem" }}>Donor Information</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                      <FaUser style={{ fontSize: "1.5rem", color: "#8b5cf6" }} />
-                      <div>
-                        <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>Name</div>
-                        <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                          {donation.donor.name}
-                        </div>
-                      </div>
-                    </div>
-
-                    {donation.donor.email && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <FaEnvelope style={{ fontSize: "1.5rem", color: "#10b981" }} />
-                        <div>
-                          <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>Email</div>
-                          <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                            {donation.donor.email}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {donation.donor.phone && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <FaPhone style={{ fontSize: "1.5rem", color: "#f59e0b" }} />
-                        <div>
-                          <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>Phone</div>
-                          <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                            {donation.donor.phone}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "1rem", marginBottom: "1.5rem" }}>
+                <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9ca3af", textTransform: "uppercase", marginBottom: "0.75rem" }}>DONOR</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.9rem" }}>
+                    <FaUser style={{ color: "#8b5cf6" }} /> <span style={{ fontWeight: 600 }}>{donation.donor.name}</span>
                   </div>
-                </Card.Body>
-              </Card>
+                  {donation.donor.email && <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.85rem", color: "#6b7280" }}><FaEnvelope style={{ color: "#10b981" }} /> {donation.donor.email}</div>}
+                  {donation.donor.phone && <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.85rem", color: "#6b7280" }}><FaPhone style={{ color: "#f59e0b" }} /> {donation.donor.phone}</div>}
+                </div>
+              </div>
             )}
 
             {/* Actions */}
-            <Card
-              style={{
-                border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              }}
-            >
-              <Card.Body style={{ padding: "2rem" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {canRequest && (
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={() => setShowRequestModal(true)}
-                      style={{
-                        borderRadius: "12px",
-                        fontWeight: 600,
-                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                        border: "none",
-                      }}
-                    >
-                      Request This Item
-                    </Button>
-                  )}
-
-                  {canChat && (
-                    <Button
-                      variant="info"
-                      size="lg"
-                      onClick={() => navigate(`/donations/${id}/chat`)}
-                      style={{
-                        borderRadius: "12px",
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      <FaComments />
-                      Open Chat
-                    </Button>
-                  )}
-
-                  {isOwner && (
-                    <>
-                      <Button
-                        variant="outline-primary"
-                        size="lg"
-                        onClick={() => navigate(`/my-donations`)}
-                        style={{
-                          borderRadius: "12px",
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <FaEdit />
-                        Manage Donation
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="lg"
-                        onClick={handleDelete}
-                        style={{
-                          borderRadius: "12px",
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <FaTrash />
-                        Delete Donation
-                      </Button>
-                    </>
-                  )}
-
-                  {donation.status === "reserved" && !isOwner && !canChat && (
-                    <Alert variant="warning" style={{ marginBottom: 0 }}>
-                      This item is reserved by another user.
-                    </Alert>
-                  )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {canRequest && (
+                <button onClick={() => setShowModal(true)}
+                  style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
+                  Request This Item
+                </button>
+              )}
+              {canChat && (
+                <button onClick={() => navigate(`/donations/${id}/chat`)}
+                  style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <FaComments /> Open Chat
+                </button>
+              )}
+              {isOwner && (
+                <>
+                  <button onClick={() => navigate("/my-donations")}
+                    style={{ background: "#fff", color: "#111", border: "1.5px solid #111", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                    <FaEdit /> Manage Donation
+                  </button>
+                  <button onClick={handleDelete}
+                    style={{ background: "#fff", color: "#ef4444", border: "1.5px solid #ef4444", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                    <FaTrash /> Delete Donation
+                  </button>
+                </>
+              )}
+              {donation.status === "reserved" && !isOwner && !canChat && (
+                <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.9rem", color: "#92400e" }}>
+                  This item is reserved by another user.
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Request Modal */}
-      <Modal show={showRequestModal} onHide={() => setShowRequestModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Request Donation</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="text-muted">
-            Tell the donor why you need this item and how you'll use it.
-          </p>
-          <Form.Group>
-            <Form.Label>Your Message</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={5}
-              value={requestMessage}
-              onChange={(e) => setRequestMessage(e.target.value)}
+      {/* Request modal */}
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: "2rem", width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Request Donation</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem" }}><FaTimes /></button>
+            </div>
+            <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1rem" }}>Tell the donor why you need this item.</p>
+            <textarea value={requestMsg} onChange={e => setRequestMsg(e.target.value)} rows={5} maxLength={500}
               placeholder="I would like to request this item because..."
-              maxLength={500}
-            />
-            <Form.Text className="text-muted">
-              Minimum 10 characters, maximum 500 characters
-            </Form.Text>
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowRequestModal(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleRequestDonation}
-            disabled={submitting || requestMessage.trim().length < 10}
-          >
-            {submitting ? "Sending..." : "Send Request"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem", fontSize: "0.9rem", resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: "1rem" }} />
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button onClick={() => setShowModal(false)} style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleRequest} disabled={submitting || requestMsg.trim().length < 10}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+                {submitting ? "Sending…" : "Send Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </SharedLayout>
   );
 };
 

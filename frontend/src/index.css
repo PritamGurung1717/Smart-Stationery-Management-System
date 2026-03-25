@@ -1,81 +1,129 @@
-/* index.css - Global Styles */
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 
-/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Root Variables */
+:root {
+  --bs-body-bg: hsl(0, 0%, 100%);
+  --bs-body-color: hsl(0, 0%, 8%);
+  --primary: hsl(0, 0%, 8%);
+  --secondary: hsl(0, 0%, 96%);
+  --muted: hsl(0, 0%, 96%);
+  --accent: hsl(0, 0%, 96%);
+  --destructive: hsl(0, 84%, 60%);
+  --border: hsl(0, 0%, 90%);
+  --radius: 0.5rem;
+  --shadow-soft: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-card: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 12px 40px rgba(0,0,0,0.1);
+
+  /* Category colors */
+  --category-books: hsl(220, 70%, 50%);
+  --category-sports: hsl(145, 65%, 40%);
+  --category-stationery: hsl(280, 60%, 55%);
+  --category-school: hsl(35, 90%, 50%);
+  --category-donate: hsl(340, 75%, 55%);
 }
 
-body {
+/* Dark Mode */
+body.dark {
+  --bs-body-bg: hsl(0, 0%, 4%);
+  --bs-body-color: hsl(0, 0%, 96%);
+  --primary: hsl(0, 0%, 96%);
+  --secondary: hsl(0, 0%, 12%);
+  --muted: hsl(0, 0%, 15%);
+  --accent: hsl(0, 0%, 15%);
+}
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  padding: 0;
+}
+
+/* Base styles */
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* Heading styles - UPDATED */
-h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 1rem;
-  text-align: center;
-  padding-top: 1rem;
+/* Serif font utility */
+.font-serif {
+  font-family: 'Instrument Serif', Georgia, serif;
 }
 
-h2 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #34495e;
-  margin-bottom: 0.75rem;
+/* Custom Shadows */
+.shadow-soft     { box-shadow: var(--shadow-soft); }
+.shadow-card     { box-shadow: var(--shadow-card); }
+.shadow-elevated { box-shadow: var(--shadow-elevated); }
+
+/* Borders */
+.border-custom {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-h3 {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: #7f8c8d;
-  margin-bottom: 0.5rem;
+/* Buttons override */
+.btn-primary {
+  background-color: var(--primary);
+  border: none;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+/* Cards */
+.card-custom {
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
-/* Link styles */
+/* Animations */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee { animation: marquee 30s linear infinite; }
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.5s ease-in-out; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scale-in 0.3s ease-in-out; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Links */
 a {
+  color: var(--bs-body-color);
   text-decoration: none;
-  color: #3498db;
-  transition: color 0.3s ease;
 }
+a:hover { text-decoration: underline; }
 
-a:hover {
-  color: #2980b9;
-  text-decoration: underline;
-}
-
-/* Container */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 15px;
-}
-
-/* Utility classes */
-.text-center {
-  text-align: center;
-}
-
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.mt-5 { margin-top: 3rem; }
-
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.mb-5 { margin-bottom: 3rem; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }

@@ -1,388 +1,210 @@
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Button, Form, Badge, Spinner, Alert, Modal, Table } from "react-bootstrap";
-import { FaBook, FaSchool, FaGraduationCap, FaShoppingCart, FaInfoCircle } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaBook, FaShoppingCart, FaInfoCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
+import SharedLayout from "./SharedLayout.jsx";
+
+const GRADES = ["Nursery","LKG","UKG","1","2","3","4","5","6","7","8","9","10","11","12"];
 
 const BookSetBrowser = () => {
+  const navigate = useNavigate();
   const [bookSets, setBookSets] = useState([]);
-  const [filteredBookSets, setFilteredBookSets] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [schools, setSchools] = useState([]);
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedBookSet, setSelectedBookSet] = useState(null);
+  const [modal, setModal] = useState(null); // selected book set for detail modal
 
-  const grades = [
-    "Nursery", "LKG", "UKG",
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"
-  ];
+  useEffect(() => { fetchBookSets(); }, []);
 
   useEffect(() => {
-    fetchBookSets();
-  }, []);
-
-  useEffect(() => {
-    filterBookSets();
+    let data = bookSets;
+    if (selectedSchool) data = data.filter(b => b.school_name === selectedSchool);
+    if (selectedGrade) data = data.filter(b => b.grade === selectedGrade);
+    setFiltered(data);
   }, [selectedSchool, selectedGrade, bookSets]);
 
   const fetchBookSets = async () => {
     try {
-      setLoading(true);
-      setError("");
-      
+      setLoading(true); setError("");
       const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      
-      const response = await axios.get("http://localhost:5000/api/book-sets", { headers });
-      
-      if (response.data.success) {
-        setBookSets(response.data.bookSets || []);
-        
-        // Extract unique schools
-        const uniqueSchools = [...new Set(response.data.bookSets.map(bs => bs.school_name))];
-        setSchools(uniqueSchools.sort());
+      const res = await axios.get("http://localhost:5000/api/book-sets", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.data.success) {
+        const data = res.data.bookSets || [];
+        setBookSets(data);
+        setSchools([...new Set(data.map(b => b.school_name))].sort());
       }
-    } catch (err) {
-      console.error("Error fetching book sets:", err);
-      setError("Failed to load book sets. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterBookSets = () => {
-    let filtered = bookSets;
-
-    if (selectedSchool) {
-      filtered = filtered.filter(bs => bs.school_name === selectedSchool);
-    }
-
-    if (selectedGrade) {
-      filtered = filtered.filter(bs => bs.grade === selectedGrade);
-    }
-
-    setFilteredBookSets(filtered);
+    } catch { setError("Failed to load book sets. Please try again."); }
+    finally { setLoading(false); }
   };
 
   const handleAddSetToCart = async (bookSet) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please login to add items to cart");
-        return;
-      }
-
-      let addedCount = 0;
-      let skippedCount = 0;
-
-      // Try to add all books from the set to cart
-      for (const item of bookSet.items) {
-        if (item.product_id) {
-          try {
-            await axios.post("http://localhost:5000/api/users/cart/add", {
-              productId: item.product_id,
-              quantity: 1
-            }, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            addedCount++;
-          } catch (err) {
-            console.error(`Failed to add ${item.title}:`, err);
-            skippedCount++;
-          }
-        } else {
-          skippedCount++;
-        }
-      }
-
-      if (addedCount > 0) {
-        alert(`Successfully added ${addedCount} book(s) to cart!${skippedCount > 0 ? `\n${skippedCount} book(s) are not available as products yet.` : ''}`);
-      } else {
-        alert("These books are not available as individual products yet. They are part of a book set catalog.\n\nPlease contact the institute or admin to make these books available for purchase.");
-      }
-    } catch (error) {
-      console.error("Error adding book set to cart:", error);
-      alert("Failed to add items to cart. Please try again.");
+    const token = localStorage.getItem("token");
+    if (!token) { alert("Please login to add items to cart"); return; }
+    let added = 0, skipped = 0;
+    for (const item of bookSet.items) {
+      if (item.product_id) {
+        try {
+          await axios.post("http://localhost:5000/api/users/cart/add", { productId: item.product_id, quantity: 1 }, { headers: { Authorization: `Bearer ${token}` } });
+          added++;
+        } catch { skipped++; }
+      } else { skipped++; }
     }
+    if (added > 0) alert(`Added ${added} book(s) to cart!${skipped > 0 ? ` (${skipped} not available as products yet)` : ""}`);
+    else alert("These books are not available as individual products yet. Contact admin.");
   };
 
-  const showBookSetDetails = (bookSet) => {
-    setSelectedBookSet(bookSet);
-    setShowDetailsModal(true);
-  };
-
-  if (loading) {
-    return (
-      <Container className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-3">Loading book sets...</p>
-      </Container>
-    );
-  }
+  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.9rem", outline: "none", background: "#fff", fontFamily: "inherit" };
 
   return (
-    <Container fluid className="py-4">
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        padding: '3rem 2rem',
-        borderRadius: '16px',
-        marginBottom: '2rem'
-      }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem' }}>
-          <FaBook style={{ marginRight: '1rem' }} />
-          School Book Sets
-        </h2>
-        <p style={{ fontSize: '1.1rem', opacity: 0.95, marginBottom: 0 }}>
-          Browse approved book sets by school and grade. Get complete book packages for your academic needs.
-        </p>
-      </div>
+    <SharedLayout activeLink="School Sets">
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "2rem" }}>
+          <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>SCHOOL SETS</p>
+          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, margin: 0 }}>Book Sets</h1>
+          <p style={{ color: "#6b7280", marginTop: "0.5rem", fontSize: "0.95rem" }}>Browse approved book sets by school and grade.</p>
+        </div>
 
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1.5rem", color: "#991b1b", fontSize: "0.9rem" }}>
+            {error}
+          </div>
+        )}
 
-      {/* Filters */}
-      <Card style={{ marginBottom: '2rem', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-        <Card.Body>
-          <h5 style={{ marginBottom: '1.5rem', fontWeight: 700 }}>
-            <FaSearch style={{ marginRight: '0.5rem' }} />
-            Search Book Sets
-          </h5>
-          <Row>
-            <Col md={5}>
-              <Form.Group>
-                <Form.Label style={{ fontWeight: 600 }}>
-                  <FaSchool style={{ marginRight: '0.5rem' }} />
-                  Select School
-                </Form.Label>
-                <Form.Select
-                  value={selectedSchool}
-                  onChange={(e) => setSelectedSchool(e.target.value)}
-                  style={{ borderRadius: '8px', padding: '0.75rem' }}
-                >
-                  <option value="">All Schools</option>
-                  {schools.map(school => (
-                    <option key={school} value={school}>{school}</option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={5}>
-              <Form.Group>
-                <Form.Label style={{ fontWeight: 600 }}>
-                  <FaGraduationCap style={{ marginRight: '0.5rem' }} />
-                  Select Grade
-                </Form.Label>
-                <Form.Select
-                  value={selectedGrade}
-                  onChange={(e) => setSelectedGrade(e.target.value)}
-                  style={{ borderRadius: '8px', padding: '0.75rem' }}
-                >
-                  <option value="">All Grades</option>
-                  {grades.map(grade => (
-                    <option key={grade} value={grade}>Grade {grade}</option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={2} className="d-flex align-items-end">
-              <Button
-                variant="outline-secondary"
-                onClick={() => {
-                  setSelectedSchool("");
-                  setSelectedGrade("");
-                }}
-                style={{ width: '100%', borderRadius: '8px', padding: '0.75rem' }}
-              >
-                Clear Filters
-              </Button>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+        {/* Filters */}
+        <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff", padding: "1.25rem 1.5rem", marginBottom: "2rem", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.35rem" }}>School</label>
+            <select value={selectedSchool} onChange={e => setSelectedSchool(e.target.value)} style={{ ...inp, width: "100%" }}>
+              <option value="">All Schools</option>
+              {schools.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.35rem" }}>Grade</label>
+            <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)} style={{ ...inp, width: "100%" }}>
+              <option value="">All Grades</option>
+              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+          <button onClick={() => { setSelectedSchool(""); setSelectedGrade(""); }}
+            style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 1.25rem", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", color: "#374151" }}>
+            Clear Filters
+          </button>
+        </div>
 
-      {/* Results */}
-      {filteredBookSets.length === 0 ? (
-        <Card style={{ border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-          <Card.Body className="text-center py-5">
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📚</div>
-            <h4 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>No Book Sets Available</h4>
-            <p className="text-muted">
-              {selectedSchool || selectedGrade
-                ? "No book sets found for the selected filters. Try different options."
-                : "Book sets have not been published yet. Please check back later."}
+        {/* Results */}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "5rem", color: "#9ca3af" }}>Loading book sets…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: "5rem 2rem", textAlign: "center", background: "#fff" }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📚</div>
+            <h4 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No Book Sets Found</h4>
+            <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>
+              {selectedSchool || selectedGrade ? "Try different filters." : "No book sets published yet. Check back later."}
             </p>
             {(selectedSchool || selectedGrade) && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setSelectedSchool("");
-                  setSelectedGrade("");
-                }}
-                style={{ marginTop: '1rem' }}
-              >
-                View All Book Sets
-              </Button>
+              <button onClick={() => { setSelectedSchool(""); setSelectedGrade(""); }}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontWeight: 600, cursor: "pointer" }}>
+                View All
+              </button>
             )}
-          </Card.Body>
-        </Card>
-      ) : (
-        <>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h5 style={{ fontWeight: 700 }}>
-              Found {filteredBookSets.length} Book Set{filteredBookSets.length !== 1 ? 's' : ''}
-            </h5>
           </div>
-          <Row>
-            {filteredBookSets.map(bookSet => (
-              <Col key={bookSet.id} md={6} lg={4} className="mb-4">
-                <Card style={{
-                  border: 'none',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  borderRadius: '12px',
-                  height: '100%',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 12px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                }}>
-                  <Card.Body>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                      <Badge bg="primary" style={{ fontSize: '0.9rem', padding: '0.5rem 1rem', borderRadius: '50px' }}>
-                        Grade {bookSet.grade}
-                      </Badge>
-                      <Badge bg="success" style={{ fontSize: '0.9rem', padding: '0.5rem 1rem', borderRadius: '50px' }}>
-                        {bookSet.items.length} Books
-                      </Badge>
-                    </div>
-                    
-                    <h5 style={{ fontWeight: 700, marginBottom: '0.75rem', color: '#1f2937' }}>
-                      <FaSchool style={{ marginRight: '0.5rem', color: '#4f46e5' }} />
-                      {bookSet.school_name}
-                    </h5>
-                    
-                    <div style={{ marginBottom: '1rem' }}>
-                      <p style={{ margin: 0, color: '#6b7280', fontSize: '0.95rem' }}>
-                        <strong>Total Price:</strong> ₹{bookSet.total_price.toFixed(2)}
-                      </p>
-                      <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem' }}>
-                        Created: {new Date(bookSet.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => showBookSetDetails(bookSet)}
-                        style={{ flex: 1, borderRadius: '8px', fontWeight: 600 }}
-                      >
-                        <FaInfoCircle style={{ marginRight: '0.5rem' }} />
-                        View Details
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleAddSetToCart(bookSet)}
-                        style={{ flex: 1, borderRadius: '8px', fontWeight: 600 }}
-                      >
-                        <FaShoppingCart style={{ marginRight: '0.5rem' }} />
-                        Add Set
-                      </Button>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </>
-      )}
-
-      {/* Book Set Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <FaBook style={{ marginRight: '0.5rem' }} />
-            Book Set Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedBookSet && (
-            <>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h5 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>
-                  {selectedBookSet.school_name}
-                </h5>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <Badge bg="primary">Grade {selectedBookSet.grade}</Badge>
-                  <Badge bg="success">{selectedBookSet.items.length} Books</Badge>
-                  <Badge bg="info">Total: ₹{selectedBookSet.total_price.toFixed(2)}</Badge>
+        ) : (
+          <>
+            <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+              {filtered.length} book set{filtered.length !== 1 ? "s" : ""} found
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+              {filtered.map(bs => (
+                <div key={bs.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span style={{ background: "#111", color: "#fff", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.06em", padding: "0.2rem 0.6rem", borderRadius: 4 }}>Grade {bs.grade}</span>
+                    <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: 4 }}>{bs.items?.length || 0} books</span>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "1rem", color: "#111", marginBottom: "0.2rem" }}>{bs.school_name}</div>
+                    <div style={{ color: "#9ca3af", fontSize: "0.8rem" }}>Created {new Date(bs.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>₹{bs.total_price?.toFixed(2)}</div>
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto" }}>
+                    <button onClick={() => setModal(bs)}
+                      style={{ flex: 1, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
+                      <FaInfoCircle style={{ fontSize: "0.8rem" }} />Details
+                    </button>
+                    <button onClick={() => navigate(`/book-sets/${bs.id}`)}
+                      style={{ flex: 1, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>
+                      View
+                    </button>
+                    <button onClick={() => handleAddSetToCart(bs)}
+                      style={{ flex: 1, background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.5rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
+                      <FaShoppingCart style={{ fontSize: "0.8rem" }} />Add
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
-              <h6 style={{ fontWeight: 700, marginBottom: '1rem' }}>Books in this Set:</h6>
-              <Table striped bordered hover responsive>
+      {/* Detail Modal */}
+      {modal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div onClick={() => setModal(null)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)" }} />
+          <div style={{ position: "relative", background: "#fff", borderRadius: 16, width: "100%", maxWidth: 720, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h4 style={{ fontWeight: 700, margin: 0 }}>{modal.school_name}</h4>
+                <p style={{ color: "#6b7280", fontSize: "0.85rem", margin: "0.2rem 0 0" }}>Grade {modal.grade} · {modal.items?.length} books · ₹{modal.total_price?.toFixed(2)}</p>
+              </div>
+              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "1.1rem" }}><FaTimes /></button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "1.25rem 1.5rem" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                 <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Subject</th>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Publisher</th>
-                    <th>Price</th>
+                  <tr style={{ background: "#f9fafb" }}>
+                    {["#","Subject","Title","Author","Publisher","Price"].map(h => (
+                      <th key={h} style={{ padding: "0.65rem 0.75rem", textAlign: "left", fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedBookSet.items.map((item, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{item.subject_name || '-'}</td>
-                      <td>{item.title}</td>
-                      <td>{item.author}</td>
-                      <td>{item.publisher}</td>
-                      <td>₹{item.price.toFixed(2)}</td>
+                  {modal.items?.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "0.65rem 0.75rem", color: "#6b7280" }}>{idx + 1}</td>
+                      <td style={{ padding: "0.65rem 0.75rem" }}>{item.subject_name || "—"}</td>
+                      <td style={{ padding: "0.65rem 0.75rem", fontWeight: 600 }}>{item.title}</td>
+                      <td style={{ padding: "0.65rem 0.75rem" }}>{item.author}</td>
+                      <td style={{ padding: "0.65rem 0.75rem" }}>{item.publisher}</td>
+                      <td style={{ padding: "0.65rem 0.75rem", fontWeight: 700 }}>₹{item.price?.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr>
-                    <td colSpan="5" className="text-end"><strong>Total:</strong></td>
-                    <td><strong>₹{selectedBookSet.total_price.toFixed(2)}</strong></td>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <td colSpan={5} style={{ padding: "0.75rem", textAlign: "right", fontWeight: 700 }}>Total:</td>
+                    <td style={{ padding: "0.75rem", fontWeight: 800 }}>₹{modal.total_price?.toFixed(2)}</td>
                   </tr>
                 </tfoot>
-              </Table>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
-            Close
-          </Button>
-          {selectedBookSet && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                handleAddSetToCart(selectedBookSet);
-                setShowDetailsModal(false);
-              }}
-            >
-              <FaShoppingCart style={{ marginRight: '0.5rem' }} />
-              Add Complete Set to Cart
-            </Button>
-          )}
-        </Modal.Footer>
-      </Modal>
-    </Container>
+              </table>
+            </div>
+            <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid #e5e7eb", display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button onClick={() => setModal(null)} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.6rem 1.25rem", fontWeight: 600, cursor: "pointer" }}>Close</button>
+              <button onClick={() => { handleAddSetToCart(modal); setModal(null); }}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 1.25rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <FaShoppingCart />Add Complete Set to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </SharedLayout>
   );
 };
 

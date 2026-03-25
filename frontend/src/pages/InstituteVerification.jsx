@@ -1,39 +1,23 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Container, Card, Form, Button, Row, Col, Spinner, Alert } from "react-bootstrap";
 
 const InstituteVerification = ({ setUser }) => {
   const navigate = useNavigate();
   const [user, setLocalUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    instituteName: "",
-    invoiceNumber: "",
-    panNumber: "",
-    gstNumber: "",
-    contactNumber: "",
-    schoolName: "",
-    type: "school",
-    address: "",
-    contactPerson: "",
-    phone: "",
-    email: "",
-    grades: "",
+    instituteName: "", invoiceNumber: "", panNumber: "", gstNumber: "",
+    contactNumber: "", schoolName: "", type: "school", address: "",
+    contactPerson: "", phone: "", email: "", grades: "",
   });
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || storedUser.role !== "institute") {
-      navigate("/login");
-      return;
-    }
+    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    if (!storedUser || storedUser.role !== "institute") { navigate("/login"); return; }
     setLocalUser(storedUser);
-    
-    // Pre-fill form with existing data
     if (storedUser.instituteVerification) {
-      setFormData(prev => ({
-        ...prev,
+      setFormData(p => ({ ...p,
         instituteName: storedUser.instituteVerification.instituteName || "",
         invoiceNumber: storedUser.instituteVerification.invoiceNumber || "",
         panNumber: storedUser.instituteVerification.panNumber || "",
@@ -41,10 +25,8 @@ const InstituteVerification = ({ setUser }) => {
         contactNumber: storedUser.instituteVerification.contactNumber || "",
       }));
     }
-    
     if (storedUser.instituteInfo) {
-      setFormData(prev => ({
-        ...prev,
+      setFormData(p => ({ ...p,
         schoolName: storedUser.instituteInfo.schoolName || "",
         type: storedUser.instituteInfo.type || "school",
         address: storedUser.instituteInfo.address || "",
@@ -56,274 +38,189 @@ const InstituteVerification = ({ setUser }) => {
     }
   }, [navigate]);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const token = localStorage.getItem("token");
-      const gradesArray = formData.grades
-        .split(",")
-        .map(grade => grade.trim())
-        .filter(grade => grade !== "");
-
-      const response = await axios.post(
+      const gradesArray = formData.grades.split(",").map(g => g.trim()).filter(Boolean);
+      const res = await axios.post(
         "http://localhost:5000/api/users/institute/verification/submit",
-        {
-          ...formData,
-          grades: gradesArray,
-        },
+        { ...formData, grades: gradesArray },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Update local user data
-      const updatedUser = {
-        ...user,
-        instituteVerification: response.data.verification,
-        instituteInfo: response.data.instituteInfo,
-      };
-      
+      const updatedUser = { ...user, instituteVerification: res.data.verification, instituteInfo: res.data.instituteInfo };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setLocalUser(updatedUser);
-      
-      alert("Verification request submitted successfully! Please wait for admin approval.");
+      alert("Verification request submitted! Please wait for admin approval.");
       navigate("/institute-dashboard");
-    } catch (error) {
-      console.error("Error submitting verification:", error);
-      alert("Failed to submit verification: " + (error.response?.data?.message || error.message));
+    } catch (err) {
+      alert("Failed to submit: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
   };
 
-  if (!user) {
-    return (
-      <Container className="py-5">
-        <Spinner animation="border" />
-      </Container>
-    );
-  }
+  const inputStyle = {
+    width: "100%", border: "1px solid #e5e7eb", borderRadius: 8,
+    padding: "0.65rem 0.85rem", fontSize: "0.875rem", outline: "none",
+    boxSizing: "border-box", fontFamily: "'Inter', sans-serif", background: "#fff",
+  };
+  const labelStyle = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" };
+  const sectionLabel = { fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: "#9ca3af", textTransform: "uppercase", marginBottom: "1rem", marginTop: "1.75rem" };
+
+  if (!user) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#9ca3af" }}>
+      Loading…
+    </div>
+  );
+
+  const verStatus = user.instituteVerification?.status;
 
   return (
-    <Container className="py-5">
-      <h1 className="mb-4">Institute Verification</h1>
-      
-      {user.instituteVerification?.status === "pending" && (
-        <Alert variant="warning" className="mb-4">
-          <h5>Verification Pending</h5>
-          <p>Your verification request is under review. You will be notified once it's approved.</p>
-          <p><strong>Status:</strong> {user.instituteVerification.status}</p>
-          {user.instituteVerification.comments && (
-            <p><strong>Comments:</strong> {user.instituteVerification.comments}</p>
-          )}
-        </Alert>
-      )}
-      
-      {user.instituteVerification?.status === "rejected" && (
-        <Alert variant="danger" className="mb-4">
-          <h5>Verification Rejected</h5>
-          <p>Your verification request was rejected. Please update the information and resubmit.</p>
-          {user.instituteVerification.comments && (
-            <p><strong>Reason:</strong> {user.instituteVerification.comments}</p>
-          )}
-        </Alert>
-      )}
-      
-      <Card>
-        <Card.Body>
-          <Card.Title>Complete Institute Verification</Card.Title>
-          <Card.Text className="text-muted mb-4">
-            Please provide the following information to verify your institute account.
-            This information is required to access bulk ordering and special discounts.
-          </Card.Text>
-          
-          <Form onSubmit={handleSubmit}>
-            <h5 className="mb-3">Institute Information</h5>
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group controlId="instituteName">
-                  <Form.Label>Institute Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="instituteName"
-                    value={formData.instituteName}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="schoolName">
-                  <Form.Label>School/College Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="schoolName"
-                    value={formData.schoolName}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Row className="g-3 mb-4">
-              <Col md={4}>
-                <Form.Group controlId="invoiceNumber">
-                  <Form.Label>Invoice Number *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="invoiceNumber"
-                    value={formData.invoiceNumber}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="panNumber">
-                  <Form.Label>PAN Number *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="panNumber"
-                    value={formData.panNumber}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="gstNumber">
-                  <Form.Label>GST Number (Optional)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="gstNumber"
-                    value={formData.gstNumber}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group controlId="contactNumber">
-                  <Form.Label>Contact Number *</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="contactNumber"
-                    value={formData.contactNumber}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="type">
-                  <Form.Label>Institute Type *</Form.Label>
-                  <Form.Select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="school">School</option>
-                    <option value="college">College/University</option>
-                    <option value="wholesaler">Wholesaler</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <h5 className="mb-3 mt-4">Additional Information</h5>
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group controlId="contactPerson">
-                  <Form.Label>Contact Person *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="contactPerson"
-                    value={formData.contactPerson}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="phone">
-                  <Form.Label>Phone Number</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Row className="g-3 mb-4">
-              <Col md={6}>
-                <Form.Group controlId="email">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="grades">
-                  <Form.Label>Grades/Classes (comma separated)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="grades"
-                    value={formData.grades}
-                    onChange={handleChange}
-                    placeholder="e.g., 1, 2, 3, 4, 5 or FY, SY, TY"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Form.Group className="mb-4" controlId="address">
-              <Form.Label>Address</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            
-            <div className="d-flex justify-content-between">
-              <Button variant="outline-secondary" onClick={() => navigate("/dashboard")}>
-                Cancel
-              </Button>
-              <Button variant="primary" type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Spinner animation="border" size="sm" className="me-2" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit for Verification"
-                )}
-              </Button>
+    <div style={{ minHeight: "100vh", background: "#fafafa", fontFamily: "'Inter', sans-serif", padding: "3rem 1rem" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+
+        {/* Brand */}
+        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.75rem", fontWeight: 400, color: "#111", letterSpacing: "-0.02em", cursor: "pointer" }}
+            onClick={() => navigate("/institute-dashboard")}>
+            smartstationery.
+          </div>
+          <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "0.4rem" }}>Institute Verification</p>
+        </div>
+
+        {/* Status banners */}
+        {verStatus === "pending" && (
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+            <div style={{ fontWeight: 700, color: "#92400e", marginBottom: "0.25rem" }}>Verification Pending</div>
+            <div style={{ fontSize: "0.875rem", color: "#78350f" }}>Your request is under review. You'll be notified once approved.</div>
+            {user.instituteVerification?.comments && (
+              <div style={{ fontSize: "0.875rem", color: "#78350f", marginTop: "0.4rem" }}>Comments: {user.instituteVerification.comments}</div>
+            )}
+          </div>
+        )}
+        {verStatus === "rejected" && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+            <div style={{ fontWeight: 700, color: "#991b1b", marginBottom: "0.25rem" }}>Verification Rejected</div>
+            <div style={{ fontSize: "0.875rem", color: "#7f1d1d" }}>Please update your information and resubmit.</div>
+            {user.instituteVerification?.comments && (
+              <div style={{ fontSize: "0.875rem", color: "#7f1d1d", marginTop: "0.4rem" }}>Reason: {user.instituteVerification.comments}</div>
+            )}
+          </div>
+        )}
+
+        {/* Card */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "2rem 2rem 2.5rem" }}>
+          <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.6rem", fontWeight: 400, color: "#111", margin: "0 0 0.4rem" }}>
+            Complete Verification
+          </h2>
+          <p style={{ color: "#6b7280", fontSize: "0.875rem", marginBottom: 0 }}>
+            Provide the details below to verify your institute and unlock bulk ordering.
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {/* Institute Info */}
+            <p style={sectionLabel}>Institute Information</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>Institute Name *</label>
+                <input name="instituteName" value={formData.instituteName} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>School / College Name *</label>
+                <input name="schoolName" value={formData.schoolName} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
             </div>
-          </Form>
-        </Card.Body>
-      </Card>
-    </Container>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>Invoice Number *</label>
+                <input name="invoiceNumber" value={formData.invoiceNumber} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>PAN Number *</label>
+                <input name="panNumber" value={formData.panNumber} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>GST Number</label>
+                <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>Contact Number *</label>
+                <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>Institute Type *</label>
+                <select name="type" value={formData.type} onChange={handleChange} required
+                  style={{ ...inputStyle, cursor: "pointer" }}>
+                  <option value="school">School</option>
+                  <option value="college">College / University</option>
+                  <option value="wholesaler">Wholesaler</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <p style={sectionLabel}>Additional Information</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>Contact Person *</label>
+                <input name="contactPerson" value={formData.contactPerson} onChange={handleChange} required style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone Number</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+              <div>
+                <label style={labelStyle}>Grades / Classes <span style={{ color: "#9ca3af", fontWeight: 400 }}>(comma separated)</span></label>
+                <input name="grades" value={formData.grades} onChange={handleChange} placeholder="e.g. 1, 2, 3 or FY, SY, TY" style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "2rem" }}>
+              <label style={labelStyle}>Address</label>
+              <textarea name="address" value={formData.address} onChange={handleChange} rows={3}
+                style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }}
+                onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button type="button" onClick={() => navigate("/institute-dashboard")}
+                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.65rem 1.25rem", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={loading}
+                style={{ background: loading ? "#6b7280" : "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.65rem 1.75rem", fontWeight: 600, fontSize: "0.875rem", cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif" }}>
+                {loading ? "Submitting…" : "Submit for Verification"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 };
 

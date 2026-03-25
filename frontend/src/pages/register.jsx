@@ -1,49 +1,28 @@
-import React, { useState } from "react";
-import { Form, Button, Container, Row, Col, Card, InputGroup, Spinner } from "react-bootstrap";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "personal",
-  });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "", role: "personal" });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
     setError("");
-    setSuccess("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; }
     setLoading(true);
     setError("");
-    setSuccess("");
-
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const res = await axios.post("http://localhost:5000/api/users/register", {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        role: form.role,
+      await axios.post("http://localhost:5000/api/users/register", {
+        name: form.name, email: form.email, password: form.password, role: form.role,
       });
-      setSuccess(res.data.message);
       navigate("/verifyOtp", { state: { email: form.email } });
     } catch (err) {
       setError(err?.response?.data?.message || "Registration failed");
@@ -52,137 +31,100 @@ const Register = () => {
     }
   };
 
+  const inputStyle = {
+    width: "100%", border: "1px solid #e5e7eb", borderRadius: 8,
+    padding: "0.65rem 0.85rem", fontSize: "0.9rem", outline: "none",
+    boxSizing: "border-box", transition: "border-color 0.15s",
+  };
+
   return (
-    <Container className="vh-100 d-flex justify-content-center align-items-center">
-      <Row className="w-100">
-        <Col md={{ span: 6, offset: 3 }} lg={{ span: 4, offset: 4 }}>
-          <Card className="shadow-sm">
-            <Card.Body>
-              {/* Header */}
-              <div className="text-center mb-4">
-                <div className="mb-2" style={{ fontSize: "2rem" }}>✏️</div>
-                <h3>Smart Stationery</h3>
-                <p className="text-muted">Create your account</p>
-              </div>
+    <div style={{ minHeight: "100vh", background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", padding: "2rem 1rem" }}>
+      {/* Brand */}
+      <div style={{ marginBottom: "2.5rem", textAlign: "center" }}>
+        <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2rem", fontWeight: 400, color: "#111", letterSpacing: "-0.02em" }}>
+          smartstationery.
+        </div>
+        <p style={{ color: "#6b7280", fontSize: "0.9rem", marginTop: "0.4rem" }}>Create your account</p>
+      </div>
 
-              {/* Error/Success Messages */}
-              {error && <div className="alert alert-danger">{error}</div>}
-              {success && <div className="alert alert-success">{success}</div>}
+      {/* Card */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "2.5rem 2rem", width: "100%", maxWidth: 420 }}>
+        {error && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
+            {error}
+          </div>
+        )}
 
-              {/* Registration Form */}
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3" controlId="formName">
-                  <Form.Label>Full Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter full name"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+        <form onSubmit={handleSubmit}>
+          {/* Name */}
+          <div style={{ marginBottom: "1.1rem" }}>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Full Name</label>
+            <input type="text" name="name" value={form.name} onChange={handleChange} required placeholder="Your full name"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "#111"}
+              onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+          </div>
 
-                <Form.Group className="mb-3" controlId="formEmail">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="Enter email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+          {/* Email */}
+          <div style={{ marginBottom: "1.1rem" }}>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Email address</label>
+            <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="you@example.com"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "#111"}
+              onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+          </div>
 
-                <Form.Group className="mb-3" controlId="formPassword">
-                  <Form.Label>Password</Form.Label>
-                  <InputGroup>
-                    <Form.Control
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      required
-                    />
-                    <Button
-                      variant="outline-secondary"
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? "🙈" : "👁️"}
-                    </Button>
-                  </InputGroup>
-                </Form.Group>
+          {/* Password */}
+          <div style={{ marginBottom: "1.1rem" }}>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Password</label>
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} name="password" value={form.password} onChange={handleChange} required placeholder="••••••••"
+                style={{ ...inputStyle, paddingRight: "2.75rem" }}
+                onFocus={e => e.target.style.borderColor = "#111"}
+                onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "1rem", color: "#9ca3af", padding: 0 }}>
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
+          </div>
 
-                <Form.Group className="mb-3" controlId="formConfirmPassword">
-                  <Form.Label>Confirm Password</Form.Label>
-                  <Form.Control
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Confirm password"
-                    name="confirmPassword"
-                    value={form.confirmPassword}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+          {/* Confirm Password */}
+          <div style={{ marginBottom: "1.25rem" }}>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" }}>Confirm Password</label>
+            <input type={showPassword ? "text" : "password"} name="confirmPassword" value={form.confirmPassword} onChange={handleChange} required placeholder="••••••••"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "#111"}
+              onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+          </div>
 
-                {/* Account Type */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Account Type</Form.Label>
-                  <div>
-                    <Form.Check
-                      inline
-                      label="Personal Account"
-                      name="role"
-                      type="radio"
-                      value="personal"
-                      checked={form.role === "personal"}
-                      onChange={handleChange}
-                    />
-                    <Form.Check
-                      inline
-                      label="Institute Account"
-                      name="role"
-                      type="radio"
-                      value="institute"
-                      checked={form.role === "institute"}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </Form.Group>
+          {/* Account Type */}
+          <div style={{ marginBottom: "1.75rem" }}>
+            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#374151", marginBottom: "0.75rem" }}>Account Type</label>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              {["personal", "institute"].map(r => (
+                <label key={r} style={{ flex: 1, display: "flex", alignItems: "center", gap: "0.5rem", border: `1.5px solid ${form.role === r ? "#111" : "#e5e7eb"}`, borderRadius: 8, padding: "0.65rem 0.85rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: form.role === r ? 600 : 400, background: form.role === r ? "#f9fafb" : "#fff", transition: "all 0.15s" }}>
+                  <input type="radio" name="role" value={r} checked={form.role === r} onChange={handleChange} style={{ accentColor: "#111" }} />
+                  {r === "personal" ? "Personal" : "Institute"}
+                </label>
+              ))}
+            </div>
+          </div>
 
-                <Button variant="primary" type="submit" className="w-100" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Spinner animation="border" size="sm" /> Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-              </Form>
+          <button type="submit" disabled={loading}
+            style={{ width: "100%", background: loading ? "#6b7280" : "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.75rem", fontWeight: 600, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer" }}>
+            {loading ? "Creating Account…" : "Create Account"}
+          </button>
+        </form>
 
-              {/* Footer */}
-              <div className="text-center mt-3">
-                <p>
-                  Already have an account?{" "}
-                  <span className="text-primary" style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>
-                    Sign In
-                  </span>
-                </p>
-                <p style={{ fontSize: "0.8rem" }}>
-                  By creating an account, you agree to our{" "}
-                  <span className="text-primary">Terms of Service</span> and{" "}
-                  <span className="text-primary">Privacy Policy</span>
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+        <div style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.875rem", color: "#6b7280" }}>
+          Already have an account?{" "}
+          <span onClick={() => navigate("/login")} style={{ color: "#111", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+            Sign In
+          </span>
+        </div>
+      </div>
+    </div>
   );
 };
 

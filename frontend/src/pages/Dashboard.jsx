@@ -1,1626 +1,560 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Button, Badge, Form, Spinner, InputGroup, Dropdown, Modal } from "react-bootstrap";
 import axios from "axios";
-import { 
-  FaSearch, FaShoppingCart, FaUser, FaHeart, FaBox, FaTruck, 
-  FaShieldAlt, FaHeadset, FaStar, FaEdit, FaHistory, FaKey, 
-  FaSignOutAlt, FaTimes 
+import {
+  FaHeart, FaShoppingBag, FaShoppingCart,
+  FaBook, FaRunning, FaPencilAlt, FaGraduationCap,
+  FaStar, FaChevronRight, FaPaperPlane
 } from "react-icons/fa";
-import BookSetSection from "../components/BookSetSection.jsx";
-import DonationSection from "../components/DonationSection.jsx";
-import TokenErrorAlert from "../components/TokenErrorAlert.jsx";
-import NotificationBell from "../components/NotificationBell.jsx";
+import SharedLayout from "../components/SharedLayout.jsx";
 
-const Dashboard = ({ setUser }) => {
-  const navigate = useNavigate();
-  const [user, setLocalUser] = useState(null);
-  const [cart, setCart] = useState({ items: [] });
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [quantities, setQuantities] = useState({});
-  const [searchQuery, setSearchQuery] = useState("");
-  const [wishlist, setWishlist] = useState([]);
-  const [wishlistLoading, setWishlistLoading] = useState({});
-  const [showWishlistModal, setShowWishlistModal] = useState(false);
-  const [myDonations, setMyDonations] = useState([]);
-  const [pendingRequestCount, setPendingRequestCount] = useState(0);
-  const [showTokenError, setShowTokenError] = useState(false);
-  
-  const categories = [
-    { id: "all", name: "All Products", icon: "📦" },
-    { id: "book", name: "Books", icon: "📚" },
-    { id: "stationery", name: "Stationery", icon: "✏️" },
-    { id: "electronics", name: "Electronics", icon: "💻" },
-    { id: "sports", name: "Sports", icon: "⚽" }
-  ];
+/* ─── tiny helpers ─────────────────────────────────────────── */
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── Hero ──────────────────────────────────────────────────── */
+const Hero = ({ navigate }) => (
+  <section style={{ position: "relative", height: "92vh", minHeight: 560, overflow: "hidden" }}>
+    <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80"
+      alt="Library" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
+    {/* gradient overlay — lighter on right so image shows, darker on left for text legibility */}
+    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 60%, rgba(0,0,0,0.1) 100%)" }} />
+    <div style={{ position: "relative", zIndex: 1, maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      {/* Main headline — Instrument Serif, matching reference */}
+      <h1 style={{
+        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontSize: "clamp(4rem, 10vw, 7.5rem)",
+        fontWeight: 400,
+        fontStyle: "normal",
+        color: "#fff",
+        lineHeight: 0.95,
+        margin: 0,
+        letterSpacing: "-0.02em",
+      }}>
+        smart<br />stationery.
+      </h1>
+      <p style={{
+        fontFamily: "'Inter', system-ui, sans-serif",
+        color: "rgba(255,255,255,0.95)",
+        fontSize: "1rem",
+        fontWeight: 600,
+        margin: "1.5rem 0 0.5rem",
+        letterSpacing: "0.01em"
+      }}>
+        Everything For Every Student.
+      </p>
+      <p style={{
+        fontFamily: "'Inter', system-ui, sans-serif",
+        color: "rgba(255,255,255,0.72)",
+        fontSize: "0.9rem",
+        fontWeight: 400,
+        maxWidth: 360,
+        margin: "0 0 2.25rem",
+        lineHeight: 1.65
+      }}>
+        From textbooks to sports gear, stationery to complete school sets —
+        your one stop destination for all educational needs.
+      </p>
+      <button onClick={() => navigate("/products")}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "0.6rem",
+          background: "#fff", color: "#111", border: "none",
+          borderRadius: 50, padding: "0.8rem 2rem",
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontWeight: 700, fontSize: "0.95rem",
+          cursor: "pointer", width: "fit-content",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.18)"
+        }}>
+        Shop Now <FaChevronRight style={{ fontSize: "0.75rem" }} />
+      </button>
+    </div>
+  </section>
+);
+
+/* ─── Categories ────────────────────────────────────────────── */
+const CATS = [
+  { id: "book",        icon: <FaBook />,        label: "Books",        count: "5,000+" },
+  { id: "sports",      icon: <FaRunning />,     label: "Sports",       count: "1,200+" },
+  { id: "stationery",  icon: <FaPencilAlt />,   label: "Stationery",   count: "3,500+" },
+  { id: "electronics", icon: <FaGraduationCap />,label: "School Sets", count: "50+ Schools" },
+  { id: "donation",    icon: <FaHeart />,       label: "Donation Box", count: "500+ Items" },
+];
+
+const Categories = ({ selected, onSelect, navigate }) => (
+  <section style={{ padding: "4rem 0 3rem", background: "#fff" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
+      <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>CATEGORIES</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem" }}>
+        <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em" }}>Shop by Category</h2>
+        <button onClick={() => navigate("/products")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500 }}>View all categories</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+        {CATS.map(cat => (
+          <button key={cat.id}
+            onClick={() => cat.id === "donation" ? navigate("/donations") : onSelect(cat.id)}
+            style={{ background: selected === cat.id ? "#f9fafb" : "#fff", border: "none", cursor: "pointer", padding: "2rem 1.5rem", textAlign: "left", transition: "background 0.2s" }}>
+            <div style={{ fontSize: "1.3rem", color: "#111", marginBottom: "1.5rem" }}>{cat.icon}</div>
+            <div style={{ fontWeight: 700, fontSize: "1rem", color: "#111", marginBottom: "0.25rem" }}>{cat.label}</div>
+            <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{cat.count}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+/* ─── Product Card ──────────────────────────────────────────── */
+const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist }) => {
+  const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", position: "relative", display: "flex", flexDirection: "column" }}>
+      {discount && <span style={{ position: "absolute", top: 10, right: 10, background: "#111", color: "#fff", fontSize: "0.7rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: 2 }}>-{discount}%</span>}
+      <button onClick={() => onWishlist(product)} style={{ position: "absolute", top: 10, left: 10, background: "none", border: "none", cursor: "pointer", color: inWishlist ? "#ef4444" : "#ccc", fontSize: "1rem" }}><FaHeart /></button>
+      <div style={{ height: 200, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
+          : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
+      </div>
+      <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9ca3af", textTransform: "uppercase" }}>{product.category}</span>
+        <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111", lineHeight: 1.3, minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.2rem" }}>
+          {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />)}
+          <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginLeft: "0.3rem" }}>(4.0)</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "auto" }}>
+          <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "#111" }}>₹{product.price}</span>
+          {product.original_price && <span style={{ fontSize: "0.85rem", color: "#9ca3af", textDecoration: "line-through" }}>₹{product.original_price}</span>}
+        </div>
+        {product.stock_quantity > 0 ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
+            <input type="number" min={1} max={product.stock_quantity} value={qty || 1}
+              onChange={e => onQtyChange(product.id, e.target.value)}
+              style={{ width: 52, border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.4rem", fontSize: "0.85rem", textAlign: "center" }} />
+            <button onClick={() => onCart(product.id, qty || 1)}
+              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add
+            </button>
+          </div>
+        ) : (
+          <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "#ef4444", fontWeight: 600 }}>Out of Stock</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Featured Products ─────────────────────────────────────── */
+const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate }) => {
+  const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
+  return (
+    <section style={{ padding: "4rem 0", background: "#fafafa" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
+        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>CURATED</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em" }}>Featured Products</h2>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {FILTER_CATS.map(c => (
+              <button key={c} onClick={() => onSelect(c === "All" ? "all" : c.toLowerCase())}
+                style={{ background: (selected === "all" && c === "All") || selected === c.toLowerCase() ? "#111" : "transparent", color: (selected === "all" && c === "All") || selected === c.toLowerCase() ? "#fff" : "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.35rem 1rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        {products.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "4rem", color: "#9ca3af" }}>
+            <FaShoppingBag style={{ fontSize: "3rem", marginBottom: "1rem" }} />
+            <p>No products found</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+            {products.slice(0, 8).map(p => (
+              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange} onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} />
+            ))}
+          </div>
+        )}
+        <div style={{ textAlign: "center", marginTop: "2rem" }}>
+          <button onClick={() => navigate("/products")}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.95rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+            View all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Book Sets ─────────────────────────────────────────────── */
+const BookSetsSection = ({ navigate }) => {
+  const [sets, setSets] = useState([]);
+  const [grade, setGrade] = useState("");
+  const [school, setSchool] = useState("");
+  const [grades, setGrades] = useState([]);
+  const [schools, setSchools] = useState([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    
-    if (!storedUser) {
-      navigate("/login");
-      return;
-    }
+    let mounted = true;
+    axios.get(`${API}/book-sets`).then(r => {
+      if (!mounted) return;
+      const data = r.data.bookSets || [];
+      setSets(data.slice(0, 4));
+      const f = r.data.filters || {};
+      setGrades(f.grades?.length ? f.grades : [...new Set(data.map(s => s.grade).filter(Boolean))].sort());
+      setSchools(f.schools?.length ? f.schools : [...new Set(data.map(s => s.school_name).filter(Boolean))].sort());
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
-    if (storedUser.role === "admin") {
-      navigate("/admin-dashboard");
-      return;
-    }
-
-    if (storedUser.role === "institute") {
-      navigate("/institute-dashboard");
-      return;
-    }
-
-    setLocalUser(storedUser);
-    
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
-
-    fetchDashboardData();
-    fetchWishlist();
-    fetchMyDonations();
-  }, [navigate]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const [allProductsRes, cartRes, ordersRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/products", { headers })
-          .catch(err => ({ data: { products: [] } })),
-        axios.get("http://localhost:5000/api/users/cart", { headers })
-          .catch(err => ({ data: { cart: { items: [] } } })),
-        axios.get("http://localhost:5000/api/orders/my-orders?limit=5", { headers })
-          .catch(err => ({ data: { orders: [] } }))
-      ]);
-
-      setAllProducts(allProductsRes.data.products || []);
-      setProducts(allProductsRes.data.products || []);
-      setCart(cartRes.data.cart || { items: [] });
-      setOrders(ordersRes.data.orders || []);
-      
-      const initialQuantities = {};
-      (allProductsRes.data.products || []).forEach(product => {
-        initialQuantities[product.id] = 1;
-      });
-      setQuantities(initialQuantities);
-
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (grade) params.append("grade", grade);
+    if (school) params.append("school", school);
+    axios.get(`${API}/book-sets?${params}`, { headers: authH() })
+      .then(r => setSets((r.data.bookSets || []).slice(0, 4))).catch(() => {});
   };
 
-  const fetchWishlist = async () => {
+  return (
+    <section style={{ padding: "5rem 0", background: "#fff" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "4rem", alignItems: "start" }}>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>SCHOOL SETS</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
+            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+              Get complete book sets for your child's class with a single click. Select your school and grade to find the perfect set.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <select value={grade} onChange={e => setGrade(e.target.value)}
+                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+                <option value="">Select Grade</option>
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <select value={school} onChange={e => setSchool(e.target.value)}
+                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+                <option value="">Select School</option>
+                {schools.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button onClick={handleSearch}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.6rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+                Search Sets
+              </button>
+            </div>
+          </div>
+          <div>
+            {sets.length === 0 ? (
+              <p style={{ color: "#9ca3af", padding: "2rem 0" }}>No book sets available yet.</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+                {sets.map(s => (
+                  <div key={s.id} onClick={() => navigate(`/book-sets/${s.id}`)}
+                    style={{ background: "#fff", padding: "1.25rem", cursor: "pointer", position: "relative" }}>
+                    {/* School name — primary label */}
+                    <p style={{ fontWeight: 700, fontSize: "1rem", color: "#111", margin: "0 0 0.3rem", lineHeight: 1.3 }}>{s.school_name}</p>
+                    {/* Grade — secondary badge */}
+                    <span style={{ display: "inline-block", background: "#111", color: "#fff", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.15rem 0.5rem", borderRadius: 2, marginBottom: "0.6rem" }}>
+                      Grade {s.grade}
+                    </span>
+                    <p style={{ fontSize: "0.8rem", color: "#9ca3af", margin: "0 0 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                      📚 {s.items?.length || 0} books included
+                    </p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: 800, fontSize: "1rem" }}>₹{s.total_price}</span>
+                      <FaShoppingCart style={{ color: "#9ca3af" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+              <button onClick={() => navigate("/book-sets")}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                View all school sets <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Item Request Section ──────────────────────────────────── */
+const RequestSection = () => {
+  const [itemName, setItemName] = useState("");
+  const [details, setDetails] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!itemName.trim()) return;
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        // Try to get from localStorage if no token
-        const storedWishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
-        setWishlist(storedWishlist);
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
-      
-      try {
-        const response = await axios.get("http://localhost:5000/api/wishlist", { headers });
-        if (response.data.success) {
-          // Transform wishlist items to match expected format
-          const transformedWishlist = response.data.wishlist.map(item => ({
-            ...item.product,
-            wishlistId: item._id,
-            product_id: item.product._id
-          }));
-          setWishlist(transformedWishlist);
-          localStorage.setItem("wishlist", JSON.stringify(transformedWishlist));
-        }
-      } catch (apiError) {
-        // If API doesn't exist, use localStorage
-        console.log("Using localStorage for wishlist");
-        const storedWishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
-        setWishlist(storedWishlist);
-      }
-    } catch (error) {
-      console.error("Error fetching wishlist:", error);
-      const storedWishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
-      setWishlist(storedWishlist);
-    }
-  };
-
-  const fetchMyDonations = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('No token found, skipping donation fetch');
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(
-        'http://localhost:5000/api/donations/user/donations',
-        { headers }
-      );
-      
-      const donations = response.data.donations || [];
-      
-      // Get request counts for each donation
-      const donationsWithCounts = await Promise.all(
-        donations.map(async (donation) => {
-          try {
-            const reqRes = await axios.get(
-              `http://localhost:5000/api/donations/${donation.id}/requests`,
-              { headers }
-            );
-            const pendingCount = reqRes.data.requests?.filter(r => r.status === 'pending').length || 0;
-            return { ...donation, pendingRequestCount: pendingCount };
-          } catch (err) {
-            console.log(`Could not fetch requests for donation ${donation.id}:`, err.message);
-            return { ...donation, pendingRequestCount: 0 };
-          }
-        })
-      );
-      
-      setMyDonations(donationsWithCounts);
-      
-      // Calculate total pending requests
-      const total = donationsWithCounts.reduce((sum, d) => sum + (d.pendingRequestCount || 0), 0);
-      setPendingRequestCount(total);
+      setSubmitting(true);
+      await axios.post(`${API}/item-requests`, { itemName, details }, { headers: authH() });
+      setDone(true);
+      setItemName(""); setDetails("");
+      setTimeout(() => setDone(false), 3000);
     } catch (err) {
-      console.error('Error fetching donations:', err.response?.data?.message || err.message);
-      // If JWT error, show alert and silently fail - user can still use dashboard
-      if (err.response?.status === 401 || err.message?.includes('jwt') || err.response?.data?.error === 'JsonWebTokenError') {
-        console.log('Token issue detected - donation notifications disabled');
-        setShowTokenError(true);
-        setMyDonations([]);
-        setPendingRequestCount(0);
-      }
-    }
-  };
-
-  const addToWishlist = async (product) => {
-    try {
-      setWishlistLoading(prev => ({ ...prev, [product.id]: true }));
-      
-      const token = localStorage.getItem("token");
-      const productId = product.id;
-      
-      if (token) {
-        try {
-          await axios.post("http://localhost:5000/api/wishlist/add", 
-            { productId }, 
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } catch (apiError) {
-          // If API fails, use localStorage
-          console.log("Using localStorage for wishlist");
-        }
-      }
-      
-      // Add to local state and localStorage
-      const updatedWishlist = [...wishlist, { ...product, product_id: productId }];
-      setWishlist(updatedWishlist);
-      localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
-      
-    } catch (error) {
-      console.error("Error adding to wishlist:", error);
-      alert("Failed to add to wishlist");
+      alert(err.response?.data?.message || "Failed to submit request");
     } finally {
-      setWishlistLoading(prev => ({ ...prev, [product.id]: false }));
+      setSubmitting(false);
     }
   };
 
-  const removeFromWishlist = async (productId) => {
-    try {
-      setWishlistLoading(prev => ({ ...prev, [productId]: true }));
-      
-      const token = localStorage.getItem("token");
-      
-      if (token) {
-        try {
-          await axios.delete(`http://localhost:5000/api/wishlist/remove/${productId}`, 
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } catch (apiError) {
-          // If API fails, use localStorage
-          console.log("Using localStorage for wishlist");
+  return (
+    <section style={{ padding: "5rem 0", background: "#fafafa" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
+        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.75rem" }}>REQUEST</p>
+        <h2 style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontWeight: 800, color: "#111", margin: "0 0 0.75rem", letterSpacing: "-0.03em" }}>Can't Find Something?</h2>
+        <p style={{ color: "#6b7280", fontSize: "1.05rem", maxWidth: 560, lineHeight: 1.7, marginBottom: "2.5rem" }}>
+          Tell us what you're looking for and we'll source it for you. From rare textbooks to specific sports gear.
+        </p>
+        <div style={{ maxWidth: 560, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "2rem" }}>
+          <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.5rem" }}>Submit a Request</h3>
+          {done && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#166534", fontSize: "0.9rem" }}>✓ Request submitted! We'll respond within 24 hours.</div>}
+          <form onSubmit={handleSubmit}>
+            <label style={{ fontSize: "0.85rem", color: "#374151", fontWeight: 500, display: "block", marginBottom: "0.4rem" }}>Item Name *</label>
+            <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g., RD Sharma Class 12" required
+              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", marginBottom: "1.25rem", outline: "none", boxSizing: "border-box" }} />
+            <label style={{ fontSize: "0.85rem", color: "#374151", fontWeight: 500, display: "block", marginBottom: "0.4rem" }}>Details (Optional)</label>
+            <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, quantity..." rows={3}
+              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", marginBottom: "1.25rem", outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+            <button type="submit" disabled={submitting}
+              style={{ width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.9rem", fontWeight: 700, fontSize: "1rem", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", opacity: submitting ? 0.7 : 1 }}>
+              <FaPaperPlane /> {submitting ? "Submitting…" : "Submit Request"}
+            </button>
+            <p style={{ textAlign: "center", fontSize: "0.8rem", color: "#9ca3af", marginTop: "0.75rem", marginBottom: 0 }}>Usually responds within 24 hours</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Donation Section ──────────────────────────────────────── */
+const DonationSectionNew = ({ navigate }) => {
+  const [donations, setDonations] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    axios.get(`${API}/donations?limit=4`)
+      .then(r => { if (mounted) setDonations(r.data.donations || []); })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  return (
+    <section style={{ padding: "5rem 0", background: "#fff" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "start" }}>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>COMMUNITY</p>
+            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.75rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+              Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400 }}>Learning</em>
+            </h2>
+            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "2rem", fontSize: "0.95rem" }}>
+              Have books or supplies you no longer need? Donate them to help other students. Or browse available donations to find what you need — for free.
+            </p>
+            <div style={{ display: "flex", gap: "1.5rem", marginBottom: "2rem" }}>
+              {[["500+","Items Donated"],["200+","Students Helped"],["50+","Active Donors"]].map(([n,l]) => (
+                <div key={l}>
+                  <div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#111" }}>{n}</div>
+                  <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => navigate("/donations/create")}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                🎁 Donate Items
+              </button>
+              <button onClick={() => navigate("/donations")}
+                style={{ background: "none", color: "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                Browse Donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "1rem" }}>RECENTLY AVAILABLE</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+              {donations.length === 0 ? (
+                <div style={{ background: "#fff", padding: "2rem", textAlign: "center", color: "#9ca3af", fontSize: "0.9rem" }}>No donations yet</div>
+              ) : donations.map(d => {
+                const imgSrc = d.images?.[0]
+                  ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000/${d.images[0]}`)
+                  : null;
+                return (
+                  <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
+                    style={{ background: "#fff", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", gap: "1rem", cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                    {/* Thumbnail */}
+                    <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#f3f4f6", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {imgSrc
+                        ? <img src={imgSrc} alt={d.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+                        : <span style={{ fontSize: "1.2rem" }}>📦</span>
+                      }
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.title}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>by {d.donor?.name || "Anonymous"} · {d.created_at ? new Date(d.created_at).toLocaleDateString() : ""}</div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: "0.7rem", color: "#9ca3af", textTransform: "capitalize" }}>{d.condition?.replace("_", " ") || "Good"}</div>
+                      <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#111" }}>FREE</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ textAlign: "center", marginTop: "1.25rem" }}>
+              <button onClick={() => navigate("/donations")}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                View all donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Main Dashboard ────────────────────────────────────────── */
+const Dashboard = ({ setUser }) => {
+  const navigate = useNavigate();
+
+  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [quantities, setQuantities] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  // App.jsx already guarantees only a logged-in personal user reaches here.
+  // No auth checks needed — just fetch data.
+  useEffect(() => {
+    let mounted = true;
+    const token = localStorage.getItem("token");
+    if (!token || token === "null") { setLoading(false); return; }
+
+    (async () => {
+      try {
+        const [prodRes, wlRes] = await Promise.all([
+          axios.get(`${API}/products`, { headers: authH() }).catch(() => ({ data: { products: [] } })),
+          axios.get(`${API}/wishlist`, { headers: authH() }).catch(() => ({ data: { success: false } })),
+        ]);
+        if (!mounted) return;
+        const prods = prodRes.data.products || [];
+        setAllProducts(prods);
+        setProducts(prods);
+        const q = {};
+        prods.forEach(p => { q[p.id] = 1; });
+        setQuantities(q);
+        if (wlRes.data.success) {
+          setWishlist(wlRes.data.wishlist.map(i => ({
+            ...i.product,
+            wishlistId: i._id,
+            product_id: i.product?.id  // always integer id, not MongoDB _id
+          })));
         }
-      }
-      
-      // Remove from local state and localStorage
-      const updatedWishlist = wishlist.filter(item => 
-        item._id !== productId && item.product_id !== productId && item.id !== productId
-      );
-      setWishlist(updatedWishlist);
-      localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
-      
-    } catch (error) {
-      console.error("Error removing from wishlist:", error);
-      alert("Failed to remove from wishlist");
-    } finally {
-      setWishlistLoading(prev => ({ ...prev, [productId]: false }));
-    }
-  };
+      } catch {}
+      finally { if (mounted) setLoading(false); }
+    })();
 
-  const isInWishlist = (productId) => {
-    return wishlist.some(item => 
-      item._id === productId || item.product_id === productId || item.id === productId
-    );
-  };
+    return () => { mounted = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addToCart = async (productId, quantity = 1) => {
     try {
-      const product = products.find(p => p.id === productId);
-      if (!product) {
-        alert("Product not found!");
-        return;
-      }
-      
-      if (quantity > product.stock_quantity) {
-        alert(`Only ${product.stock_quantity} items available in stock!`);
-        return;
-      }
-      
-      const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/users/cart/add", {
-        productId: productId,
-        quantity: quantity
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const cartRes = await axios.get("http://localhost:5000/api/users/cart", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCart(cartRes.data.cart || { items: [] });
-      
-      alert(`Added ${quantity} item(s) to cart successfully!`);
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      alert(error.response?.data?.message || "Failed to add to cart");
-    }
+      const product = allProducts.find(p => p.id === productId);
+      if (product && quantity > product.stock_quantity) { alert(`Only ${product.stock_quantity} in stock`); return; }
+      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: authH() });
+      alert("Added to cart!");
+    } catch (e) { alert(e.response?.data?.message || "Failed to add to cart"); }
   };
 
-  const getCartItemCount = () => {
-    return cart.items.reduce((count, item) => count + item.quantity, 0);
-  };
-
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    if (query.trim() === "") {
-      setProducts(allProducts);
-      setSelectedCategory("all");
-    } else {
-      const lowerQuery = query.toLowerCase();
-      const filtered = allProducts
-        .map(product => {
-          let score = 0;
-          const name = product.name.toLowerCase();
-          const category = product.category.toLowerCase();
-          const description = product.description?.toLowerCase() || "";
-          
-          // Exact match gets highest score
-          if (name === lowerQuery) score += 100;
-          if (category === lowerQuery) score += 50;
-          
-          // Starts with query gets high score
-          if (name.startsWith(lowerQuery)) score += 30;
-          if (category.startsWith(lowerQuery)) score += 20;
-          
-          // Contains query gets lower score
-          if (name.includes(lowerQuery)) score += 10;
-          if (category.includes(lowerQuery)) score += 5;
-          if (description.includes(lowerQuery)) score += 2;
-          
-          return { ...product, score };
-        })
-        .filter(product => product.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(({ score, ...product }) => product);
-      
-      setProducts(filtered);
-      setSelectedCategory("all");
-    }
-  };
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
-    setSearchQuery("");
-    if (category === "all") {
-      setProducts(allProducts);
-    } else {
-      setProducts(allProducts.filter(p => p.category === category));
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    // Keep wishlist in localStorage for persistence
-    setUser(null);
-    navigate("/login", { replace: true });
-  };
-
-  const handleQuantityChange = (productId, value) => {
-    const quantity = parseInt(value) || 1;
-    const product = products.find(p => p.id === productId);
-    
-    if (product && quantity > product.stock_quantity) {
-      setQuantities(prev => ({ ...prev, [productId]: product.stock_quantity }));
-      return;
-    }
-    if (quantity < 1) {
-      setQuantities(prev => ({ ...prev, [productId]: 1 }));
-      return;
-    }
-    
-    setQuantities(prev => ({ ...prev, [productId]: quantity }));
-  };
+  const wishlistProcessing = useRef(new Set());
 
   const toggleWishlist = async (product) => {
-    const productId = product.id;
-    
-    if (isInWishlist(productId)) {
-      await removeFromWishlist(productId);
+    if (wishlistProcessing.current.has(product.id)) return;
+    wishlistProcessing.current.add(product.id);
+
+    const inWl = isInWishlist(product.id);
+    if (inWl) {
+      const next = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
+      setWishlist(next);
+      window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
+      try {
+        await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() });
+      } catch {
+        const reverted = [...wishlist];
+        setWishlist(reverted);
+        window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: reverted.length } }));
+      }
     } else {
-      await addToWishlist(product);
+      const next = [...wishlist, { ...product, product_id: product.id }];
+      setWishlist(next);
+      window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
+      try {
+        await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() });
+      } catch {
+        const reverted = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
+        setWishlist(reverted);
+        window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: reverted.length } }));
+      }
     }
+
+    wishlistProcessing.current.delete(product.id);
   };
 
-  const moveWishlistToCart = async (product) => {
-    const productId = product.id || product.product_id;
-    await addToCart(productId, 1);
-    await removeFromWishlist(productId);
-    setShowWishlistModal(false);
+  const isInWishlist = (id) => wishlist.some(i => i.id === id || i.product_id === id);
+
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    setProducts(cat === "all" ? allProducts : allProducts.filter(p => p.category === cat));
   };
 
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white'
-      }}>
-        <Spinner animation="border" variant="light" />
-        <p style={{ marginTop: '1rem', fontSize: '1.1rem', fontWeight: '500' }}>
-          Loading your dashboard...
-        </p>
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
+        <p style={{ color: "#6b7280", fontSize: "0.95rem" }}>Loading…</p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!user) return null;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    }}>
-      
-      {/* Token Error Alert */}
-      {showTokenError && (
-        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, maxWidth: '500px' }}>
-          <TokenErrorAlert show={showTokenError} onClose={() => setShowTokenError(false)} />
-        </div>
-      )}
-      
-      {/* Navigation Header */}
-      <nav style={{
-        background: 'white',
-        padding: '1rem 0',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        borderBottom: '1px solid #e5e7eb'
-      }}>
-        <Container>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '2rem',
-            flexWrap: 'wrap'
-          }}>
-            {/* Brand */}
-            <div style={{ flexShrink: 0 }}>
-              <h2 style={{
-                fontSize: '1.75rem',
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                margin: 0,
-                lineHeight: 1.2
-              }}>
-                Smart Stationery
-              </h2>
-              <p style={{
-                fontSize: '0.75rem',
-                color: '#6b7280',
-                margin: 0,
-                fontWeight: 500
-              }}>
-                Your One-Stop Shop
-              </p>
-            </div>
-            
-            {/* Search Bar */}
-            <div style={{ flex: 1, maxWidth: '500px' }}>
-              <InputGroup style={{
-                borderRadius: '50px',
-                overflow: 'hidden',
-                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
-              }}>
-                <InputGroup.Text style={{
-                  background: 'white',
-                  border: 'none',
-                  color: '#6b7280',
-                  paddingLeft: '1rem'
-                }}>
-                  <FaSearch />
-                </InputGroup.Text>
-                <Form.Control
-                  type="text"
-                  placeholder="Search for products, categories..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  style={{
-                    border: 'none',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.95rem'
-                  }}
-                />
-              </InputGroup>
-            </div>
+    <SharedLayout activeLink="Home">
+      <Hero navigate={navigate} />
 
-            {/* Actions */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem'
-            }}>
-              {/* Notification Bell */}
-              <NotificationBell />
-              
-              <Button 
-                variant="link" 
-                onClick={() => setShowWishlistModal(true)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  color: '#1f2937',
-                  textDecoration: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '12px',
-                  position: 'relative'
-                }}
-              >
-                <FaHeart style={{ 
-                  fontSize: '1.5rem',
-                  color: wishlist.length > 0 ? '#ef4444' : '#6b7280'
-                }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Wishlist</span>
-                {wishlist.length > 0 && (
-                  <Badge 
-                    bg="danger" 
-                    style={{
-                      position: 'absolute',
-                      top: '0.25rem',
-                      right: '0.5rem',
-                      fontSize: '0.65rem',
-                      padding: '0.25rem 0.5rem'
-                    }}
-                  >
-                    {wishlist.length}
-                  </Badge>
-                )}
-              </Button>
-              
-              <Button 
-                variant="link"
-                onClick={() => navigate("/cart")}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  color: '#1f2937',
-                  textDecoration: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '12px',
-                  position: 'relative'
-                }}
-              >
-                <FaShoppingCart style={{ fontSize: '1.5rem' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Cart</span>
-                {getCartItemCount() > 0 && (
-                  <Badge 
-                    bg="danger" 
-                    style={{
-                      position: 'absolute',
-                      top: '0.25rem',
-                      right: '0.5rem',
-                      fontSize: '0.65rem',
-                      padding: '0.25rem 0.5rem'
-                    }}
-                  >
-                    {getCartItemCount()}
-                  </Badge>
-                )}
-              </Button>
-              
-              {/* User Dropdown */}
-              <Dropdown>
-                <Dropdown.Toggle 
-                  variant="link"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    color: '#1f2937',
-                    textDecoration: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '12px',
-                    border: 'none'
-                  }}
-                >
-                  <FaUser style={{ fontSize: '1.5rem' }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{user.name}</span>
-                </Dropdown.Toggle>
+      <Categories selected={selectedCategory} onSelect={handleCategorySelect} navigate={navigate} />
 
-                <Dropdown.Menu style={{ 
-                  marginTop: '0.5rem',
-                  border: 'none',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  borderRadius: '12px',
-                  padding: '0.5rem'
-                }}>
-                  <Dropdown.Item 
-                    onClick={() => navigate("/profile")}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      fontWeight: 500
-                    }}
-                  >
-                    <FaEdit style={{ color: '#6b7280' }} />
-                    Edit Profile
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={() => navigate("/my-orders")}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      fontWeight: 500
-                    }}
-                  >
-                    <FaHistory style={{ color: '#6b7280' }} />
-                    My Orders
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={() => navigate("/change-password")}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      fontWeight: 500
-                    }}
-                  >
-                    <FaKey style={{ color: '#6b7280' }} />
-                    Change Password
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item 
-                    onClick={handleLogout}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      fontWeight: 500,
-                      color: '#ef4444'
-                    }}
-                  >
-                    <FaSignOutAlt />
-                    Logout
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          </div>
-        </Container>
-      </nav>
+      <FeaturedProducts
+        products={products}
+        selected={selectedCategory}
+        onSelect={handleCategorySelect}
+        quantities={quantities}
+        onQtyChange={(id, v) => {
+          const n = parseInt(v) || 1;
+          const p = allProducts.find(x => x.id === id);
+          setQuantities(q => ({ ...q, [id]: p ? Math.min(n, p.stock_quantity) : n }));
+        }}
+        onCart={addToCart}
+        onWishlist={toggleWishlist}
+        isInWishlist={isInWishlist}
+        navigate={navigate}
+      />
 
-      {/* Wishlist Modal */}
-      <Modal show={showWishlistModal} onHide={() => setShowWishlistModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FaHeart style={{ color: '#ef4444' }} />
-            My Wishlist ({wishlist.length} items)
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {wishlist.length === 0 ? (
-            <div className="text-center py-4">
-              <FaHeart style={{ fontSize: '3rem', color: '#e5e7eb', marginBottom: '1rem' }} />
-              <h5>Your wishlist is empty</h5>
-              <p className="text-muted">Add items you love to your wishlist</p>
-              <Button variant="primary" onClick={() => setShowWishlistModal(false)}>
-                Continue Shopping
-              </Button>
-            </div>
-          ) : (
-            <Row>
-              {wishlist.map(item => (
-                <Col md={6} key={item.id || item.product_id}>
-                  <Card style={{ marginBottom: '1rem' }}>
-                    <Card.Body>
-                      <div style={{ display: 'flex', gap: '1rem' }}>
-                        <img 
-                          src={item.image_url || "https://via.placeholder.com/100"} 
-                          alt={item.name}
-                          style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <h6 style={{ margin: 0, fontWeight: 600 }}>{item.name}</h6>
-                            <Button 
-                              variant="link" 
-                              onClick={() => removeFromWishlist(item.id || item.product_id)}
-                              disabled={wishlistLoading[item.id || item.product_id]}
-                              style={{ padding: 0, color: '#6b7280' }}
-                            >
-                              <FaTimes />
-                            </Button>
-                          </div>
-                          <p className="text-muted" style={{ fontSize: '0.9rem', margin: '0.25rem 0' }}>
-                            {item.category}
-                          </p>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <strong style={{ color: '#4f46e5' }}>₹{item.price}</strong>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <Button 
-                                size="sm" 
-                                variant="outline-primary"
-                                onClick={() => moveWishlistToCart(item)}
-                              >
-                                Add to Cart
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowWishlistModal(false)}>
-            Close
-          </Button>
-          {wishlist.length > 0 && (
-            <Button 
-              variant="primary"
-              onClick={() => {
-                // Add all wishlist items to cart
-                wishlist.forEach(item => {
-                  addToCart(item.id || item.product_id, 1);
-                });
-                setShowWishlistModal(false);
-              }}
-            >
-              Add All to Cart
-            </Button>
-          )}
-        </Modal.Footer>
-      </Modal>
+      <BookSetsSection navigate={navigate} />
 
-      {/* Hero Section */}
-      <section style={{
-        padding: '4rem 0',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <Container>
-          <Row className="align-items-center">
-            <Col lg={6}>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <h1 style={{
-                  fontSize: '3rem',
-                  fontWeight: 800,
-                  marginBottom: '1.5rem',
-                  lineHeight: 1.2
-                }}>
-                  Welcome back, {user.name}! 👋
-                </h1>
-                <p style={{
-                  fontSize: '1.25rem',
-                  marginBottom: '2rem',
-                  opacity: 0.95,
-                  maxWidth: '500px'
-                }}>
-                  Discover premium stationery, books, and electronics for all your needs. 
-                  Quality products at unbeatable prices.
-                </p>
-                
-                {/* Stats */}
-                <div style={{
-                  display: 'flex',
-                  gap: '3rem',
-                  marginBottom: '2rem'
-                }}>
-                  <div>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 800,
-                      lineHeight: 1
-                    }}>
-                      {allProducts.length}+
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      opacity: 0.9,
-                      fontWeight: 500
-                    }}>
-                      Products
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 800,
-                      lineHeight: 1
-                    }}>
-                      {orders.length}
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      opacity: 0.9,
-                      fontWeight: 500
-                    }}>
-                      Orders
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 800,
-                      lineHeight: 1
-                    }}>
-                      {getCartItemCount()}
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      opacity: 0.9,
-                      fontWeight: 500
-                    }}>
-                      Cart Items
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 800,
-                      lineHeight: 1
-                    }}>
-                      {wishlist.length}
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      opacity: 0.9,
-                      fontWeight: 500
-                    }}>
-                      Wishlist
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '2.5rem',
-                      fontWeight: 800,
-                      lineHeight: 1,
-                      color: pendingRequestCount > 0 ? '#ef4444' : 'inherit'
-                    }}>
-                      {pendingRequestCount}
-                    </div>
-                    <div style={{
-                      fontSize: '0.9rem',
-                      opacity: 0.9,
-                      fontWeight: 500
-                    }}>
-                      Donation Requests
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Action Buttons */}
-                <div style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  flexWrap: 'wrap'
-                }}>
-                  <Button 
-                    variant="primary" 
-                    size="lg"
-                    onClick={() => navigate("/products")}
-                    style={{
-                      padding: '0.875rem 2rem',
-                      borderRadius: '50px',
-                      fontWeight: 600,
-                      background: 'white',
-                      color: '#4f46e5',
-                      border: '2px solid white'
-                    }}
-                  >
-                    Shop Now
-                  </Button>
-                  <Button 
-                    variant="outline-light" 
-                    size="lg"
-                    onClick={() => navigate("/book-sets")}
-                    style={{
-                      padding: '0.875rem 2rem',
-                      borderRadius: '50px',
-                      fontWeight: 600,
-                      border: '2px solid white'
-                    }}
-                  >
-                    📚 Browse Book Sets
-                  </Button>
-                  <Button 
-                    variant="outline-light" 
-                    size="lg"
-                    onClick={() => navigate("/cart")}
-                    style={{
-                      padding: '0.875rem 2rem',
-                      borderRadius: '50px',
-                      fontWeight: 600,
-                      border: '2px solid white'
-                    }}
-                  >
-                    View Cart
-                  </Button>
-                  {wishlist.length > 0 && (
-                    <Button 
-                      variant="outline-light" 
-                      size="lg"
-                      onClick={() => setShowWishlistModal(true)}
-                      style={{
-                        padding: '0.875rem 2rem',
-                        borderRadius: '50px',
-                        fontWeight: 600,
-                        border: '2px solid white'
-                      }}
-                    >
-                      View Wishlist
-                    </Button>
-                  )}
-                  <Button 
-                    variant="outline-light" 
-                    size="lg"
-                    onClick={() => navigate("/my-donations")}
-                    style={{
-                      padding: '0.875rem 2rem',
-                      borderRadius: '50px',
-                      fontWeight: 600,
-                      border: '2px solid white',
-                      position: 'relative'
-                    }}
-                  >
-                    🎁 My Donations
-                    {pendingRequestCount > 0 && (
-                      <Badge 
-                        bg="danger" 
-                        pill
-                        style={{
-                          position: 'absolute',
-                          top: '-8px',
-                          right: '-8px',
-                          fontSize: '0.75rem',
-                          padding: '0.4rem 0.6rem'
-                        }}
-                      >
-                        {pendingRequestCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Col>
-            <Col lg={6}>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <img 
-                  src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800" 
-                  alt="Stationery" 
-                  style={{
-                    width: '100%',
-                    borderRadius: '1rem',
-                    boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
-                    border: '8px solid rgba(255, 255, 255, 0.2)'
-                  }}
-                />
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
+      <RequestSection />
 
-      {/* Features Section */}
-      <section style={{ padding: '4rem 0', background: 'white' }}>
-        <Container>
-          <Row className="g-4">
-            {[
-              { icon: FaTruck, title: 'Free Delivery', text: 'On orders over ₹500' },
-              { icon: FaShieldAlt, title: 'Secure Payment', text: '100% secure transactions' },
-              { icon: FaBox, title: 'Easy Returns', text: '7-day return policy' },
-              { icon: FaHeadset, title: '24/7 Support', text: 'Dedicated customer care' }
-            ].map((feature, idx) => (
-              <Col md={3} sm={6} key={idx}>
-                <Card style={{
-                  border: 'none',
-                  borderRadius: '16px',
-                  padding: '1rem',
-                  background: '#f9fafb',
-                  boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-                  height: '100%',
-                  transition: 'transform 0.3s ease'
-                }}>
-                  <Card.Body className="text-center">
-                    <div style={{
-                      fontSize: '3rem',
-                      color: '#4f46e5',
-                      marginBottom: '1rem'
-                    }}>
-                      <feature.icon />
-                    </div>
-                    <h5 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>
-                      {feature.title}
-                    </h5>
-                    <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
-                      {feature.text}
-                    </p>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </Container>
-      </section>
-
-      {/* Categories Section */}
-      <section style={{
-        padding: '3rem 0',
-        background: 'linear-gradient(to bottom, white, #f9fafb)'
-      }}>
-        <Container>
-          <h2 style={{
-            fontSize: '2rem',
-            fontWeight: 800,
-            color: '#1f2937',
-            marginBottom: '2rem',
-            textAlign: 'center'
-          }}>
-            Shop by Category
-          </h2>
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            flexWrap: 'wrap',
-            justifyContent: 'center'
-          }}>
-            {categories.map(cat => (
-              <Button
-                key={cat.id}
-                onClick={() => handleCategoryChange(cat.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '50px',
-                  border: '2px solid #e5e7eb',
-                  background: selectedCategory === cat.id ? '#4f46e5' : 'white',
-                  color: selectedCategory === cat.id ? 'white' : '#1f2937',
-                  fontWeight: 600,
-                  boxShadow: selectedCategory === cat.id ? '0 0 0 4px #eef2ff' : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <span style={{ fontSize: '1.5rem' }}>{cat.icon}</span>
-                <span>{cat.name}</span>
-              </Button>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* Products Section */}
-      <section style={{
-        padding: '4rem 0',
-        background: '#f9fafb',
-        minHeight: '60vh'
-      }}>
-        <Container>
-          <div style={{ marginBottom: '3rem' }}>
-            <h2 style={{
-              fontSize: '2rem',
-              fontWeight: 800,
-              color: '#1f2937',
-              marginBottom: '0.5rem',
-              textAlign: 'center'
-            }}>
-              {searchQuery ? `Search Results for "${searchQuery}"` : 
-               selectedCategory === "all" ? "All Products" : 
-               categories.find(c => c.id === selectedCategory)?.name}
-            </h2>
-            <p style={{
-              textAlign: 'center',
-              color: '#6b7280',
-              marginBottom: '1.5rem'
-            }}>
-              {products.length} products found
-            </p>
-          </div>
-
-          {products.length === 0 ? (
-            <Card style={{
-              border: 'none',
-              borderRadius: '16px',
-              background: 'white',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-            }}>
-              <Card.Body className="text-center py-5">
-                <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>🔍</div>
-                <h4 style={{ color: '#1f2937', fontWeight: 700, marginBottom: '0.5rem' }}>
-                  No products found
-                </h4>
-                <p style={{ color: '#6b7280' }}>
-                  Try adjusting your search or browse all categories
-                </p>
-                <Button 
-                  variant="primary" 
-                  onClick={() => handleSearch("")}
-                  style={{ marginTop: '1rem' }}
-                >
-                  View All Products
-                </Button>
-              </Card.Body>
-            </Card>
-          ) : (
-            <Row xs={1} sm={2} md={3} lg={4} xl={5} className="g-4">
-              {products.map(product => (
-                <Col key={product.id}>
-                  <Card style={{
-                    border: 'none',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    background: 'white',
-                    boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'all 0.3s ease',
-                    position: 'relative'
-                  }}>
-                    {/* Wishlist Heart Button */}
-                    <Button
-                      variant="link"
-                      onClick={() => toggleWishlist(product)}
-                      disabled={wishlistLoading[product.id]}
-                      style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        zIndex: 2,
-                        padding: '0.5rem',
-                        borderRadius: '50%',
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      <FaHeart style={{
-                        color: isInWishlist(product.id) ? '#ef4444' : '#9ca3af',
-                        fontSize: '1.25rem'
-                      }} />
-                    </Button>
-                    
-                    {/* Product Image */}
-                    <div style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: '200px',
-                      overflow: 'hidden',
-                      background: '#f9fafb'
-                    }}>
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                          onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/300x300?text=No+Image";
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                          color: '#6b7280',
-                          fontWeight: 600
-                        }}>
-                          No Image
-                        </div>
-                      )}
-                      {product.stock_quantity < 10 && product.stock_quantity > 0 && (
-                        <Badge 
-                          bg="warning"
-                          style={{
-                            position: 'absolute',
-                            top: '0.75rem',
-                            right: '0.75rem',
-                            padding: '0.375rem 0.75rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            borderRadius: '50px'
-                          }}
-                        >
-                          Only {product.stock_quantity} left
-                        </Badge>
-                      )}
-                      {product.stock_quantity === 0 && (
-                        <Badge 
-                          bg="danger"
-                          style={{
-                            position: 'absolute',
-                            top: '0.75rem',
-                            right: '0.75rem',
-                            padding: '0.375rem 0.75rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            borderRadius: '50px'
-                          }}
-                        >
-                          Out of Stock
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {/* Product Info */}
-                    <Card.Body style={{
-                      padding: '1.25rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem',
-                      flex: 1
-                    }}>
-                      <Badge 
-                        bg="light" 
-                        text="dark"
-                        style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          padding: '0.25rem 0.75rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          width: 'fit-content',
-                          borderRadius: '50px'
-                        }}
-                      >
-                        {product.category}
-                      </Badge>
-                      
-                      <Card.Title style={{
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        color: '#1f2937',
-                        margin: 0,
-                        minHeight: '2.5rem',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {product.name}
-                      </Card.Title>
-                      
-                      {product.description && (
-                        <Card.Text style={{
-                          fontSize: '0.85rem',
-                          color: '#6b7280',
-                          margin: 0
-                        }}>
-                          {product.description.substring(0, 60)}...
-                        </Card.Text>
-                      )}
-                      
-                      {/* Rating */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem'
-                      }}>
-                        <FaStar style={{ color: '#fbbf24', fontSize: '0.875rem' }} />
-                        <FaStar style={{ color: '#fbbf24', fontSize: '0.875rem' }} />
-                        <FaStar style={{ color: '#fbbf24', fontSize: '0.875rem' }} />
-                        <FaStar style={{ color: '#fbbf24', fontSize: '0.875rem' }} />
-                        <FaStar style={{ color: '#d1d5db', fontSize: '0.875rem' }} />
-                        <span style={{
-                          fontSize: '0.8rem',
-                          color: '#6b7280',
-                          marginLeft: '0.5rem'
-                        }}>
-                          (4.0)
-                        </span>
-                      </div>
-                      
-                      {/* Price */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}>
-                        <span style={{
-                          fontSize: '1.5rem',
-                          fontWeight: 800,
-                          color: '#4f46e5'
-                        }}>
-                          ₹{product.price}
-                        </span>
-                      </div>
-                      
-                      {/* Add to Cart */}
-                      {product.stock_quantity > 0 ? (
-                        <div style={{
-                          display: 'flex',
-                          gap: '0.5rem',
-                          marginTop: 'auto'
-                        }}>
-                          <Form.Control
-                            type="number"
-                            min="1"
-                            max={product.stock_quantity}
-                            value={quantities[product.id] || 1}
-                            onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                            style={{
-                              width: '70px',
-                              textAlign: 'center',
-                              fontWeight: 600,
-                              borderRadius: '8px',
-                              border: '2px solid #e5e7eb'
-                            }}
-                          />
-                          <Button
-                            variant="primary"
-                            onClick={() => addToCart(product.id, quantities[product.id] || 1)}
-                            style={{
-                              flex: 1,
-                              borderRadius: '8px',
-                              fontWeight: 600,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.5rem',
-                              padding: '0.625rem 1rem',
-                              background: '#4f46e5',
-                              border: 'none'
-                            }}
-                          >
-                            <FaShoppingCart /> Add
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button 
-                          variant="secondary" 
-                          disabled 
-                          className="w-100"
-                          style={{ marginTop: 'auto' }}
-                        >
-                          Out of Stock
-                        </Button>
-                      )}
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
-        </Container>
-      </section>
-
-      {/* Book Set Section */}
-      <section style={{ background: '#f9fafb' }}>
-        <Container>
-          <BookSetSection />
-        </Container>
-      </section>
-
-      {/* Donation Section */}
-      <section style={{ background: '#f9fafb' }}>
-        <Container>
-          <DonationSection />
-        </Container>
-      </section>
-
-      {/* Request Box Section */}
-      <section style={{ padding: '4rem 0', background: 'white' }}>
-        <Container>
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#1f2937', marginBottom: '0.5rem' }}>
-              📦 Can't Find What You Need?
-            </h2>
-            <p style={{ color: '#6b7280', fontSize: '1.1rem', maxWidth: '500px', margin: '0 auto' }}>
-              Submit a request for any item not available in our store. We'll review and add it for you!
-            </p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <Button
-              size="lg"
-              onClick={() => navigate('/my-item-requests')}
-              style={{
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                border: 'none',
-                borderRadius: '50px',
-                padding: '0.875rem 2.5rem',
-                fontWeight: 600,
-                fontSize: '1rem'
-              }}
-            >
-              📝 Submit Item Request
-            </Button>
-            <Button
-              size="lg"
-              variant="outline-primary"
-              onClick={() => navigate('/my-item-requests')}
-              style={{ borderRadius: '50px', padding: '0.875rem 2.5rem', fontWeight: 600 }}
-            >
-              📋 View My Requests
-            </Button>
-          </div>
-        </Container>
-      </section>
-
-      {/* Footer */}
-      <footer style={{
-        background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
-        color: 'white',
-        padding: '4rem 0 2rem',
-        marginTop: '4rem'
-      }}>
-        <Container>
-          <Row className="g-4">
-            <Col lg={4} md={6}>
-              <h4 style={{
-                fontSize: '1.75rem',
-                fontWeight: 800,
-                marginBottom: '1rem',
-                background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Smart Stationery
-              </h4>
-              <p style={{
-                color: '#9ca3af',
-                lineHeight: 1.7,
-                marginBottom: '1.5rem'
-              }}>
-                Your trusted partner for quality stationery, books, and educational supplies. 
-                We provide the best products to support your learning and creativity.
-              </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {['Facebook', 'Twitter', 'Instagram', 'LinkedIn'].map(social => (
-                  <Button 
-                    key={social}
-                    variant="link"
-                    style={{
-                      color: '#9ca3af',
-                      textDecoration: 'none',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    {social}
-                  </Button>
-                ))}
-              </div>
-            </Col>
-            
-            <Col lg={2} md={6}>
-              <h5 style={{
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                marginBottom: '1.5rem'
-              }}>
-                Quick Links
-              </h5>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {[
-                  { label: 'Products', path: '/products' },
-                  { label: 'Book Sets', path: '/book-sets' },
-                  { label: 'Cart', path: '/cart' },
-                  { label: 'My Orders', path: '/my-orders' },
-                  { label: 'Profile', path: '/profile' },
-                  { label: 'Wishlist', path: '#', onClick: () => setShowWishlistModal(true) }
-                ].map((link, index) => (
-                  <li key={index} style={{ marginBottom: '0.75rem' }}>
-                    <Button 
-                      variant="link"
-                      onClick={link.onClick || (() => navigate(link.path))}
-                      style={{
-                        color: '#9ca3af',
-                        textDecoration: 'none',
-                        padding: 0,
-                        fontSize: '0.95rem'
-                      }}
-                    >
-                      {link.label}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </Col>
-            
-            <Col lg={2} md={6}>
-              <h5 style={{
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                marginBottom: '1.5rem'
-              }}>
-                Categories
-              </h5>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                {categories.filter(cat => cat.id !== "all").map(cat => (
-                  <li key={cat.id} style={{ marginBottom: '0.75rem' }}>
-                    <Button 
-                      variant="link"
-                      onClick={() => handleCategoryChange(cat.id)}
-                      style={{
-                        color: '#9ca3af',
-                        textDecoration: 'none',
-                        padding: 0,
-                        fontSize: '0.95rem',
-                        textTransform: 'capitalize'
-                      }}
-                    >
-                      {cat.name}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </Col>
-            
-            <Col lg={4} md={6}>
-              <h5 style={{
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                marginBottom: '1.5rem'
-              }}>
-                Newsletter
-              </h5>
-              <p style={{
-                color: '#9ca3af',
-                fontSize: '0.9rem',
-                marginBottom: '1rem'
-              }}>
-                Subscribe to get special offers and updates
-              </p>
-              <InputGroup style={{
-                borderRadius: '8px',
-                overflow: 'hidden',
-                marginBottom: '1rem'
-              }}>
-                <Form.Control
-                  placeholder="Enter your email"
-                  type="email"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    padding: '0.75rem 1rem'
-                  }}
-                />
-                <Button variant="primary" style={{ padding: '0.75rem 1.5rem', fontWeight: 600 }}>
-                  Subscribe
-                </Button>
-              </InputGroup>
-              <div>
-                <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                  <strong style={{ color: 'white' }}>Email:</strong> support@smartstationery.com
-                </p>
-                <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                  <strong style={{ color: 'white' }}>Phone:</strong> +91 1234567890
-                </p>
-              </div>
-            </Col>
-          </Row>
-          
-          <hr style={{
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            margin: '2rem 0'
-          }} />
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            <p style={{
-              color: '#9ca3af',
-              margin: 0,
-              fontSize: '0.9rem'
-            }}>
-              © 2024 Smart Stationery Management System. All rights reserved.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(policy => (
-                <Button 
-                  key={policy}
-                  variant="link"
-                  style={{
-                    color: '#9ca3af',
-                    textDecoration: 'none',
-                    padding: 0,
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  {policy}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </footer>
-    </div>
+      <DonationSectionNew navigate={navigate} />
+    </SharedLayout>
   );
 };
 

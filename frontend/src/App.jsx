@@ -32,6 +32,7 @@ import MyRequests from "./pages/MyRequests.jsx";
 import DonationChat from "./pages/DonationChat.jsx";
 import MyItemRequests from "./pages/MyItemRequests.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -40,7 +41,13 @@ function App() {
   // Fetch user from localStorage and handle loading state
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
+    let token = localStorage.getItem("token");
+
+    // Sanitize token — strip accidental "Bearer " prefix stored from old sessions
+    if (token && /^Bearer\s+/i.test(token)) {
+      token = token.replace(/^Bearer\s+/i, "").trim();
+      localStorage.setItem("token", token);
+    }
 
     if (storedUser && token) {
       setUser(JSON.parse(storedUser));
@@ -48,7 +55,14 @@ function App() {
     setIsLoading(false);
   }, []);
 
-  // Store user in localStorage whenever the user state changes
+  // Listen for logout events dispatched by SharedLayout
+  useEffect(() => {
+    const onLogout = () => setUser(null);
+    window.addEventListener("app:logout", onLogout);
+    return () => window.removeEventListener("app:logout", onLogout);
+  }, []);
+
+  // Sync user state to localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
@@ -72,13 +86,13 @@ function App() {
   return (
     <Container fluid className="p-0">
       <Routes>
-        {/* Redirect to login by default */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Public landing page */}
+        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage setUser={setUser} />} />
 
-        {/* Public Routes */}
-        <Route path="/register" element={<Register />} />
+        {/* Public Routes — redirect to landing page since auth is embedded there */}
+        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
         <Route path="/verifyOtp" element={<VerifyOtp setUser={setUser} />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
 
         {/* Protected Routes - Personal User */}
         <Route
@@ -327,7 +341,7 @@ function App() {
         />
 
         {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Container>
   );

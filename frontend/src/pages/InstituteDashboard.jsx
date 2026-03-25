@@ -1,207 +1,387 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Nav,
-  Button,
-  Form,
-  Table,
-  Badge,
-  Spinner,
-  InputGroup,
-  Alert,
-} from "react-bootstrap";
-import BookSetSection from "../components/BookSetSection.jsx";
-import DonationSection from "../components/DonationSection.jsx";
+  FaChevronRight,
+  FaShoppingCart, FaBook, FaClipboardList, FaBoxOpen, FaGift,
+  FaPaperPlane,
+  FaHistory,
+} from "react-icons/fa";
+import SharedLayout from "../components/SharedLayout.jsx";
 import TokenErrorAlert from "../components/TokenErrorAlert.jsx";
-import NotificationBell from "../components/NotificationBell.jsx";
 
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── Hero ──────────────────────────────────────────────────── */
+const Hero = ({ user, orders, navigate }) => (
+  <section style={{ position: "relative", height: "55vh", minHeight: 380, overflow: "hidden" }}>
+    <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&q=80"
+      alt="Institute" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%" }} />
+    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%)" }} />
+    <div style={{ position: "relative", zIndex: 1, maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <p style={{ fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 0.75rem" }}>
+        INSTITUTE PORTAL
+      </p>
+      <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(2.5rem,6vw,5rem)", fontWeight: 400, color: "#fff", lineHeight: 1, margin: "0 0 1rem", letterSpacing: "-0.02em" }}>
+        Welcome back,<br />{user?.name}.
+      </h1>
+      <p style={{ fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,0.72)", fontSize: "0.9rem", maxWidth: 380, margin: "0 0 2rem", lineHeight: 1.65 }}>
+        {user?.instituteInfo?.schoolName || "Manage your book set requests, bulk orders, and donations."}
+      </p>
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <button onClick={() => navigate("/institute/book-set-request")}
+          style={{ background: "#fff", color: "#111", border: "none", borderRadius: 50, padding: "0.75rem 1.75rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          📚 Book Set Request
+        </button>
+        <button onClick={() => navigate("/my-orders")}
+          style={{ background: "none", color: "#fff", border: "1.5px solid rgba(255,255,255,0.7)", borderRadius: 50, padding: "0.75rem 1.75rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+          Track Orders
+        </button>
+      </div>
+    </div>
+  </section>
+);
+
+/* ─── Stats Row ─────────────────────────────────────────────── */
+const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
+  const stats = [
+    { label: "Total Orders", value: orders.length, icon: "📦" },
+    { label: "Pending Orders", value: orders.filter(o => o.orderStatus === "pending").length, icon: "⏳" },
+    { label: "Total Spent", value: `₹${orders.reduce((s, o) => s + (o.totalAmount || 0), 0).toLocaleString()}`, icon: "💰" },
+    { label: "Cart Items", value: cartCount, icon: "🛒" },
+    { label: "Donation Requests", value: pendingRequestCount, icon: "🎁", highlight: pendingRequestCount > 0 },
+  ];
+  return (
+    <section style={{ background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem", display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+        {stats.map(s => (
+          <div key={s.label} style={{ background: "#fff", padding: "1.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "1.5rem", marginBottom: "0.4rem" }}>{s.icon}</div>
+            <div style={{ fontWeight: 800, fontSize: "1.5rem", color: s.highlight ? "#ef4444" : "#111", lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginTop: "0.3rem" }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+/* ─── Quick Actions ─────────────────────────────────────────── */
+const QuickActions = ({ navigate, pendingRequestCount }) => {
+  const actions = [
+    { icon: <FaBook />, label: "Book Set Request", sub: "Submit new request", path: "/institute/book-set-request", primary: true },
+    { icon: <FaClipboardList />, label: "Browse Book Sets", sub: "View approved sets", path: "/book-sets" },
+    { icon: <FaBoxOpen />, label: "Bulk Order", sub: "10% institute discount", path: "/cart" },
+    { icon: <FaHistory />, label: "My Orders", sub: "Track all orders", path: "/my-orders" },
+    { icon: <FaGift />, label: "My Donations", sub: pendingRequestCount > 0 ? `${pendingRequestCount} pending` : "Manage donations", path: "/my-donations", badge: pendingRequestCount },
+    { icon: <FaPaperPlane />, label: "Item Requests", sub: "Request unavailable items", path: "/my-item-requests" },
+  ];
+  return (
+    <section style={{ padding: "4rem 0 3rem", background: "#fafafa" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem" }}>
+        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>QUICK ACCESS</p>
+        <h2 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#111", margin: "0 0 2rem", letterSpacing: "-0.02em" }}>What would you like to do?</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+          {actions.map(a => (
+            <button key={a.label} onClick={() => navigate(a.path)}
+              style={{ background: a.primary ? "#111" : "#fff", border: "none", cursor: "pointer", padding: "2rem 1.75rem", textAlign: "left", position: "relative", transition: "background 0.2s" }}
+              onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#f9fafb"; }}
+              onMouseLeave={e => { if (!a.primary) e.currentTarget.style.background = "#fff"; }}>
+              {a.badge > 0 && (
+                <span style={{ position: "absolute", top: 12, right: 12, background: "#ef4444", color: "#fff", borderRadius: 50, fontSize: "0.65rem", fontWeight: 700, padding: "0.15rem 0.5rem" }}>
+                  {a.badge}
+                </span>
+              )}
+              <div style={{ fontSize: "1.3rem", color: a.primary ? "#fff" : "#111", marginBottom: "1rem" }}>{a.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: "1rem", color: a.primary ? "#fff" : "#111", marginBottom: "0.25rem" }}>{a.label}</div>
+              <div style={{ fontSize: "0.8rem", color: a.primary ? "rgba(255,255,255,0.65)" : "#9ca3af" }}>{a.sub}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Book Sets Section ─────────────────────────────────────── */
+const BookSetsSection = ({ navigate }) => {
+  const [sets, setSets] = useState([]);
+  const [grade, setGrade] = useState("");
+  const [school, setSchool] = useState("");
+  const [grades, setGrades] = useState([]);
+  const [schools, setSchools] = useState([]);
+
+  useEffect(() => {
+    axios.get(`${API}/book-sets`, { headers: authH() }).then(r => {
+      const data = r.data.bookSets || [];
+      setSets(data.slice(0, 4));
+      const f = r.data.filters || {};
+      setGrades(f.grades?.length ? f.grades : [...new Set(data.map(s => s.grade).filter(Boolean))].sort());
+      setSchools(f.schools?.length ? f.schools : [...new Set(data.map(s => s.school_name).filter(Boolean))].sort());
+    }).catch(() => {});
+  }, []);
+
+  const handleSearch = () => {
+    const p = new URLSearchParams();
+    if (grade) p.append("grade", grade);
+    if (school) p.append("school", school);
+    axios.get(`${API}/book-sets?${p}`, { headers: authH() })
+      .then(r => setSets((r.data.bookSets || []).slice(0, 4))).catch(() => {});
+  };
+
+  return (
+    <section style={{ padding: "5rem 0", background: "#fff" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "4rem", alignItems: "start" }}>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>SCHOOL SETS</p>
+            <h2 style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
+            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+              Browse approved book sets by school and grade. Submit a request if your school's set isn't listed yet.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+              <select value={grade} onChange={e => setGrade(e.target.value)}
+                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+                <option value="">Select Grade</option>
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <select value={school} onChange={e => setSchool(e.target.value)}
+                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+                <option value="">Select School</option>
+                {schools.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button onClick={handleSearch}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.6rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+                Search Sets
+              </button>
+            </div>
+            <button onClick={() => navigate("/institute/book-set-request")}
+              style={{ background: "none", border: "1.5px solid #111", borderRadius: 4, padding: "0.6rem 1.25rem", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", color: "#111", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+              + Submit New Request
+            </button>
+          </div>
+          <div>
+            {sets.length === 0 ? (
+              <div style={{ padding: "3rem", textAlign: "center", border: "1px solid #e5e7eb", color: "#9ca3af" }}>
+                <FaBook style={{ fontSize: "2rem", marginBottom: "0.75rem", display: "block", margin: "0 auto 0.75rem" }} />
+                <p style={{ margin: 0 }}>No book sets available yet.</p>
+                <button onClick={() => navigate("/institute/book-set-request")}
+                  style={{ marginTop: "1rem", background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.6rem 1.25rem", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}>
+                  Submit a Request
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+                {sets.map(s => (
+                  <div key={s.id} onClick={() => navigate(`/book-sets/${s.id}`)}
+                    style={{ background: "#fff", padding: "1.25rem", cursor: "pointer" }}>
+                    {/* School name — primary label */}
+                    <p style={{ fontWeight: 700, fontSize: "1rem", color: "#111", margin: "0 0 0.3rem", lineHeight: 1.3 }}>{s.school_name}</p>
+                    {/* Grade — secondary badge */}
+                    <span style={{ display: "inline-block", background: "#111", color: "#fff", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.15rem 0.5rem", borderRadius: 2, marginBottom: "0.6rem" }}>
+                      Grade {s.grade}
+                    </span>
+                    <p style={{ fontSize: "0.8rem", color: "#9ca3af", margin: "0 0 0.75rem" }}>📚 {s.items?.length || 0} books included</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: 800, fontSize: "1rem" }}>₹{s.total_price}</span>
+                      <FaShoppingCart style={{ color: "#9ca3af" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+              <button onClick={() => navigate("/book-sets")}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                View all school sets <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Recent Orders ─────────────────────────────────────────── */
+const STATUS_CFG = {
+  pending:   { bg: "#fef3c7", color: "#92400e", dot: "#f59e0b" },
+  confirmed: { bg: "#dbeafe", color: "#1e40af", dot: "#3b82f6" },
+  shipped:   { bg: "#ede9fe", color: "#5b21b6", dot: "#8b5cf6" },
+  delivered: { bg: "#d1fae5", color: "#065f46", dot: "#10b981" },
+  cancelled: { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444" },
+};
+const StatusBadge = ({ status }) => {
+  const c = STATUS_CFG[status] || { bg: "#f3f4f6", color: "#374151", dot: "#9ca3af" };
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: c.bg, color: c.color, padding: "0.25rem 0.65rem", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: c.dot }} />
+      {status}
+    </span>
+  );
+};
+
+const RecentOrders = ({ orders, navigate }) => (
+  <section style={{ padding: "4rem 0", background: "#fafafa" }}>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem" }}>
+        <div>
+          <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>ORDERS</p>
+          <h2 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em" }}>Recent Orders</h2>
+        </div>
+        <button onClick={() => navigate("/my-orders")}
+          style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+          View all <FaChevronRight style={{ fontSize: "0.75rem" }} />
+        </button>
+      </div>
+      {orders.length === 0 ? (
+        <div style={{ border: "1px solid #e5e7eb", padding: "3rem", textAlign: "center", background: "#fff" }}>
+          <FaBoxOpen style={{ fontSize: "2.5rem", color: "#e5e7eb", marginBottom: "0.75rem", display: "block", margin: "0 auto 0.75rem" }} />
+          <p style={{ color: "#9ca3af", margin: "0 0 1rem" }}>No orders placed yet.</p>
+          <button onClick={() => navigate("/cart")}
+            style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.65rem 1.5rem", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>
+            Place Bulk Order
+          </button>
+        </div>
+      ) : (
+        <div style={{ border: "1px solid #e5e7eb", background: "#fff" }}>
+          {/* Table header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr 1fr 1fr", gap: "1px", background: "#e5e7eb", borderBottom: "1px solid #e5e7eb" }}>
+            {["Order ID", "Date", "Amount", "Status", "Action"].map(h => (
+              <div key={h} style={{ background: "#f9fafb", padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</div>
+            ))}
+          </div>
+          {orders.slice(0, 5).map(o => (
+            <div key={o.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr 1fr 1fr", gap: "1px", background: "#e5e7eb", borderBottom: "1px solid #f3f4f6" }}>
+              <div style={{ background: "#fff", padding: "1rem", fontSize: "0.9rem", fontWeight: 600 }}>ORD-{o.id}</div>
+              <div style={{ background: "#fff", padding: "1rem", fontSize: "0.85rem", color: "#6b7280" }}>{new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+              <div style={{ background: "#fff", padding: "1rem", fontSize: "0.9rem", fontWeight: 700 }}>₹{o.totalAmount}</div>
+              <div style={{ background: "#fff", padding: "1rem" }}><StatusBadge status={o.orderStatus} /></div>
+              <div style={{ background: "#fff", padding: "1rem" }}>
+                <button onClick={() => navigate(`/orders/${o.id}`)}
+                  style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.75rem", fontSize: "0.8rem", cursor: "pointer", color: "#111", fontWeight: 500 }}>
+                  View
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+);
+
+/* ─── Donation Section ──────────────────────────────────────── */
+const DonationSection = ({ navigate }) => {
+  const [donations, setDonations] = useState([]);
+  useEffect(() => {
+    axios.get(`${API}/donations?limit=4`, { headers: authH() })
+      .then(r => setDonations(r.data.donations || [])).catch(() => {});
+  }, []);
+
+  return (
+    <section style={{ padding: "5rem 0", background: "#fff" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "start" }}>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>COMMUNITY</p>
+            <h2 style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+              Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400 }}>Learning</em>
+            </h2>
+            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "2rem", fontSize: "0.95rem" }}>
+              Have books or supplies you no longer need? Donate them to help other students. Or browse available donations to find what you need — for free.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => navigate("/donations/create")}
+                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+                🎁 Donate Items
+              </button>
+              <button onClick={() => navigate("/donations")}
+                style={{ background: "none", color: "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                Browse Donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+          <div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "1rem" }}>RECENTLY AVAILABLE</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+              {donations.length === 0 ? (
+                <div style={{ background: "#fff", padding: "2rem", textAlign: "center", color: "#9ca3af", fontSize: "0.9rem" }}>No donations yet</div>
+              ) : donations.map(d => (
+                <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
+                  style={{ background: "#fff", padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "1rem", cursor: "pointer" }}>
+                  <span style={{ fontSize: "1.2rem" }}>🎁</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111" }}>{d.title}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>by {d.donorName || "Anonymous"} · {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ""}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{d.condition || "Good"}</div>
+                    <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#111" }}>FREE</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: "center", marginTop: "1.25rem" }}>
+              <button onClick={() => navigate("/donations")}
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                View all donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Main Component ────────────────────────────────────────── */
 const InstituteDashboard = ({ setUser }) => {
   const navigate = useNavigate();
   const [user, setLocalUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [verificationStatus, setVerificationStatus] = useState("pending");
-  const [myDonations, setMyDonations] = useState([]);
+  const [cart, setCart] = useState({ items: [] });
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState("pending");
   const [showTokenError, setShowTokenError] = useState(false);
 
-  const categories = ["all", "book", "stationery"];
-
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    
-    if (!storedUser) {
-      navigate("/login");
-      return;
-    }
+    const stored = JSON.parse(localStorage.getItem("user") || "null");
+    if (!stored) { navigate("/login"); return; }
+    if (stored.role !== "institute") { navigate("/dashboard"); return; }
+    setLocalUser(stored);
+    setVerificationStatus(stored.instituteVerification?.status || "pending");
+    fetchAll();
+  }, []);
 
-    if (storedUser.role !== "institute") {
-      navigate("/dashboard");
-      return;
-    }
-
-    setLocalUser(storedUser);
-    setVerificationStatus(storedUser.instituteVerification?.status || "pending");
-    
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
-
-    fetchDashboardData(storedUser);
-    fetchMyDonations();
-  }, [navigate]);
-
-  const fetchDashboardData = async (userData) => {
+  const fetchAll = async () => {
     try {
       setLoading(true);
-      
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
-      
-      // Fetch products
-      const productsRes = await axios.get("http://localhost:5000/api/products", { headers });
-      setProducts(productsRes.data.products || []);
-      
-      // Fetch institute's own orders using my-orders endpoint
+      const [ordersRes, cartRes] = await Promise.all([
+        axios.get(`${API}/orders/my-orders`, { headers: authH() }).catch(() => ({ data: { orders: [] } })),
+        axios.get(`${API}/users/cart`, { headers: authH() }).catch(() => ({ data: { cart: { items: [] } } })),
+      ]);
+      setOrders(ordersRes.data.orders || []);
+      setCart(cartRes.data.cart || { items: [] });
+
+      // fetch donation pending requests count
       try {
-        const ordersRes = await axios.get("http://localhost:5000/api/orders/my-orders", { headers });
-        setOrders(ordersRes.data.orders || []);
-      } catch (orderError) {
-        console.log("Could not fetch orders:", orderError.response?.data?.message || orderError.message);
-        setOrders([]);
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+        const donRes = await axios.get(`${API}/donations/user/donations`, { headers: authH() });
+        const donations = donRes.data.donations || [];
+        const counts = await Promise.all(donations.map(async d => {
+          try {
+            const r = await axios.get(`${API}/donations/${d.id}/requests`, { headers: authH() });
+            return r.data.requests?.filter(x => x.status === "pending").length || 0;
+          } catch { return 0; }
+        }));
+        setPendingRequestCount(counts.reduce((a, b) => a + b, 0));
+      } catch {}
+    } catch (e) {
+      if (e.response?.status === 401) setShowTokenError(true);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMyDonations = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('No token found, skipping donation fetch');
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(
-        'http://localhost:5000/api/donations/user/donations',
-        { headers }
-      );
-      
-      const donations = response.data.donations || [];
-      
-      // Get request counts for each donation
-      const donationsWithCounts = await Promise.all(
-        donations.map(async (donation) => {
-          try {
-            const reqRes = await axios.get(
-              `http://localhost:5000/api/donations/${donation.id}/requests`,
-              { headers }
-            );
-            const pendingCount = reqRes.data.requests?.filter(r => r.status === 'pending').length || 0;
-            return { ...donation, pendingRequestCount: pendingCount };
-          } catch (err) {
-            console.log(`Could not fetch requests for donation ${donation.id}:`, err.message);
-            return { ...donation, pendingRequestCount: 0 };
-          }
-        })
-      );
-      
-      setMyDonations(donationsWithCounts);
-      
-      // Calculate total pending requests
-      const total = donationsWithCounts.reduce((sum, d) => sum + (d.pendingRequestCount || 0), 0);
-      setPendingRequestCount(total);
-    } catch (err) {
-      console.error('Error fetching donations:', err.response?.data?.message || err.message);
-      // If JWT error, show alert and silently fail - user can still use dashboard
-      if (err.response?.status === 401 || err.message?.includes('jwt') || err.response?.data?.error === 'JsonWebTokenError') {
-        console.log('Token issue detected - donation notifications disabled');
-        setShowTokenError(true);
-        setMyDonations([]);
-        setPendingRequestCount(0);
-      }
-    }
-  };
-
-  const addToCart = (product) => {
-    const existingItem = cart.find(item => item.id === product.id);
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
-  };
-
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
-  };
-
-  const updateCartQuantity = (productId, quantity) => {
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: Math.max(1, quantity) }
-        : item
-    ));
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const getDiscountedTotal = () => {
-    const total = getCartTotal();
-    return total * 0.9; // 10% discount for institutes
-  };
-
-  const handlePlaceBulkOrder = async () => {
-    if (cart.length === 0) {
-      alert("Your cart is empty!");
-      return;
-    }
-
-    try {
-      const orderData = {
-        products: cart.map(item => ({
-          productId: item.id,
-          quantity: item.quantity
-        })),
-        orderType: "bulk"
-      };
-
-      await axios.post("http://localhost:5000/api/orders", orderData);
-      alert("Bulk order placed successfully!");
-      setCart([]);
-      fetchDashboardData(user);
-    } catch (error) {
-      console.error("Error placing order:", error);
-      alert("Failed to place order: " + (error.response?.data?.message || error.message));
-    }
-  };
-
-  const handleSubmitVerification = async () => {
-    try {
-      // Navigate to verification page or show modal
-      navigate("/institute-verification");
-    } catch (error) {
-      console.error("Verification error:", error);
     }
   };
 
@@ -212,509 +392,68 @@ const InstituteDashboard = ({ setUser }) => {
     navigate("/login", { replace: true });
   };
 
-  if (loading) {
+  const cartCount = cart.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+
+  /* ── Not verified screen ── */
+  if (!loading && user && verificationStatus !== "approved") {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <Spinner animation="border" />
-      </div>
+      <SharedLayout>
+        <div style={{ maxWidth: 560, margin: "8rem auto", padding: "0 1.5rem", textAlign: "center" }}>
+          <div style={{ fontSize: "4rem", marginBottom: "1.5rem" }}>🏫</div>
+          <h2 style={{ fontWeight: 800, fontSize: "1.75rem", color: "#111", marginBottom: "0.75rem", letterSpacing: "-0.02em" }}>
+            Verification {verificationStatus === "pending" ? "Pending" : "Required"}
+          </h2>
+          <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "2rem" }}>
+            {verificationStatus === "pending"
+              ? "Your institute account is pending verification. We'll notify you once approved."
+              : "Your verification was rejected. Please resubmit with correct details."}
+          </p>
+          {user?.instituteVerification?.comments && (
+            <div style={{ background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 8, padding: "1rem", marginBottom: "1.5rem", fontSize: "0.9rem", color: "#991b1b", textAlign: "left" }}>
+              <strong>Reason:</strong> {user.instituteVerification.comments}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+            <button onClick={() => navigate("/institute-verification")}
+              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.8rem 2rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
+              {verificationStatus === "pending" ? "Check Status" : "Resubmit"}
+            </button>
+            <button onClick={handleLogout}
+              style={{ background: "none", color: "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.8rem 2rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
+              Logout
+            </button>
+          </div>
+        </div>
+      </SharedLayout>
     );
   }
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
+        <p style={{ color: "#6b7280", fontSize: "0.95rem" }}>Loading…</p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>
+  );
 
   if (!user) return null;
 
-  // Check if institute is verified
-  if (verificationStatus !== "approved") {
-    return (
-      <Container className="py-5">
-        <Card className="text-center py-5">
-          <Card.Body>
-            <div className="mb-4" style={{ fontSize: "4rem" }}>🏫</div>
-            <h3>Institute Verification Required</h3>
-            <p className="text-muted mb-4">
-              Your institute account is {verificationStatus === "pending" ? "pending verification" : "rejected"}.
-              Please complete the verification process to access all features.
-            </p>
-            {verificationStatus === "rejected" && user.instituteVerification?.comments && (
-              <Alert variant="danger" className="mb-4">
-                <strong>Rejection Reason:</strong> {user.instituteVerification.comments}
-              </Alert>
-            )}
-            <Button variant="primary" size="lg" onClick={handleSubmitVerification}>
-              {verificationStatus === "pending" ? "Check Status" : "Resubmit Verification"}
-            </Button>
-            <Button variant="outline-secondary" className="ms-2" size="lg" onClick={handleLogout}>
-              Logout
-            </Button>
-          </Card.Body>
-        </Card>
-      </Container>
-    );
-  }
-
-  const renderDashboard = () => (
-    <>
-      <h2>Welcome, {user.name}!</h2>
-      <p>{user.instituteInfo?.schoolName || "Institute Dashboard"}</p>
-      <Badge bg="success" className="mb-3">
-        Verified Institute
-      </Badge>
-
-      {/* Stats cards */}
-      <Row className="g-3 mt-3">
-        <Col md={4}>
-          <Card className="text-center shadow-sm p-3">
-            <Card.Title>Pending Orders</Card.Title>
-            <Card.Text className="fs-4">
-              {orders.filter((o) => o.orderStatus === "pending").length}
-            </Card.Text>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="text-center shadow-sm p-3">
-            <Card.Title>Total Spent</Card.Title>
-            <Card.Text className="fs-4">
-              ₹{orders.reduce((sum, order) => sum + order.totalAmount, 0).toLocaleString()}
-            </Card.Text>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center shadow-sm p-3">
-            <Card.Title>Cart Items</Card.Title>
-            <Card.Text className="fs-4">{cart.length}</Card.Text>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center shadow-sm p-3" style={{ borderLeft: pendingRequestCount > 0 ? '4px solid #ef4444' : 'none' }}>
-            <Card.Title>Donation Requests</Card.Title>
-            <Card.Text className="fs-4" style={{ color: pendingRequestCount > 0 ? '#ef4444' : 'inherit' }}>
-              {pendingRequestCount}
-            </Card.Text>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Quick actions */}
-      <h4 className="mt-4">Quick Actions</h4>
-      <Row className="g-3 mt-2">
-        <Col xs={6} md={3}>
-          <Button
-            variant="outline-primary"
-            className="w-100"
-            onClick={() => navigate("/institute/book-set-request")}
-          >
-            📚 Book Set Request
-          </Button>
-        </Col>
-        <Col xs={6} md={3}>
-          <Button
-            variant="outline-primary"
-            className="w-100"
-            onClick={() => navigate("/book-sets")}
-          >
-            📖 Browse Book Sets
-          </Button>
-        </Col>
-        <Col xs={6} md={3}>
-          <Button
-            variant="outline-primary"
-            className="w-100"
-            onClick={() => setActiveTab("bulk-order")}
-          >
-            📦 Bulk Order
-          </Button>
-        </Col>
-        <Col xs={6} md={3}>
-          <Button
-            variant="outline-primary"
-            className="w-100"
-            onClick={() => setActiveTab("orders")}
-          >
-            📋 Orders
-          </Button>
-        </Col>
-        <Col xs={6} md={3}>
-          <Button
-            variant="outline-primary"
-            className="w-100"
-            onClick={() => navigate("/cart")}
-          >
-            🛒 View Cart
-          </Button>
-        </Col>
-        <Col xs={6} md={3}>
-          <Button
-            variant={pendingRequestCount > 0 ? "danger" : "outline-primary"}
-            className="w-100"
-            onClick={() => navigate("/my-donations")}
-            style={{ position: 'relative' }}
-          >
-            🎁 My Donations
-            {pendingRequestCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                background: '#ef4444',
-                color: 'white',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 'bold'
-              }}>
-                {pendingRequestCount}
-              </span>
-            )}
-          </Button>
-        </Col>
-      </Row>
-
-      {/* Book Set Section */}
-      <div className="mt-4">
-        <BookSetSection />
-      </div>
-
-      {/* Donation Section */}
-      <div className="mt-4">
-        <DonationSection />
-      </div>
-
-      {/* Request Box */}
-      <div className="mt-4 p-4" style={{ background: 'linear-gradient(135deg, #eff6ff, #e0e7ff)', borderRadius: '16px', textAlign: 'center' }}>
-        <h4 style={{ fontWeight: 700, color: '#1f2937', marginBottom: '0.5rem' }}>📦 Can't Find What You Need?</h4>
-        <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-          Submit a request for unavailable items. We'll review and add them to the store!
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Button
-            variant="primary"
-            onClick={() => navigate('/my-item-requests')}
-            style={{ borderRadius: '50px', padding: '0.625rem 1.75rem', fontWeight: 600 }}
-          >
-            📝 Submit Request
-          </Button>
-          <Button
-            variant="outline-primary"
-            onClick={() => navigate('/my-item-requests')}
-            style={{ borderRadius: '50px', padding: '0.625rem 1.75rem', fontWeight: 600 }}
-          >
-            📋 My Requests
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-
-  const renderBulkOrder = () => (
-    <>
-      <h3>Bulk Order Products</h3>
-      <Alert variant="info" className="mb-3">
-        <strong>Institute Discount:</strong> You get 10% off on all bulk orders!
-      </Alert>
-
-      {/* Cart Summary */}
-      {cart.length > 0 && (
-        <Card className="p-3 mb-3">
-          <Card.Title>
-            🛒 Bulk Order Cart <Badge bg="primary">{cart.length}</Badge>
-          </Card.Title>
-          <Table responsive>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.map(item => (
-                <tr key={item.id}>
-                  <td>{item.name}</td>
-                  <td>
-                    <InputGroup size="sm" style={{ width: "120px" }}>
-                      <Button 
-                        variant="outline-secondary"
-                        onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                      >
-                        -
-                      </Button>
-                      <Form.Control
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateCartQuantity(item.id, parseInt(e.target.value) || 1)}
-                        style={{ textAlign: "center" }}
-                      />
-                      <Button 
-                        variant="outline-secondary"
-                        onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                      >
-                        +
-                      </Button>
-                    </InputGroup>
-                  </td>
-                  <td>₹{item.price}</td>
-                  <td>₹{item.price * item.quantity}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => removeFromCart(item.id)}
-                    >
-                      Remove
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-          <div className="mt-3">
-            <Row>
-              <Col>
-                <h5>Subtotal: ₹{getCartTotal()}</h5>
-                <h5 className="text-success">Discount (10%): -₹{(getCartTotal() * 0.1).toFixed(2)}</h5>
-                <h4>Total: ₹{getDiscountedTotal().toFixed(2)}</h4>
-              </Col>
-              <Col className="text-end">
-                <Button variant="success" onClick={handlePlaceBulkOrder}>
-                  Place Bulk Order
-                </Button>
-              </Col>
-            </Row>
-          </div>
-        </Card>
-      )}
-
-      {/* Products */}
-      <div className="mt-4">
-        <h5>Filter by Category</h5>
-        <Nav className="flex-wrap mb-3">
-          {categories.map((cat) => (
-            <Nav.Link
-              key={cat}
-              active={selectedCategory === cat}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </Nav.Link>
-          ))}
-        </Nav>
-      </div>
-
-      <Row className="g-3 mt-2">
-        {products
-          .filter(p => selectedCategory === "all" || p.category === selectedCategory)
-          .map((product) => (
-            <Col xs={12} md={6} lg={4} key={product.id}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="d-flex flex-column">
-                  {product.image && (
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      style={{ height: "150px", objectFit: "contain", marginBottom: "10px" }}
-                    />
-                  )}
-                  <Card.Title>{product.name}</Card.Title>
-                  <Card.Subtitle className="mb-2 text-muted">
-                    {product.category}
-                  </Card.Subtitle>
-                  <Card.Text className="mb-1">
-                    ₹{product.price} per unit
-                  </Card.Text>
-                  <Card.Text className="mb-2">
-                    <Badge bg={product.stock > 0 ? "success" : "danger"}>
-                      Stock: {product.stock}
-                    </Badge>
-                  </Card.Text>
-                  <Button
-                    variant="primary"
-                    className="mb-2"
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock === 0}
-                  >
-                    Add to Bulk Cart
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-      </Row>
-    </>
-  );
-
-  const renderOrders = () => (
-    <>
-      <h3>Your Orders</h3>
-      {orders.length === 0 ? (
-        <Card className="p-3 mt-3">
-          <p className="text-muted mb-2">No orders placed yet.</p>
-          <Button
-            variant="primary"
-            onClick={() => setActiveTab("bulk-order")}
-          >
-            Place Your First Order
-          </Button>
-        </Card>
-      ) : (
-        <Table
-          striped
-          bordered
-          hover
-          responsive
-          className="mt-3 shadow-sm"
-        >
-          <thead className="table-dark">
-            <tr>
-              <th>Order Date</th>
-              <th>Order ID</th>
-              <th>Total Amount</th>
-              <th>Status</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td>
-                  {new Date(order.orderDate).toLocaleDateString()}
-                </td>
-                <td>{order.id.substring(0, 8)}...</td>
-                <td>₹{order.totalAmount}</td>
-                <td>
-                  <Badge
-                    bg={
-                      order.orderStatus === "delivered" ? "success" :
-                      order.orderStatus === "pending" ? "warning" :
-                      order.orderStatus === "cancelled" ? "danger" : "info"
-                    }
-                  >
-                    {order.orderStatus}
-                  </Badge>
-                </td>
-                <td>
-                  <Badge bg={order.orderType === "bulk" ? "primary" : "secondary"}>
-                    {order.orderType}
-                  </Badge>
-                </td>
-                <td>
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    View
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
-    </>
-  );
-
   return (
-    <Container fluid className="p-0">
-      {/* Token Error Alert */}
+    <SharedLayout activeLink="Home">
       {showTokenError && (
-        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, maxWidth: '500px' }}>
+        <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 9999, maxWidth: 480 }}>
           <TokenErrorAlert show={showTokenError} onClose={() => setShowTokenError(false)} />
         </div>
       )}
-      
-      {/* Top navbar */}
-      <Nav
-        bg="dark"
-        variant="dark"
-        className="px-3 py-2 d-flex justify-content-between"
-      >
-        <Nav.Item className="text-white fw-bold fs-5">
-          ✏️ Smart Stationery
-        </Nav.Item>
-        <Nav.Item className="d-flex align-items-center gap-3">
-          {/* Notification Bell */}
-          <NotificationBell />
-          
-          <span className="me-3">
-            Welcome, {user.name} (Institute)
-          </span>
-          <Button variant="outline-light" size="sm" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Nav.Item>
-      </Nav>
-
-      <Row className="g-0">
-        {/* Sidebar */}
-        <Col
-          md={2}
-          className="bg-light vh-100 p-3 border-end"
-          style={{ minHeight: "100vh" }}
-        >
-          <Nav className="flex-column">
-            <Nav.Link
-              active={activeTab === "dashboard"}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              📊 Dashboard
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => navigate("/institute/book-set-request")}
-            >
-              📚 Book Set Request
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => navigate("/book-sets")}
-            >
-              📖 Browse Book Sets
-            </Nav.Link>
-            <Nav.Link
-              active={activeTab === "bulk-order"}
-              onClick={() => setActiveTab("bulk-order")}
-            >
-              📦 Bulk Order
-            </Nav.Link>
-            <Nav.Link
-              active={activeTab === "orders"}
-              onClick={() => setActiveTab("orders")}
-            >
-              📋 Orders
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => navigate("/cart")}
-            >
-              🛒 View Cart
-            </Nav.Link>
-          </Nav>
-
-          <div className="mt-4">
-            <h6>Quick Stats</h6>
-            <p className="mb-1">
-              Pending Orders:{" "}
-              <strong>
-                {orders.filter((o) => o.orderStatus === "pending").length}
-              </strong>
-            </p>
-            <p className="mb-1">
-              Cart Items: <strong>{cart.length}</strong>
-            </p>
-          </div>
-        </Col>
-
-        {/* Main area */}
-        <Col md={10} className="p-4">
-          {activeTab === "dashboard" && renderDashboard()}
-          {activeTab === "bulk-order" && renderBulkOrder()}
-          {activeTab === "orders" && renderOrders()}
-        </Col>
-      </Row>
-    </Container>
+      <Hero user={user} orders={orders} navigate={navigate} />
+      <StatsRow orders={orders} cartCount={cartCount} pendingRequestCount={pendingRequestCount} />
+      <QuickActions navigate={navigate} pendingRequestCount={pendingRequestCount} />
+      <BookSetsSection navigate={navigate} />
+      <RecentOrders orders={orders} navigate={navigate} />
+      <DonationSection navigate={navigate} />
+    </SharedLayout>
   );
 };
 

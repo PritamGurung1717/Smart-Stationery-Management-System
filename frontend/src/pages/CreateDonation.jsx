@@ -1,481 +1,168 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
-import { FaGift, FaImage, FaTimes } from "react-icons/fa";
+import { FaGift, FaImage, FaTimes, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
+import SharedLayout from "../components/SharedLayout.jsx";
+
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+const CATEGORIES = [
+  { value: "books", label: "Books" }, { value: "stationery", label: "Stationery" },
+  { value: "electronics", label: "Electronics" }, { value: "furniture", label: "Furniture" },
+  { value: "other", label: "Other" },
+];
+const CONDITIONS = [
+  { value: "new", label: "New" }, { value: "like_new", label: "Like New" },
+  { value: "good", label: "Good" }, { value: "used", label: "Used" },
+];
+
+const inp = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", width: "100%", outline: "none", boxSizing: "border-box" };
 
 const CreateDonation = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    condition: "",
-    pickup_location: "",
-  });
-
+  const [form, setForm] = useState({ title: "", description: "", category: "", condition: "", pickup_location: "" });
   const [images, setImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [previews, setPreviews] = useState([]);
 
-  const categories = [
-    { value: "books", label: "Books" },
-    { value: "stationery", label: "Stationery" },
-    { value: "electronics", label: "Electronics" },
-    { value: "furniture", label: "Furniture" },
-    { value: "other", label: "Other" },
-  ];
+  const handleChange = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const conditions = [
-    { value: "new", label: "New" },
-    { value: "like_new", label: "Like New" },
-    { value: "good", label: "Good" },
-    { value: "used", label: "Used" },
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleImageChange = (e) => {
+  const handleImages = (e) => {
     const files = Array.from(e.target.files);
-
-    if (files.length + images.length > 5) {
-      setError("Maximum 5 images allowed");
-      return;
-    }
-
-    // Validate file types and sizes
-    const validFiles = [];
-    const validPreviews = [];
-
-    for (const file of files) {
-      // Check file type
-      if (!file.type.startsWith("image/")) {
-        setError(`${file.name} is not an image file`);
-        continue;
-      }
-
-      // Check file size (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError(`${file.name} is too large. Maximum size is 5MB`);
-        continue;
-      }
-
-      validFiles.push(file);
-
-      // Create preview
+    if (files.length + images.length > 5) { setError("Maximum 5 images allowed"); return; }
+    const valid = []; const pv = [];
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) { setError(`${f.name} is not an image`); continue; }
+      if (f.size > 5 * 1024 * 1024) { setError(`${f.name} exceeds 5MB`); continue; }
+      valid.push(f);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        validPreviews.push(reader.result);
-        if (validPreviews.length === validFiles.length) {
-          setImagePreviews((prev) => [...prev, ...validPreviews]);
-        }
-      };
-      reader.readAsDataURL(file);
+      reader.onloadend = () => { pv.push(reader.result); if (pv.length === valid.length) setPreviews(p => [...p, ...pv]); };
+      reader.readAsDataURL(f);
     }
-
-    setImages((prev) => [...prev, ...validFiles]);
+    setImages(p => [...p, ...valid]);
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeImage = (i) => { setImages(p => p.filter((_, x) => x !== i)); setPreviews(p => p.filter((_, x) => x !== i)); };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    // Validation
-    if (!formData.title || formData.title.trim().length < 5) {
-      setError("Title must be at least 5 characters");
-      return;
-    }
-
-    if (!formData.description || formData.description.trim().length < 10) {
-      setError("Description must be at least 10 characters");
-      return;
-    }
-
-    if (!formData.category) {
-      setError("Please select a category");
-      return;
-    }
-
-    if (!formData.condition) {
-      setError("Please select a condition");
-      return;
-    }
-
-    if (!formData.pickup_location || formData.pickup_location.trim().length === 0) {
-      setError("Pickup location is required");
-      return;
-    }
-
-    if (images.length === 0) {
-      setError("At least 1 image is required");
-      return;
-    }
+    e.preventDefault(); setError(""); setSuccess("");
+    if (!form.title.trim() || form.title.trim().length < 5) { setError("Title must be at least 5 characters"); return; }
+    if (!form.description.trim() || form.description.trim().length < 10) { setError("Description must be at least 10 characters"); return; }
+    if (!form.category) { setError("Please select a category"); return; }
+    if (!form.condition) { setError("Please select a condition"); return; }
+    if (!form.pickup_location.trim()) { setError("Pickup location is required"); return; }
+    if (images.length === 0) { setError("At least 1 image is required"); return; }
 
     try {
       setLoading(true);
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please login to create a donation");
-        setLoading(false);
-        return;
-      }
-
-      // Create FormData
-      const formDataToSend = new FormData();
-      formDataToSend.append("title", formData.title.trim());
-      formDataToSend.append("description", formData.description.trim());
-      formDataToSend.append("category", formData.category);
-      formDataToSend.append("condition", formData.condition);
-      formDataToSend.append("pickup_location", formData.pickup_location.trim());
-
-      // Append images
-      images.forEach((image) => {
-        formDataToSend.append("images", image);
-      });
-
-      const response = await axios.post(
-        "http://localhost:5000/api/donations",
-        formDataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      if (response.data.success) {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v.trim()));
+      images.forEach(img => fd.append("images", img));
+      const r = await axios.post(`${API}/donations`, fd, { headers: { ...authH(), "Content-Type": "multipart/form-data" } });
+      if (r.data.success) {
         setSuccess("Donation created successfully!");
-        setTimeout(() => {
-          navigate("/donations");
-        }, 1500);
+        setTimeout(() => navigate("/donations"), 1500);
       }
     } catch (err) {
-      console.error("Error creating donation:", err);
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.errors?.join(", ") ||
-          "Failed to create donation. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.message || err.response?.data?.errors?.join(", ") || "Failed to create donation");
+    } finally { setLoading(false); }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        paddingBottom: "3rem",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          color: "white",
-          padding: "2rem 0",
-          marginBottom: "2rem",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-        }}
-      >
-        <Container>
-          <h1
-            style={{
-              fontSize: "2.5rem",
-              fontWeight: 800,
-              marginBottom: "0.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-            }}
-          >
-            <FaGift />
-            Create Donation
-          </h1>
-          <p style={{ fontSize: "1.1rem", opacity: 0.95, margin: 0 }}>
-            Share items you no longer need with others
-          </p>
-        </Container>
-      </div>
+    <SharedLayout activeLink="Donate">
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "3rem 1.5rem" }}>
+        <button onClick={() => navigate("/donations")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1.5rem" }}>
+          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
+        </button>
+        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>COMMUNITY</p>
+        <h1 style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", fontWeight: 800, color: "#111", margin: "0 0 2rem", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <FaGift style={{ fontSize: "1.5rem" }} /> Create Donation
+        </h1>
 
-      <Container>
-        <Row className="justify-content-center">
-          <Col lg={8}>
-            <Card
-              style={{
-                border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              }}
-            >
-              <Card.Body style={{ padding: "2rem" }}>
-                {error && (
-                  <Alert variant="danger" dismissible onClose={() => setError("")}>
-                    {error}
-                  </Alert>
-                )}
+        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
+        {success && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#166534", fontSize: "0.9rem" }}>✓ {success}</div>}
 
-                {success && <Alert variant="success">{success}</Alert>}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {/* Title */}
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Title <span style={{ color: "#ef4444" }}>*</span></label>
+            <input name="title" value={form.title} onChange={handleChange} placeholder="e.g., Mathematics Textbook Grade 10" maxLength={100} style={inp} />
+          </div>
 
-                <Form onSubmit={handleSubmit}>
-                  {/* Title */}
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: 600 }}>
-                      Title <span style={{ color: "red" }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Mathematics Textbook Grade 10"
-                      maxLength={100}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem",
-                      }}
-                    />
-                    <Form.Text className="text-muted">
-                      Minimum 5 characters, maximum 100 characters
-                    </Form.Text>
-                  </Form.Group>
+          {/* Description */}
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Description <span style={{ color: "#ef4444" }}>*</span></label>
+            <textarea name="description" value={form.description} onChange={handleChange} rows={4} maxLength={1000}
+              placeholder="Describe the item, its condition, and any relevant details…"
+              style={{ ...inp, resize: "vertical" }} />
+          </div>
 
-                  {/* Description */}
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: 600 }}>
-                      Description <span style={{ color: "red" }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={4}
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      placeholder="Describe the item, its condition, and any other relevant details..."
-                      maxLength={1000}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem",
-                      }}
-                    />
-                    <Form.Text className="text-muted">
-                      Minimum 10 characters, maximum 1000 characters
-                    </Form.Text>
-                  </Form.Group>
+          {/* Category + Condition */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div>
+              <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Category <span style={{ color: "#ef4444" }}>*</span></label>
+              <select name="category" value={form.category} onChange={handleChange} style={inp}>
+                <option value="">Select Category</option>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Condition <span style={{ color: "#ef4444" }}>*</span></label>
+              <select name="condition" value={form.condition} onChange={handleChange} style={inp}>
+                <option value="">Select Condition</option>
+                {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
 
-                  {/* Category and Condition */}
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={{ fontWeight: 600 }}>
-                          Category <span style={{ color: "red" }}>*</span>
-                        </Form.Label>
-                        <Form.Select
-                          name="category"
-                          value={formData.category}
-                          onChange={handleInputChange}
-                          style={{
-                            borderRadius: "8px",
-                            padding: "0.75rem",
-                          }}
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map((cat) => (
-                            <option key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
+          {/* Pickup location */}
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Pickup Location <span style={{ color: "#ef4444" }}>*</span></label>
+            <input name="pickup_location" value={form.pickup_location} onChange={handleChange} placeholder="e.g., Main Campus, Building A, Room 101" maxLength={200} style={inp} />
+          </div>
 
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={{ fontWeight: 600 }}>
-                          Condition <span style={{ color: "red" }}>*</span>
-                        </Form.Label>
-                        <Form.Select
-                          name="condition"
-                          value={formData.condition}
-                          onChange={handleInputChange}
-                          style={{
-                            borderRadius: "8px",
-                            padding: "0.75rem",
-                          }}
-                        >
-                          <option value="">Select Condition</option>
-                          {conditions.map((cond) => (
-                            <option key={cond.value} value={cond.value}>
-                              {cond.label}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  {/* Pickup Location */}
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: 600 }}>
-                      Pickup Location <span style={{ color: "red" }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="pickup_location"
-                      value={formData.pickup_location}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Main Campus, Building A, Room 101"
-                      maxLength={200}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem",
-                      }}
-                    />
-                    <Form.Text className="text-muted">
-                      Where can the recipient pick up the item?
-                    </Form.Text>
-                  </Form.Group>
-
-                  {/* Images */}
-                  <Form.Group className="mb-4">
-                    <Form.Label style={{ fontWeight: 600 }}>
-                      Images <span style={{ color: "red" }}>*</span>
-                    </Form.Label>
-                    <div
-                      style={{
-                        border: "2px dashed #dee2e6",
-                        borderRadius: "8px",
-                        padding: "2rem",
-                        textAlign: "center",
-                        cursor: "pointer",
-                        background: "#f8f9fa",
-                      }}
-                      onClick={() => document.getElementById("imageInput").click()}
-                    >
-                      <FaImage style={{ fontSize: "3rem", color: "#6c757d", marginBottom: "1rem" }} />
-                      <p style={{ margin: 0, color: "#6c757d" }}>
-                        Click to upload images (Max 5 images, 5MB each)
-                      </p>
-                      <Form.Control
-                        id="imageInput"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageChange}
-                        style={{ display: "none" }}
-                      />
-                    </div>
-
-                    {/* Image Previews */}
-                    {imagePreviews.length > 0 && (
-                      <Row className="mt-3">
-                        {imagePreviews.map((preview, index) => (
-                          <Col key={index} xs={6} md={4} lg={3} className="mb-3">
-                            <div style={{ position: "relative" }}>
-                              <img
-                                src={preview}
-                                alt={`Preview ${index + 1}`}
-                                style={{
-                                  width: "100%",
-                                  height: "150px",
-                                  objectFit: "cover",
-                                  borderRadius: "8px",
-                                }}
-                              />
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={() => removeImage(index)}
-                                style={{
-                                  position: "absolute",
-                                  top: "5px",
-                                  right: "5px",
-                                  borderRadius: "50%",
-                                  width: "30px",
-                                  height: "30px",
-                                  padding: 0,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <FaTimes />
-                              </Button>
-                            </div>
-                          </Col>
-                        ))}
-                      </Row>
-                    )}
-                  </Form.Group>
-
-                  {/* Submit Buttons */}
-                  <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-                    <Button
-                      variant="outline-secondary"
-                      onClick={() => navigate("/donations")}
-                      disabled={loading}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem 2rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={loading}
-                      style={{
-                        borderRadius: "8px",
-                        padding: "0.75rem 2rem",
-                        fontWeight: 600,
-                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        border: "none",
-                      }}
-                    >
-                      {loading ? (
-                        <>
-                          <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            aria-hidden="true"
-                            style={{ marginRight: "0.5rem" }}
-                          />
-                          Creating...
-                        </>
-                      ) : (
-                        "Create Donation"
-                      )}
-                    </Button>
+          {/* Images */}
+          <div>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Images <span style={{ color: "#ef4444" }}>*</span></label>
+            <div onClick={() => document.getElementById("imgInput").click()}
+              style={{ border: "2px dashed #e5e7eb", borderRadius: 8, padding: "2rem", textAlign: "center", cursor: "pointer", background: "#fafafa" }}>
+              <FaImage style={{ fontSize: "2.5rem", color: "#9ca3af", marginBottom: "0.75rem" }} />
+              <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.9rem" }}>Click to upload images (max 5, 5MB each)</p>
+              <input id="imgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+            </div>
+            {previews.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))", gap: "0.75rem", marginTop: "0.75rem" }}>
+                {previews.map((pv, i) => (
+                  <div key={i} style={{ position: "relative" }}>
+                    <img src={pv} alt="" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 6 }} />
+                    <button type="button" onClick={() => removeImage(i)}
+                      style={{ position: "absolute", top: 4, right: 4, background: "#ef4444", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem" }}>
+                      <FaTimes />
+                    </button>
                   </div>
-                </Form>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => navigate("/donations")} disabled={loading}
+              style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.85rem 1.75rem", fontWeight: 600, cursor: "pointer" }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem 1.75rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Creating…" : "Create Donation"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </SharedLayout>
   );
 };
 

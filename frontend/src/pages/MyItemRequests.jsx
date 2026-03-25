@@ -1,42 +1,32 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Container, Row, Col, Card, Button, Badge, Spinner,
-  Alert, Table, Modal, Form
-} from 'react-bootstrap';
-import { FaPlus, FaBoxOpen, FaTimes, FaCheck, FaClock, FaBan } from 'react-icons/fa';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaPlus, FaBoxOpen, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft } from "react-icons/fa";
+import axios from "axios";
+import SharedLayout from "../components/SharedLayout.jsx";
 
-const CATEGORIES = ['book', 'stationery', 'electronics', 'sports', 'other'];
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const CATEGORIES = ["book", "stationery", "electronics", "sports", "other"];
 
-const StatusBadge = ({ status }) => {
-  const map = {
-    pending:   { bg: 'warning',   text: 'dark',  icon: <FaClock />,  label: 'Pending' },
-    approved:  { bg: 'success',   text: 'white', icon: <FaCheck />,  label: 'Approved' },
-    rejected:  { bg: 'danger',    text: 'white', icon: <FaTimes />,  label: 'Rejected' },
-    cancelled: { bg: 'secondary', text: 'white', icon: <FaBan />,    label: 'Cancelled' }
-  };
-  const s = map[status] || map.pending;
-  return (
-    <Badge bg={s.bg} text={s.text} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem' }}>
-      {s.icon} {s.label}
-    </Badge>
-  );
+const STATUS_STYLE = {
+  pending:   { bg: "#fef3c7", color: "#92400e",  icon: <FaClock />,  label: "Pending" },
+  approved:  { bg: "#dcfce7", color: "#166534",  icon: <FaCheck />,  label: "Approved" },
+  rejected:  { bg: "#fee2e2", color: "#991b1b",  icon: <FaTimes />,  label: "Rejected" },
+  cancelled: { bg: "#f3f4f6", color: "#374151",  icon: <FaBan />,    label: "Cancelled" },
 };
+
+const inp = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.65rem 0.9rem", fontSize: "0.9rem", width: "100%", outline: "none", boxSizing: "border-box" };
 
 const MyItemRequests = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(null);
-
-  const [form, setForm] = useState({
-    item_name: '', category: '', quantity_requested: 1, description: ''
-  });
+  const [form, setForm] = useState({ item_name: "", category: "", quantity_requested: 1, description: "" });
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => { fetchRequests(); }, []);
@@ -44,303 +34,199 @@ const MyItemRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) { navigate('/login'); return; }
-      const res = await axios.get('http://localhost:5000/api/requests/my', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setRequests(res.data.requests || []);
+      const r = await axios.get(`${API}/requests/my`, { headers: authH() });
+      setRequests(r.data.requests || []);
     } catch (err) {
-      if (err.response?.status === 401) { navigate('/login'); return; }
-      setError('Failed to load requests');
-    } finally {
-      setLoading(false);
-    }
+      if (err.response?.status === 401) { navigate("/login"); return; }
+      setError("Failed to load requests");
+    } finally { setLoading(false); }
   };
 
   const validate = () => {
-    const errs = {};
-    if (!form.item_name.trim() || form.item_name.trim().length < 3)
-      errs.item_name = 'Item name is required (min 3 characters)';
-    if (!form.category) errs.category = 'Category is required';
-    if (!form.quantity_requested || form.quantity_requested < 1)
-      errs.quantity_requested = 'Quantity must be at least 1';
-    return errs;
+    const e = {};
+    if (!form.item_name.trim() || form.item_name.trim().length < 3) e.item_name = "Item name required (min 3 chars)";
+    if (!form.category) e.category = "Category required";
+    if (!form.quantity_requested || form.quantity_requested < 1) e.quantity_requested = "Quantity must be ≥ 1";
+    return e;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (ev) => {
+    ev.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
-
     try {
       setSubmitting(true);
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/requests', form, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Request submitted successfully!');
-      setShowForm(false);
-      setForm({ item_name: '', category: '', quantity_requested: 1, description: '' });
-      setFormErrors({});
-      fetchRequests();
-      setTimeout(() => setSuccess(''), 4000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit request');
-    } finally {
-      setSubmitting(false);
-    }
+      await axios.post(`${API}/requests`, form, { headers: authH() });
+      setSuccess("Request submitted!"); setShowForm(false);
+      setForm({ item_name: "", category: "", quantity_requested: 1, description: "" }); setFormErrors({});
+      fetchRequests(); setTimeout(() => setSuccess(""), 4000);
+    } catch (err) { setError(err.response?.data?.message || "Failed to submit"); }
+    finally { setSubmitting(false); }
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm('Cancel this request?')) return;
+    if (!window.confirm("Cancel this request?")) return;
     try {
       setCancelling(id);
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/requests/${id}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess('Request cancelled');
-      fetchRequests();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to cancel');
-    } finally {
-      setCancelling(null);
-    }
+      await axios.put(`${API}/requests/${id}/cancel`, {}, { headers: authH() });
+      setSuccess("Request cancelled"); fetchRequests(); setTimeout(() => setSuccess(""), 3000);
+    } catch (err) { setError(err.response?.data?.message || "Failed to cancel"); }
+    finally { setCancelling(null); }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+    setForm(p => ({ ...p, [name]: value }));
+    if (formErrors[name]) setFormErrors(p => ({ ...p, [name]: "" }));
   };
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Spinner animation="border" variant="primary" />
-    </div>
-  );
+  const stats = [
+    { label: "Total", value: requests.length, color: "#4f46e5" },
+    { label: "Pending", value: requests.filter(r => r.status === "pending").length, color: "#f59e0b" },
+    { label: "Approved", value: requests.filter(r => r.status === "approved").length, color: "#16a34a" },
+    { label: "Rejected", value: requests.filter(r => r.status === "rejected").length, color: "#ef4444" },
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', paddingBottom: '3rem' }}>
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', color: 'white', padding: '2rem 0', marginBottom: '2rem' }}>
-        <Container>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <FaBoxOpen /> My Item Requests
-              </h1>
-              <p style={{ margin: '0.25rem 0 0', opacity: 0.9 }}>Request items not available in the store</p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <Button variant="outline-light" onClick={() => {
-                const u = JSON.parse(localStorage.getItem('user') || '{}');
-                navigate(u.role === 'institute' ? '/institute-dashboard' : '/dashboard');
-              }}>← Back</Button>
-              <Button
-                style={{ background: 'white', color: '#4f46e5', border: 'none', fontWeight: 600 }}
-                onClick={() => setShowForm(true)}
-              >
-                <FaPlus style={{ marginRight: '0.5rem' }} /> New Request
-              </Button>
-            </div>
+    <SharedLayout>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "3rem 1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <button onClick={() => navigate("/dashboard")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1rem" }}>
+              <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
+            </button>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>MY ACCOUNT</p>
+            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <FaBoxOpen /> My Item Requests
+            </h1>
           </div>
-        </Container>
-      </div>
+          <button onClick={() => setShowForm(true)}
+            style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <FaPlus /> New Request
+          </button>
+        </div>
 
-      <Container>
-        {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-        {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
+        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
+        {success && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#166534", fontSize: "0.9rem" }}>✓ {success}</div>}
 
-        {/* Stats row */}
-        <Row className="g-3 mb-4">
-          {[
-            { label: 'Total', value: requests.length, color: '#4f46e5' },
-            { label: 'Pending', value: requests.filter(r => r.status === 'pending').length, color: '#f59e0b' },
-            { label: 'Approved', value: requests.filter(r => r.status === 'approved').length, color: '#10b981' },
-            { label: 'Rejected', value: requests.filter(r => r.status === 'rejected').length, color: '#ef4444' }
-          ].map(s => (
-            <Col xs={6} md={3} key={s.label}>
-              <Card style={{ border: 'none', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', textAlign: 'center', padding: '1rem' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ color: '#6b7280', fontSize: '0.9rem', fontWeight: 500 }}>{s.label}</div>
-              </Card>
-            </Col>
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1rem", marginBottom: "2rem" }}>
+          {stats.map(s => (
+            <div key={s.label} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "1.25rem", textAlign: "center" }}>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ color: "#6b7280", fontSize: "0.85rem", fontWeight: 500 }}>{s.label}</div>
+            </div>
           ))}
-        </Row>
+        </div>
 
-        {/* Requests Table */}
-        {requests.length === 0 ? (
-          <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-            <Card.Body className="text-center py-5">
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📦</div>
-              <h4 style={{ fontWeight: 700 }}>No Requests Yet</h4>
-              <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                Can't find what you need? Submit a request and we'll try to add it!
-              </p>
-              <Button variant="primary" onClick={() => setShowForm(true)}>
-                <FaPlus style={{ marginRight: '0.5rem' }} /> Submit First Request
-              </Button>
-            </Card.Body>
-          </Card>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "5rem 0" }}>
+            <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          </div>
+        ) : requests.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "5rem 0", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📦</div>
+            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No Requests Yet</h3>
+            <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>Can't find what you need? Submit a request!</p>
+            <button onClick={() => setShowForm(true)} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Submit First Request</button>
+          </div>
         ) : (
-          <Card style={{ border: 'none', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <Table responsive hover style={{ marginBottom: 0 }}>
-              <thead style={{ background: 'linear-gradient(135deg, #f9fafb, #e5e7eb)' }}>
-                <tr>
-                  <th style={{ padding: '1rem', fontWeight: 700 }}>#</th>
-                  <th style={{ fontWeight: 700 }}>Item Name</th>
-                  <th style={{ fontWeight: 700 }}>Category</th>
-                  <th style={{ fontWeight: 700 }}>Qty</th>
-                  <th style={{ fontWeight: 700 }}>Status</th>
-                  <th style={{ fontWeight: 700 }}>Admin Remark</th>
-                  <th style={{ fontWeight: 700 }}>Date</th>
-                  <th style={{ fontWeight: 700 }}>Action</th>
+          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                  {["#","Item Name","Category","Qty","Status","Admin Remark","Date","Action"].map(h => (
+                    <th key={h} style={{ padding: "0.85rem 1rem", fontWeight: 700, fontSize: "0.82rem", color: "#374151", textAlign: "left" }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {requests.map((req, idx) => (
-                  <tr key={req.id} style={{ verticalAlign: 'middle' }}>
-                    <td style={{ padding: '1rem', color: '#6b7280' }}>{idx + 1}</td>
-                    <td style={{ fontWeight: 600 }}>
-                      {req.item_name}
-                      {req.description && (
-                        <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.2rem' }}>
-                          {req.description.substring(0, 60)}{req.description.length > 60 ? '...' : ''}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <Badge bg="light" text="dark" style={{ textTransform: 'capitalize' }}>
-                        {req.category}
-                      </Badge>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{req.quantity_requested}</td>
-                    <td><StatusBadge status={req.status} /></td>
-                    <td style={{ color: '#6b7280', fontSize: '0.9rem', maxWidth: '200px' }}>
-                      {req.admin_remark || <span style={{ color: '#d1d5db' }}>—</span>}
-                    </td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                      {new Date(req.created_at).toLocaleDateString()}
-                    </td>
-                    <td>
-                      {req.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          variant="outline-danger"
-                          onClick={() => handleCancel(req.id)}
-                          disabled={cancelling === req.id}
-                        >
-                          {cancelling === req.id ? <Spinner size="sm" /> : 'Cancel'}
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {requests.map((req, idx) => {
+                  const ss = STATUS_STYLE[req.status] || STATUS_STYLE.pending;
+                  return (
+                    <tr key={req.id} style={{ borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" }}>
+                      <td style={{ padding: "0.85rem 1rem", color: "#9ca3af", fontSize: "0.82rem" }}>{idx + 1}</td>
+                      <td style={{ padding: "0.85rem 1rem" }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{req.item_name}</div>
+                        {req.description && <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.15rem" }}>{req.description.substring(0, 60)}{req.description.length > 60 ? "…" : ""}</div>}
+                      </td>
+                      <td style={{ padding: "0.85rem 1rem" }}>
+                        <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: 4, textTransform: "capitalize" }}>{req.category}</span>
+                      </td>
+                      <td style={{ padding: "0.85rem 1rem", fontWeight: 600 }}>{req.quantity_requested}</td>
+                      <td style={{ padding: "0.85rem 1rem" }}>
+                        <span style={{ background: ss.bg, color: ss.color, fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                          {ss.icon} {ss.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: "0.85rem 1rem", color: "#6b7280", fontSize: "0.82rem", maxWidth: 180 }}>{req.admin_remark || <span style={{ color: "#d1d5db" }}>—</span>}</td>
+                      <td style={{ padding: "0.85rem 1rem", color: "#9ca3af", fontSize: "0.82rem", whiteSpace: "nowrap" }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: "0.85rem 1rem" }}>
+                        {req.status === "pending" && (
+                          <button onClick={() => handleCancel(req.id)} disabled={cancelling === req.id}
+                            style={{ background: "#fff", color: "#ef4444", border: "1px solid #ef4444", borderRadius: 4, padding: "0.35rem 0.75rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
+                            {cancelling === req.id ? "…" : "Cancel"}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-            </Table>
-          </Card>
+            </table>
+          </div>
         )}
-      </Container>
+      </div>
 
       {/* New Request Modal */}
-      <Modal show={showForm} onHide={() => { setShowForm(false); setFormErrors({}); }} centered size="lg">
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}>
-          <Modal.Title>
-            <FaPlus style={{ marginRight: '0.5rem' }} /> Request Unavailable Item
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body style={{ padding: '2rem' }}>
-            <Alert variant="info" style={{ fontSize: '0.9rem' }}>
-              💡 Can't find what you need? Fill in the details below and we'll try to add it to our store!
-            </Alert>
-
-            <Row className="g-3">
-              <Col md={8}>
-                <Form.Group>
-                  <Form.Label style={{ fontWeight: 600 }}>Item Name <span style={{ color: '#ef4444' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="item_name"
-                    value={form.item_name}
-                    onChange={handleChange}
-                    placeholder="e.g. Advanced Physics Book Grade 12"
-                    isInvalid={!!formErrors.item_name}
-                    style={{ borderRadius: '8px' }}
-                  />
-                  <Form.Control.Feedback type="invalid">{formErrors.item_name}</Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label style={{ fontWeight: 600 }}>Category <span style={{ color: '#ef4444' }}>*</span></Form.Label>
-                  <Form.Select
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    isInvalid={!!formErrors.category}
-                    style={{ borderRadius: '8px' }}
-                  >
-                    <option value="">Select category</option>
-                    {CATEGORIES.map(c => (
-                      <option key={c} value={c} style={{ textTransform: 'capitalize' }}>
-                        {c.charAt(0).toUpperCase() + c.slice(1)}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  <Form.Control.Feedback type="invalid">{formErrors.category}</Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label style={{ fontWeight: 600 }}>Quantity <span style={{ color: '#ef4444' }}>*</span></Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="quantity_requested"
-                    value={form.quantity_requested}
-                    onChange={handleChange}
-                    min={1}
-                    isInvalid={!!formErrors.quantity_requested}
-                    style={{ borderRadius: '8px' }}
-                  />
-                  <Form.Control.Feedback type="invalid">{formErrors.quantity_requested}</Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col md={12}>
-                <Form.Group>
-                  <Form.Label style={{ fontWeight: 600 }}>Description <span style={{ color: '#9ca3af' }}>(optional)</span></Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    placeholder="Add any extra details like edition, brand, specifications..."
-                    style={{ borderRadius: '8px', resize: 'none' }}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => { setShowForm(false); setFormErrors({}); }}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={submitting}
-              style={{ minWidth: '140px' }}
-            >
-              {submitting ? <><Spinner size="sm" className="me-2" />Submitting...</> : 'Submit Request'}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-    </div>
+      {showForm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Request Unavailable Item</h3>
+              <button onClick={() => { setShowForm(false); setFormErrors({}); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem" }}><FaTimes /></button>
+            </div>
+            <form onSubmit={handleSubmit} style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.85rem", color: "#1e40af" }}>
+                💡 Can't find what you need? Fill in the details and we'll try to add it!
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Item Name <span style={{ color: "#ef4444" }}>*</span></label>
+                  <input name="item_name" value={form.item_name} onChange={handleChange} placeholder="e.g. Advanced Physics Book Grade 12" style={{ ...inp, borderColor: formErrors.item_name ? "#ef4444" : "#e5e7eb" }} />
+                  {formErrors.item_name && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.item_name}</p>}
+                </div>
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Qty <span style={{ color: "#ef4444" }}>*</span></label>
+                  <input type="number" name="quantity_requested" value={form.quantity_requested} onChange={handleChange} min={1} style={{ ...inp, borderColor: formErrors.quantity_requested ? "#ef4444" : "#e5e7eb" }} />
+                  {formErrors.quantity_requested && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.quantity_requested}</p>}
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Category <span style={{ color: "#ef4444" }}>*</span></label>
+                <select name="category" value={form.category} onChange={handleChange} style={{ ...inp, borderColor: formErrors.category ? "#ef4444" : "#e5e7eb" }}>
+                  <option value="">Select category</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                </select>
+                {formErrors.category && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.category}</p>}
+              </div>
+              <div>
+                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Description <span style={{ color: "#9ca3af" }}>(optional)</span></label>
+                <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Edition, brand, specifications…" style={{ ...inp, resize: "none" }} />
+              </div>
+              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => { setShowForm(false); setFormErrors({}); }} style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button type="submit" disabled={submitting} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.7rem 1.5rem", fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+                  {submitting ? "Submitting…" : "Submit Request"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </SharedLayout>
   );
 };
 

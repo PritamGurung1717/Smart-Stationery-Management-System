@@ -1,500 +1,249 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Button, Form, Table, Badge, Alert, Spinner } from "react-bootstrap";
-import { FaPlus, FaTrash, FaArrowLeft, FaBook, FaCheckCircle } from "react-icons/fa";
+import { FaPlus, FaTrash, FaBook, FaCheckCircle, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
+import SharedLayout from "../components/SharedLayout.jsx";
+
+const emptyBook = () => ({
+  subject_name: "", book_title: "", author: "", publisher: "",
+  publication_year: new Date().getFullYear(), isbn: "", estimated_price: "",
+});
+
+const StatusBadge = ({ status }) => {
+  const map = { pending: ["#fef3c7","#92400e"], approved: ["#d1fae5","#065f46"], rejected: ["#fee2e2","#991b1b"] };
+  const [bg, color] = map[status] || ["#f3f4f6","#374151"];
+  return <span style={{ background: bg, color, borderRadius: 20, padding: "0.2rem 0.65rem", fontSize: "0.78rem", fontWeight: 600 }}>{status}</span>;
+};
 
 const InstituteBookSetRequest = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const [formData, setFormData] = useState({
-    school_name: "",
-    grade: "",
-  });
-
-  const [books, setBooks] = useState([
-    {
-      subject_name: "",
-      book_title: "",
-      author: "",
-      publisher: "",
-      publication_year: new Date().getFullYear(),
-      isbn: "",
-      estimated_price: "",
-    },
-  ]);
-
+  const [formData, setFormData] = useState({ school_name: "", grade: "" });
+  const [books, setBooks] = useState([emptyBook()]);
   const [myRequests, setMyRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
 
-  useEffect(() => {
-    fetchMyRequests();
-  }, []);
+  useEffect(() => { fetchMyRequests(); }, []);
 
   const fetchMyRequests = async () => {
     try {
       setLoadingRequests(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://localhost:5000/api/institute/book-set-request",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMyRequests(response.data.requests || []);
-    } catch (err) {
-      console.error("Failed to fetch requests:", err);
-    } finally {
-      setLoadingRequests(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+      const res = await axios.get("http://localhost:5000/api/institute/book-set-request", { headers: { Authorization: `Bearer ${token}` } });
+      setMyRequests(res.data.requests || []);
+    } catch (e) { console.error(e); }
+    finally { setLoadingRequests(false); }
   };
 
   const handleBookChange = (index, field, value) => {
-    const updatedBooks = [...books];
-    updatedBooks[index][field] = value;
-    setBooks(updatedBooks);
+    const updated = [...books];
+    updated[index][field] = value;
+    setBooks(updated);
   };
 
-  const addBook = () => {
-    setBooks([
-      ...books,
-      {
-        subject_name: "",
-        book_title: "",
-        author: "",
-        publisher: "",
-        publication_year: new Date().getFullYear(),
-        isbn: "",
-        estimated_price: "",
-      },
-    ]);
-  };
-
+  const addBook = () => setBooks([...books, emptyBook()]);
   const removeBook = (index) => {
-    if (books.length === 1) {
-      setError("At least one book is required");
-      return;
-    }
-    const updatedBooks = books.filter((_, i) => i !== index);
-    setBooks(updatedBooks);
+    if (books.length === 1) { setError("At least one book is required"); return; }
+    setBooks(books.filter((_, i) => i !== index));
   };
 
-  const validateForm = () => {
-    if (!formData.school_name.trim()) {
-      setError("School name is required");
-      return false;
-    }
-
-    if (!formData.grade.trim()) {
-      setError("Grade is required");
-      return false;
-    }
-
+  const validate = () => {
+    if (!formData.school_name.trim()) { setError("School name is required"); return false; }
+    if (!formData.grade.trim()) { setError("Grade is required"); return false; }
     for (let i = 0; i < books.length; i++) {
-      const book = books[i];
-      if (!book.subject_name.trim()) {
-        setError(`Book ${i + 1}: Subject name is required`);
-        return false;
-      }
-      if (!book.book_title.trim()) {
-        setError(`Book ${i + 1}: Book title is required`);
-        return false;
-      }
-      if (!book.author.trim()) {
-        setError(`Book ${i + 1}: Author is required`);
-        return false;
-      }
-      if (!book.publisher.trim()) {
-        setError(`Book ${i + 1}: Publisher is required`);
-        return false;
-      }
-      if (!book.publication_year || book.publication_year < 1900 || book.publication_year > new Date().getFullYear() + 1) {
-        setError(`Book ${i + 1}: Invalid publication year`);
-        return false;
-      }
-      if (!book.estimated_price || parseFloat(book.estimated_price) <= 0) {
-        setError(`Book ${i + 1}: Valid price is required`);
-        return false;
-      }
-      if (book.isbn && !/^[\d-\s]{10,17}$/.test(book.isbn)) {
-        setError(`Book ${i + 1}: Invalid ISBN format`);
-        return false;
-      }
+      const b = books[i];
+      if (!b.subject_name.trim()) { setError(`Book ${i+1}: Subject required`); return false; }
+      if (!b.book_title.trim()) { setError(`Book ${i+1}: Title required`); return false; }
+      if (!b.author.trim()) { setError(`Book ${i+1}: Author required`); return false; }
+      if (!b.publisher.trim()) { setError(`Book ${i+1}: Publisher required`); return false; }
+      if (!b.estimated_price || parseFloat(b.estimated_price) <= 0) { setError(`Book ${i+1}: Valid price required`); return false; }
     }
-
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!validateForm()) {
-      return;
-    }
-
+    setError(""); setSuccess("");
+    if (!validate()) return;
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-
-      const requestData = {
+      await axios.post("http://localhost:5000/api/institute/book-set-request", {
         school_name: formData.school_name.trim(),
         grade: formData.grade.trim(),
-        items: books.map(book => ({
-          subject_name: book.subject_name.trim(),
-          book_title: book.book_title.trim(),
-          author: book.author.trim(),
-          publisher: book.publisher.trim(),
-          publication_year: parseInt(book.publication_year),
-          isbn: book.isbn.trim(),
-          estimated_price: parseFloat(book.estimated_price),
+        items: books.map(b => ({
+          subject_name: b.subject_name.trim(), book_title: b.book_title.trim(),
+          author: b.author.trim(), publisher: b.publisher.trim(),
+          publication_year: parseInt(b.publication_year), isbn: b.isbn.trim(),
+          estimated_price: parseFloat(b.estimated_price),
         })),
-      };
-
-      await axios.post(
-        "http://localhost:5000/api/institute/book-set-request",
-        requestData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      }, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess("Book set request submitted successfully! Waiting for admin approval.");
-      
-      // Reset form
       setFormData({ school_name: "", grade: "" });
-      setBooks([
-        {
-          subject_name: "",
-          book_title: "",
-          author: "",
-          publisher: "",
-          publication_year: new Date().getFullYear(),
-          isbn: "",
-          estimated_price: "",
-        },
-      ]);
-
-      // Refresh requests list
+      setBooks([emptyBook()]);
       fetchMyRequests();
-
-      // Scroll to top
       window.scrollTo(0, 0);
-
     } catch (err) {
-      console.error("Submit error:", err);
       setError(err.response?.data?.message || "Failed to submit request");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const getTotalEstimatedPrice = () => {
-    return books.reduce((total, book) => {
-      const price = parseFloat(book.estimated_price) || 0;
-      return total + price;
-    }, 0);
-  };
+  const totalEstimated = books.reduce((t, b) => t + (parseFloat(b.estimated_price) || 0), 0);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "pending":
-        return <Badge bg="warning">Pending</Badge>;
-      case "approved":
-        return <Badge bg="success">Approved</Badge>;
-      case "rejected":
-        return <Badge bg="danger">Rejected</Badge>;
-      default:
-        return <Badge bg="secondary">{status}</Badge>;
-    }
-  };
+  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem 0.65rem", fontSize: "0.85rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
+  const label = { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "0.3rem" };
+  const card = { border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.5rem", marginBottom: "1.5rem" };
 
   return (
-    <Container className="py-4">
-      <Button variant="outline-secondary" onClick={() => navigate("/institute-dashboard")} className="mb-3">
-        <FaArrowLeft className="me-2" />
-        Back to Dashboard
-      </Button>
+    <SharedLayout>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        <div style={{ marginBottom: "2rem" }}>
+          <button onClick={() => navigate("/institute-dashboard")}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.75rem" }}>
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
+          </button>
+          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400, margin: 0 }}>
+            <FaBook style={{ marginRight: "0.5rem", fontSize: "1.5rem" }} />Book Set Request
+          </h1>
+        </div>
 
-      <h2 className="mb-4">
-        <FaBook className="me-2" />
-        Book Set Request
-      </h2>
+        {error && (
+          <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1.25rem", color: "#991b1b", fontSize: "0.9rem", display: "flex", justifyContent: "space-between" }}>
+            {error}
+            <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b", fontWeight: 700 }}>×</button>
+          </div>
+        )}
+        {success && (
+          <div style={{ background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1.25rem", color: "#065f46", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <FaCheckCircle />{success}
+          </div>
+        )}
 
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
+        {/* Form */}
+        <div style={card}>
+          <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Submit New Book Set Request</h4>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+              <div>
+                <label style={label}>School Name *</label>
+                <input type="text" value={formData.school_name} onChange={e => setFormData({ ...formData, school_name: e.target.value })} placeholder="Enter school name" style={inp} required />
+              </div>
+              <div>
+                <label style={label}>Grade *</label>
+                <input type="text" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} placeholder="e.g., 5, 10, 12" style={inp} required />
+              </div>
+            </div>
 
-      {success && (
-        <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-          <FaCheckCircle className="me-2" />
-          {success}
-        </Alert>
-      )}
-
-      {/* Request Form */}
-      <Card className="mb-4 shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <h5 className="mb-0">Submit New Book Set Request</h5>
-        </Card.Header>
-        <Card.Body>
-          <Form onSubmit={handleSubmit}>
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>School Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="school_name"
-                    value={formData.school_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter school name"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Grade *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="grade"
-                    value={formData.grade}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 5, 10, 12"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <hr />
-
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5>Books in Set</h5>
-              <Button variant="success" size="sm" onClick={addBook}>
-                <FaPlus className="me-1" />
-                Add Book
-              </Button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderTop: "1px solid #f3f4f6", paddingTop: "1.25rem" }}>
+              <h5 style={{ fontWeight: 700, margin: 0 }}>Books in Set</h5>
+              <button type="button" onClick={addBook} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <FaPlus />Add Book
+              </button>
             </div>
 
             <div style={{ overflowX: "auto" }}>
-              <Table bordered hover responsive>
-                <thead className="table-light">
-                  <tr>
-                    <th>#</th>
-                    <th>Subject *</th>
-                    <th>Book Title *</th>
-                    <th>Author *</th>
-                    <th>Publisher *</th>
-                    <th>Year *</th>
-                    <th>ISBN</th>
-                    <th>Price (₹) *</th>
-                    <th>Action</th>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    {["#","Subject *","Book Title *","Author *","Publisher *","Year *","ISBN","Price (₹) *",""].map(h => (
+                      <th key={h} style={{ padding: "0.65rem 0.75rem", textAlign: "left", fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {books.map((book, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <Form.Control
-                          type="text"
-                          value={book.subject_name}
-                          onChange={(e) => handleBookChange(index, "subject_name", e.target.value)}
-                          placeholder="Math, Science..."
-                          size="sm"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="text"
-                          value={book.book_title}
-                          onChange={(e) => handleBookChange(index, "book_title", e.target.value)}
-                          placeholder="Book title"
-                          size="sm"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="text"
-                          value={book.author}
-                          onChange={(e) => handleBookChange(index, "author", e.target.value)}
-                          placeholder="Author name"
-                          size="sm"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="text"
-                          value={book.publisher}
-                          onChange={(e) => handleBookChange(index, "publisher", e.target.value)}
-                          placeholder="Publisher"
-                          size="sm"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="number"
-                          value={book.publication_year}
-                          onChange={(e) => handleBookChange(index, "publication_year", e.target.value)}
-                          min="1900"
-                          max={new Date().getFullYear() + 1}
-                          size="sm"
-                          required
-                          style={{ width: "100px" }}
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="text"
-                          value={book.isbn}
-                          onChange={(e) => handleBookChange(index, "isbn", e.target.value)}
-                          placeholder="ISBN (optional)"
-                          size="sm"
-                          style={{ width: "150px" }}
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="number"
-                          value={book.estimated_price}
-                          onChange={(e) => handleBookChange(index, "estimated_price", e.target.value)}
-                          placeholder="0.00"
-                          min="0"
-                          step="0.01"
-                          size="sm"
-                          required
-                          style={{ width: "100px" }}
-                        />
-                      </td>
-                      <td>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => removeBook(index)}
-                          disabled={books.length === 1}
-                        >
+                    <tr key={index} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "0.5rem 0.75rem", color: "#6b7280" }}>{index + 1}</td>
+                      {[
+                        ["subject_name","Math, Science…",null],
+                        ["book_title","Book title",null],
+                        ["author","Author name",null],
+                        ["publisher","Publisher",null],
+                        ["publication_year","Year","number"],
+                        ["isbn","ISBN (optional)",null],
+                        ["estimated_price","0.00","number"],
+                      ].map(([field, ph, type]) => (
+                        <td key={field} style={{ padding: "0.5rem 0.5rem" }}>
+                          <input type={type || "text"} value={book[field]} onChange={e => handleBookChange(index, field, e.target.value)}
+                            placeholder={ph} style={{ ...inp, minWidth: field === "publication_year" ? 80 : field === "estimated_price" ? 80 : 100 }}
+                            min={type === "number" ? 0 : undefined} step={field === "estimated_price" ? "0.01" : undefined} />
+                        </td>
+                      ))}
+                      <td style={{ padding: "0.5rem 0.5rem" }}>
+                        <button type="button" onClick={() => removeBook(index)} disabled={books.length === 1}
+                          style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "0.4rem 0.6rem", cursor: "pointer", color: "#ef4444", opacity: books.length === 1 ? 0.4 : 1 }}>
                           <FaTrash />
-                        </Button>
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr>
-                    <td colSpan="7" className="text-end">
-                      <strong>Total Estimated Price:</strong>
-                    </td>
-                    <td colSpan="2">
-                      <strong>₹{getTotalEstimatedPrice().toFixed(2)}</strong>
-                    </td>
+                  <tr style={{ background: "#f9fafb" }}>
+                    <td colSpan={7} style={{ padding: "0.75rem", textAlign: "right", fontWeight: 700, fontSize: "0.88rem" }}>Total Estimated Price:</td>
+                    <td colSpan={2} style={{ padding: "0.75rem", fontWeight: 800 }}>₹{totalEstimated.toFixed(2)}</td>
                   </tr>
                 </tfoot>
-              </Table>
+              </table>
             </div>
 
-            <div className="text-end mt-3">
-              <Button variant="primary" type="submit" disabled={loading} size="lg">
-                {loading ? (
-                  <>
-                    <Spinner size="sm" className="me-2" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Request"
-                )}
-              </Button>
+            <div style={{ textAlign: "right", marginTop: "1.5rem" }}>
+              <button type="submit" disabled={loading} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.75rem 2rem", fontWeight: 700, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                {loading ? "Submitting…" : "Submit Request"}
+              </button>
             </div>
-          </Form>
-        </Card.Body>
-      </Card>
+          </form>
+        </div>
 
-      {/* My Requests */}
-      <Card className="shadow-sm">
-        <Card.Header className="bg-secondary text-white">
-          <h5 className="mb-0">My Book Set Requests</h5>
-        </Card.Header>
-        <Card.Body>
+        {/* My Requests */}
+        <div style={card}>
+          <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>My Book Set Requests</h4>
           {loadingRequests ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" />
-              <p className="mt-2">Loading requests...</p>
-            </div>
+            <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>Loading requests…</div>
           ) : myRequests.length === 0 ? (
-            <Alert variant="info">No requests submitted yet.</Alert>
+            <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>No requests submitted yet.</div>
           ) : (
-            <Table striped bordered hover responsive>
-              <thead className="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>School</th>
-                  <th>Grade</th>
-                  <th>Books</th>
-                  <th>Total Price</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th>Remark</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myRequests.map((request) => (
-                  <tr key={request.id}>
-                    <td>{request.id}</td>
-                    <td>{request.school_name}</td>
-                    <td>{request.grade}</td>
-                    <td>{request.item_count}</td>
-                    <td>₹{request.total_estimated_price?.toFixed(2)}</td>
-                    <td>{getStatusBadge(request.status)}</td>
-                    <td>{new Date(request.created_at).toLocaleDateString()}</td>
-                    <td>
-                      {request.admin_remark ? (
-                        <small className="text-danger">{request.admin_remark}</small>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td>
-                      <Button
-                        variant="info"
-                        size="sm"
-                        onClick={() => navigate(`/institute/book-set-request/${request.id}`)}
-                      >
-                        View
-                      </Button>
-                      {request.status === "rejected" && (
-                        <Button
-                          variant="warning"
-                          size="sm"
-                          className="ms-2"
-                          onClick={() => navigate(`/institute/book-set-request/${request.id}/edit`)}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </td>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                <thead>
+                  <tr style={{ background: "#f9fafb" }}>
+                    {["ID","School","Grade","Books","Total Price","Status","Submitted","Remark","Actions"].map(h => (
+                      <th key={h} style={{ padding: "0.65rem 0.85rem", textAlign: "left", fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {myRequests.map(req => (
+                    <tr key={req.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.id}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.school_name}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.grade}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.item_count}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>₹{req.total_estimated_price?.toFixed(2)}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}><StatusBadge status={req.status} /></td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: "0.75rem 0.85rem", color: "#ef4444", fontSize: "0.8rem" }}>{req.admin_remark || "—"}</td>
+                      <td style={{ padding: "0.75rem 0.85rem" }}>
+                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                          <button onClick={() => navigate(`/institute/book-set-request/${req.id}`)}
+                            style={{ background: "#f3f4f6", border: "none", borderRadius: 6, padding: "0.35rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}>View</button>
+                          {req.status === "rejected" && (
+                            <button onClick={() => navigate(`/institute/book-set-request/${req.id}/edit`)}
+                              style={{ background: "#fef3c7", border: "none", borderRadius: 6, padding: "0.35rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", color: "#92400e" }}>Edit</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </Card.Body>
-      </Card>
-    </Container>
+        </div>
+      </div>
+    </SharedLayout>
   );
 };
 

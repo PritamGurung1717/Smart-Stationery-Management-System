@@ -1,12 +1,58 @@
-// frontend/src/pages/ProductsPage.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Container, Row, Col, Card, Button, Form, Spinner, Badge, InputGroup, Pagination } from "react-bootstrap";
-import { FaSearch, FaShoppingCart, FaFilter, FaSort } from "react-icons/fa";
+import { FaSearch, FaShoppingBag, FaShoppingCart, FaSort, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import SharedLayout from "../components/SharedLayout.jsx";
 
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── Product Card ──────────────────────────────────────────── */
+const ProductCard = ({ product, onCart }) => {
+  const inStock = (product.stock_quantity || product.stock || 0) > 0;
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: 200, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
+          : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
+      </div>
+      <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9ca3af", textTransform: "uppercase" }}>{product.category}</span>
+        <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111", lineHeight: 1.3, minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
+        {product.category === "book" && product.author && (
+          <div style={{ fontSize: "0.78rem", color: "#9ca3af" }}>by {product.author}</div>
+        )}
+        <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "#111", marginTop: "auto" }}>₹{product.price}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.72rem", fontWeight: 700, color: inStock ? "#16a34a" : "#ef4444" }}>
+            {inStock ? "In Stock" : "Out of Stock"}
+          </span>
+          {inStock && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>{product.stock_quantity || product.stock} available</span>}
+        </div>
+        {product.description && (
+          <div style={{ fontSize: "0.78rem", color: "#9ca3af", lineHeight: 1.5 }}>
+            {product.description.length > 70 ? product.description.substring(0, 70) + "…" : product.description}
+          </div>
+        )}
+        <button onClick={() => onCart(product.id)} disabled={!inStock}
+          style={{ marginTop: "0.5rem", background: inStock ? "#111" : "#e5e7eb", color: inStock ? "#fff" : "#9ca3af", border: "none", borderRadius: 4, padding: "0.55rem", fontWeight: 700, fontSize: "0.85rem", cursor: inStock ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}>
+          <FaShoppingCart style={{ fontSize: "0.75rem" }} />
+          {inStock ? "Add to Cart" : "Out of Stock"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main Page ─────────────────────────────────────────────── */
 const ProductsPage = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("all");
   const [minPrice, setMinPrice] = useState("");
@@ -14,316 +60,185 @@ const ProductsPage = () => {
   const [inStock, setInStock] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
-  
-  // Pagination
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 12;
 
   useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("user") || "null");
+    if (!stored) { navigate("/login"); return; }
     fetchProducts(1);
+    fetchCartCount();
   }, []);
+
+  const fetchCartCount = async () => {
+    try {
+      const r = await axios.get(`${API}/users/cart`, { headers: authH() });
+      const items = r.data.cart?.items || [];
+      setCartCount(items.reduce((s, i) => s + i.quantity, 0));
+    } catch {}
+  };
 
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
-      let url = `http://localhost:5000/api/products?page=${page}&limit=${productsPerPage}`;
-      
-      const params = [];
-      if (searchTerm) params.push(`search=${encodeURIComponent(searchTerm)}`);
-      if (category && category !== "all") params.push(`category=${category}`);
-      if (minPrice) params.push(`minPrice=${minPrice}`);
-      if (maxPrice) params.push(`maxPrice=${maxPrice}`);
-      if (inStock !== "all") params.push(`inStock=${inStock === "inStock"}`);
-      params.push(`sortBy=${sortBy}`);
-      params.push(`sortOrder=${sortOrder}`);
-      
-      if (params.length > 0) {
-        url += `&${params.join("&")}`;
-      }
-      
-      const response = await axios.get(url);
-      setProducts(response.data.products || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalProducts(response.data.total || 0);
+      const params = new URLSearchParams({ page, limit: productsPerPage, sortBy, sortOrder });
+      if (searchTerm) params.append("search", searchTerm);
+      if (category !== "all") params.append("category", category);
+      if (minPrice) params.append("minPrice", minPrice);
+      if (maxPrice) params.append("maxPrice", maxPrice);
+      if (inStock !== "all") params.append("inStock", inStock === "inStock");
+      const r = await axios.get(`${API}/products?${params}`);
+      setProducts(r.data.products || []);
+      setTotalPages(r.data.totalPages || 1);
+      setTotalProducts(r.data.total || 0);
       setCurrentPage(page);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = () => {
-    fetchProducts(1);
-  };
-
-  const handleSortChange = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
-    fetchProducts(1);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   const addToCart = async (productId) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please login to add items to cart!");
-        return;
-      }
-      
-      await axios.post(
-        "http://localhost:5000/api/users/cart/add",
-        { productId, quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert("Product added to cart!");
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      alert(error.response?.data?.message || "Failed to add to cart");
-    }
+      await axios.post(`${API}/users/cart/add`, { productId, quantity: 1 }, { headers: authH() });
+      fetchCartCount();
+      alert("Added to cart!");
+    } catch (err) { alert(err.response?.data?.message || "Failed to add to cart"); }
   };
 
   const clearFilters = () => {
-    setSearchTerm("");
-    setCategory("all");
-    setMinPrice("");
-    setMaxPrice("");
-    setInStock("all");
-    setSortBy("name");
-    setSortOrder("asc");
-    fetchProducts(1);
+    setSearchTerm(""); setCategory("all"); setMinPrice(""); setMaxPrice("");
+    setInStock("all"); setSortBy("name"); setSortOrder("asc");
+    setTimeout(() => fetchProducts(1), 0);
   };
 
+  const sel = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.6rem 1rem", fontSize: "0.9rem", background: "#fff", cursor: "pointer", color: "#111", outline: "none" };
+
+  const pageNums = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) pageNums.push(i);
+  }
+
   return (
-    <Container className="py-5">
-      <h1 className="mb-4">Products</h1>
-      
-      {/* Search and Filters */}
-      <Card className="mb-4 p-3 shadow-sm">
-        <Row className="g-3">
-          <Col md={4}>
-            <InputGroup>
-              <InputGroup.Text>
-                <FaSearch />
-              </InputGroup.Text>
-              <Form.Control
-                placeholder="Search products by name, category, author..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button variant="primary" onClick={handleSearch}>
+    <SharedLayout cartCount={cartCount} activeLink="Collections">
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "3rem 1.5rem" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "2rem" }}>
+          <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>CATALOGUE</p>
+          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 400, color: "#111", margin: 0 }}>All Products</h1>
+        </div>
+
+        {/* Filters */}
+        <div style={{ background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 8, padding: "1.25rem 1.5rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginBottom: "0.75rem" }}>
+            {/* Search */}
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", overflow: "hidden", flex: "1 1 240px", minWidth: 200 }}>
+              <FaSearch style={{ margin: "0 0.75rem", color: "#9ca3af", fontSize: "0.85rem", flexShrink: 0 }} />
+              <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && fetchProducts(1)}
+                placeholder="Search products…"
+                style={{ border: "none", outline: "none", fontSize: "0.9rem", padding: "0.6rem 0", flex: 1, background: "transparent" }} />
+              <button onClick={() => fetchProducts(1)}
+                style={{ background: "#111", color: "#fff", border: "none", padding: "0.6rem 1rem", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", flexShrink: 0 }}>
                 Search
-              </Button>
-            </InputGroup>
-          </Col>
-          <Col md={2}>
-            <Form.Select value={category} onChange={(e) => {
-              setCategory(e.target.value);
-              fetchProducts(1);
-            }}>
+              </button>
+            </div>
+
+            <select value={category} onChange={e => { setCategory(e.target.value); setTimeout(() => fetchProducts(1), 0); }} style={sel}>
               <option value="all">All Categories</option>
               <option value="book">Books</option>
               <option value="stationery">Stationery</option>
-            </Form.Select>
-          </Col>
-          <Col md={2}>
-            <Form.Select value={inStock} onChange={(e) => {
-              setInStock(e.target.value);
-              fetchProducts(1);
-            }}>
+              <option value="sports">Sports</option>
+              <option value="electronics">Electronics</option>
+            </select>
+
+            <select value={inStock} onChange={e => { setInStock(e.target.value); setTimeout(() => fetchProducts(1), 0); }} style={sel}>
               <option value="all">All Stock</option>
               <option value="inStock">In Stock</option>
               <option value="outOfStock">Out of Stock</option>
-            </Form.Select>
-          </Col>
-          <Col md={2}>
-            <Form.Select value={sortBy} onChange={(e) => {
-              setSortBy(e.target.value);
-              fetchProducts(1);
-            }}>
+            </select>
+
+            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setTimeout(() => fetchProducts(1), 0); }} style={sel}>
               <option value="name">Sort by Name</option>
               <option value="price">Sort by Price</option>
               <option value="created_at">Sort by Newest</option>
-            </Form.Select>
-          </Col>
-          <Col md={2}>
-            <Button 
-              variant="outline-secondary" 
-              onClick={clearFilters}
-              className="w-100"
-            >
-              Clear Filters
-            </Button>
-          </Col>
-        </Row>
-        
-        {/* Price Range */}
-        <Row className="g-3 mt-2">
-          <Col md={3}>
-            <Form.Control
-              type="number"
-              placeholder="Min Price"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              onBlur={() => fetchProducts(1)}
-            />
-          </Col>
-          <Col md={3}>
-            <Form.Control
-              type="number"
-              placeholder="Max Price"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              onBlur={() => fetchProducts(1)}
-            />
-          </Col>
-          <Col md={6}>
-            <div className="d-flex align-items-center">
-              <small className="text-muted me-2">
-                Showing {products.length} of {totalProducts} products
-              </small>
-              <div className="ms-auto">
-                <Button 
-                  variant={sortOrder === "asc" ? "outline-primary" : "outline-secondary"}
-                  size="sm"
-                  onClick={() => {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                    fetchProducts(1);
-                  }}
-                >
-                  <FaSort className="me-1" />
-                  {sortOrder === "asc" ? "Ascending" : "Descending"}
-                </Button>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+            </select>
 
-      {loading ? (
-        <div className="text-center py-5">
-          <Spinner animation="border" />
-          <p className="mt-2">Loading products...</p>
+            <button onClick={clearFilters}
+              style={{ border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.6rem 1.25rem", fontSize: "0.9rem", background: "#fff", cursor: "pointer", color: "#6b7280", fontWeight: 500 }}>
+              Clear Filters
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+            <input type="number" placeholder="Min Price" value={minPrice}
+              onChange={e => setMinPrice(e.target.value)} onBlur={() => fetchProducts(1)}
+              style={{ border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 0.75rem", fontSize: "0.9rem", width: 120, outline: "none" }} />
+            <input type="number" placeholder="Max Price" value={maxPrice}
+              onChange={e => setMaxPrice(e.target.value)} onBlur={() => fetchProducts(1)}
+              style={{ border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 0.75rem", fontSize: "0.9rem", width: 120, outline: "none" }} />
+            <span style={{ fontSize: "0.85rem", color: "#9ca3af", marginLeft: "0.5rem" }}>
+              Showing {products.length} of {totalProducts} products
+            </span>
+            <button onClick={() => { setSortOrder(o => o === "asc" ? "desc" : "asc"); setTimeout(() => fetchProducts(1), 0); }}
+              style={{ marginLeft: "auto", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 1rem", fontSize: "0.85rem", background: "#fff", cursor: "pointer", color: "#111", display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 600 }}>
+              <FaSort style={{ fontSize: "0.75rem" }} />
+              {sortOrder === "asc" ? "Ascending" : "Descending"}
+            </button>
+          </div>
         </div>
-      ) : (
-        <>
-          <Row xs={1} sm={2} md={3} lg={4} className="g-4">
-            {products.map(product => (
-              <Col key={product.id}>
-                <Card className="h-100 shadow-sm">
-                  {product.image_url && (
-                    <Card.Img 
-                      variant="top" 
-                      src={product.image_url} 
-                      style={{ height: "200px", objectFit: "contain", padding: "10px" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://via.placeholder.com/200x200?text=No+Image";
-                      }}
-                    />
-                  )}
-                  <Card.Body className="d-flex flex-column">
-                    <Card.Title className="h6">{product.name}</Card.Title>
-                    <Card.Subtitle className="mb-2 text-muted">
-                      <Badge bg={product.category === "book" ? "info" : "primary"}>
-                        {product.category}
-                      </Badge>
-                      {product.category === "book" && product.author && (
-                        <small className="ms-2">by {product.author}</small>
-                      )}
-                    </Card.Subtitle>
-                    <Card.Text className="mb-1 fs-5 fw-bold">₹{product.price}</Card.Text>
-                    <Card.Text className="mb-2">
-                      <Badge bg={(product.stock_quantity || product.stock || 0) > 0 ? "success" : "danger"}>
-                        {(product.stock_quantity || product.stock || 0) > 0 ? "In Stock" : "Out of Stock"}
-                      </Badge>
-                      {(product.stock_quantity || product.stock || 0) > 0 && (
-                        <small className="ms-2 text-muted">
-                          {product.stock_quantity || product.stock} available
-                        </small>
-                      )}
-                    </Card.Text>
-                    {product.description && (
-                      <Card.Text className="small text-muted mb-3">
-                        {product.description.length > 80 
-                          ? `${product.description.substring(0, 80)}...` 
-                          : product.description}
-                      </Card.Text>
-                    )}
-                    <div className="mt-auto">
-                      <Button
-                        variant="primary"
-                        className="w-100"
-                        onClick={() => addToCart(product.id)}
-                        disabled={(product.stock_quantity || product.stock || 0) === 0}
-                      >
-                        <FaShoppingCart className="me-2" />
-                        {(product.stock_quantity || product.stock || 0) > 0 ? "Add to Cart" : "Out of Stock"}
-                      </Button>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="d-flex justify-content-center mt-5">
-              <Pagination>
-                <Pagination.First onClick={() => fetchProducts(1)} disabled={currentPage === 1} />
-                <Pagination.Prev onClick={() => fetchProducts(currentPage - 1)} disabled={currentPage === 1} />
-                
-                {[...Array(totalPages)].map((_, i) => {
-                  const pageNum = i + 1;
-                  if (
-                    pageNum === 1 || 
-                    pageNum === totalPages || 
-                    (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                  ) {
-                    return (
-                      <Pagination.Item
-                        key={pageNum}
-                        active={pageNum === currentPage}
-                        onClick={() => fetchProducts(pageNum)}
-                      >
-                        {pageNum}
-                      </Pagination.Item>
-                    );
-                  } else if (
-                    pageNum === currentPage - 3 ||
-                    pageNum === currentPage + 3
-                  ) {
-                    return <Pagination.Ellipsis key={pageNum} />;
-                  }
-                  return null;
-                })}
-                
-                <Pagination.Next onClick={() => fetchProducts(currentPage + 1)} disabled={currentPage === totalPages} />
-                <Pagination.Last onClick={() => fetchProducts(totalPages)} disabled={currentPage === totalPages} />
-              </Pagination>
-            </div>
-          )}
-        </>
-      )}
-      
-      {!loading && products.length === 0 && (
-        <div className="text-center py-5">
-          <h4>No products found</h4>
-          <p className="text-muted">Try adjusting your search or filters</p>
-          <Button variant="outline-primary" onClick={clearFilters}>
-            Clear All Filters
-          </Button>
-        </div>
-      )}
-    </Container>
+
+        {/* Grid */}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "5rem 0" }}>
+            <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
+            <p style={{ color: "#9ca3af" }}>Loading products…</p>
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          </div>
+        ) : products.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "5rem 0" }}>
+            <FaShoppingBag style={{ fontSize: "3rem", color: "#e5e7eb", marginBottom: "1rem" }} />
+            <h3 style={{ fontWeight: 700, color: "#111", marginBottom: "0.5rem" }}>No products found</h3>
+            <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>Try adjusting your search or filters</p>
+            <button onClick={clearFilters}
+              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>
+              Clear All Filters
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+            {products.map(p => <ProductCard key={p.id} product={p} onCart={addToCart} />)}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && !loading && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "0.4rem", marginTop: "3rem" }}>
+            <button onClick={() => fetchProducts(currentPage - 1)} disabled={currentPage === 1}
+              style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 0.75rem", cursor: currentPage === 1 ? "not-allowed" : "pointer", color: currentPage === 1 ? "#d1d5db" : "#111" }}>
+              <FaChevronLeft style={{ fontSize: "0.75rem" }} />
+            </button>
+            {pageNums.map((n, i) => {
+              const prev = pageNums[i - 1];
+              return (
+                <span key={n}>
+                  {prev && n - prev > 1 && <span style={{ color: "#9ca3af", padding: "0 0.25rem" }}>…</span>}
+                  <button onClick={() => fetchProducts(n)}
+                    style={{ background: n === currentPage ? "#111" : "#fff", color: n === currentPage ? "#fff" : "#111", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 0.85rem", fontWeight: n === currentPage ? 700 : 400, cursor: "pointer", fontSize: "0.9rem" }}>
+                    {n}
+                  </button>
+                </span>
+              );
+            })}
+            <button onClick={() => fetchProducts(currentPage + 1)} disabled={currentPage === totalPages}
+              style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.5rem 0.75rem", cursor: currentPage === totalPages ? "not-allowed" : "pointer", color: currentPage === totalPages ? "#d1d5db" : "#111" }}>
+              <FaChevronRight style={{ fontSize: "0.75rem" }} />
+            </button>
+          </div>
+        )}
+      </div>
+    </SharedLayout>
   );
 };
 

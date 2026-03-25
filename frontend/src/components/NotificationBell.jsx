@@ -1,348 +1,219 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dropdown, Badge, Button, Spinner } from 'react-bootstrap';
-import { FaBell, FaCheck, FaTrash, FaTimes } from 'react-icons/fa';
+import { FaBell, FaCheck, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+
+const API = 'http://localhost:5000/api';
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+const getTimeAgo = (date) => {
+  const s = Math.floor((new Date() - new Date(date)) / 1000);
+  if (s < 60) return 'Just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return new Date(date).toLocaleDateString();
+};
 
 const NotificationBell = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(false);
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef(null);
+  const bellRef = useRef(null);
   const intervalRef = useRef(null);
+  const mountedRef = useRef(true);
 
+  // Track token as state so component reacts when user logs in/out
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
+
+  // Poll localStorage for token changes (logout clears it)
   useEffect(() => {
-    fetchNotifications();
-    fetchUnreadCount();
-
-    // Auto-refresh every 10 seconds
-    intervalRef.current = setInterval(() => {
-      fetchUnreadCount();
-      if (show) {
-        fetchNotifications();
-      }
-    }, 10000);
-
+    mountedRef.current = true;
+    const check = () => {
+      const t = localStorage.getItem('token');
+      setToken(prev => prev !== t ? t : prev);
+    };
+    const id = setInterval(check, 1000);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      mountedRef.current = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Reset counts when token disappears (logout)
+  useEffect(() => {
+    if (!token || token === 'null') {
+      setUnreadCount(0);
+      setNotifications([]);
+      setOpen(false);
+    }
+  }, [token]);
+
+  const isAuthed = token && token !== 'null';
+
+  const fetchCount = useCallback(async () => {
+    if (!isAuthed || !mountedRef.current) return;
+    try {
+      const r = await axios.get(`${API}/notifications/unread-count`, { headers: authH() });
+      if (r.data.success && mountedRef.current) setUnreadCount(r.data.count);
+    } catch {}
+  }, [isAuthed]);
+
+  const fetchAll = useCallback(async () => {
+    if (!isAuthed || !mountedRef.current) return;
+    try {
+      if (mountedRef.current) setLoading(true);
+      const r = await axios.get(`${API}/notifications?limit=20`, { headers: authH() });
+      if (r.data.success && mountedRef.current) {
+        setNotifications(r.data.notifications);
+        setUnreadCount(r.data.unreadCount);
+      }
+    } catch {}
+    finally { if (mountedRef.current) setLoading(false); }
+  }, [isAuthed]);
+
+  // Single interval — restarts only when auth state changes, not on every open toggle
+  useEffect(() => {
+    if (!isAuthed) return;
+    fetchCount(); // immediate fetch on mount/login
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(fetchCount, 10000);
+    return () => clearInterval(intervalRef.current);
+  }, [isAuthed, fetchCount]);
+
+  // Fetch full list when panel opens
+  useEffect(() => {
+    if (open && isAuthed) fetchAll();
+  }, [open, isAuthed, fetchAll]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target) &&
+          bellRef.current && !bellRef.current.contains(e.target)) {
+        setOpen(false);
       }
     };
-  }, [show]);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/notifications?limit=20', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
+  const toggleOpen = () => setOpen(o => !o);
+
+  const markAsRead = async (id) => {
+    try { await axios.put(`${API}/notifications/${id}/read`, {}, { headers: authH() }); fetchAll(); } catch {}
   };
-
-  const fetchUnreadCount = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/notifications/unread-count', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setUnreadCount(response.data.count);
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
-
-  const markAsRead = async (notificationId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `http://localhost:5000/api/notifications/${notificationId}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchNotifications();
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Error marking as read:', error);
-    }
-  };
-
   const markAllAsRead = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        'http://localhost:5000/api/notifications/mark-all-read',
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchNotifications();
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Error marking all as read:', error);
-    }
+    try { await axios.put(`${API}/notifications/mark-all-read`, {}, { headers: authH() }); fetchAll(); } catch {}
   };
-
-  const deleteNotification = async (notificationId, e) => {
+  const deleteOne = async (id, e) => {
     e.stopPropagation();
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/notifications/${notificationId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchNotifications();
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
+    try { await axios.delete(`${API}/notifications/${id}`, { headers: authH() }); fetchAll(); } catch {}
+  };
+  const handleClick = (n) => {
+    if (!n.is_read) markAsRead(n._id);
+    if (n.link) { navigate(n.link); setOpen(false); }
   };
 
-  const handleNotificationClick = (notification) => {
-    if (!notification.is_read) {
-      markAsRead(notification._id);
-    }
-    if (notification.link) {
-      navigate(notification.link);
-      setShow(false);
-    }
-  };
-
-  const getTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return new Date(date).toLocaleDateString();
-  };
-
+  // Don't render badge or allow open if not authed
   return (
-    <Dropdown show={show} onToggle={(isOpen) => {
-      setShow(isOpen);
-      if (isOpen) fetchNotifications();
-    }}>
-      <Dropdown.Toggle
-        as={Button}
-        variant="link"
+    <div style={{ position: 'relative' }}>
+      <button
+        ref={bellRef}
+        onClick={isAuthed ? toggleOpen : undefined}
         style={{
-          position: 'relative',
-          padding: '0.5rem 1rem',
-          color: '#1f2937',
-          textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
+          background: 'none', border: 'none', cursor: isAuthed ? 'pointer' : 'default',
+          color: '#111', fontSize: '1.05rem', position: 'relative',
+          padding: '0.25rem', display: 'flex', alignItems: 'center'
         }}
+        aria-label="Notifications"
       >
-        <FaBell style={{ fontSize: '1.5rem' }} />
-        {unreadCount > 0 && (
-          <Badge
-            bg="danger"
-            pill
-            style={{
-              position: 'absolute',
-              top: '0.25rem',
-              right: '0.5rem',
-              fontSize: '0.65rem',
-              padding: '0.25rem 0.5rem'
-            }}
-          >
+        <FaBell />
+        {isAuthed && unreadCount > 0 && (
+          <span style={{
+            position: 'absolute', top: -5, right: -5,
+            background: '#111', color: '#fff', borderRadius: '50%',
+            fontSize: '0.6rem', width: 16, height: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, lineHeight: 1
+          }}>
             {unreadCount > 99 ? '99+' : unreadCount}
-          </Badge>
+          </span>
         )}
-      </Dropdown.Toggle>
+      </button>
 
-      <Dropdown.Menu
-        align="end"
-        style={{
-          width: '400px',
-          maxHeight: '600px',
-          overflowY: 'auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-          borderRadius: '12px',
-          border: 'none',
-          marginTop: '0.5rem'
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          padding: '1rem',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          background: 'white',
-          zIndex: 1
+      {open && isAuthed && (
+        <div ref={panelRef} style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 10px)',
+          width: 380, maxHeight: 520, background: '#fff',
+          border: '1px solid #e5e7eb', borderRadius: 12,
+          boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+          zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}>
-          <h6 style={{ margin: 0, fontWeight: 700 }}>
-            Notifications
+          {/* Header */}
+          <div style={{ padding: '0.9rem 1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', flexShrink: 0 }}>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111' }}>
+              Notifications
+              {unreadCount > 0 && (
+                <span style={{ marginLeft: '0.5rem', background: '#111', color: '#fff', borderRadius: 50, fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem' }}>
+                  {unreadCount}
+                </span>
+              )}
+            </span>
             {unreadCount > 0 && (
-              <Badge bg="danger" className="ms-2">{unreadCount}</Badge>
+              <button onClick={markAllAsRead} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#6b7280', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <FaCheck style={{ fontSize: '0.7rem' }} /> Mark all read
+              </button>
             )}
-          </h6>
-          {notifications.length > 0 && unreadCount > 0 && (
-            <Button
-              variant="link"
-              size="sm"
-              onClick={markAllAsRead}
-              style={{ padding: 0, fontSize: '0.85rem' }}
-            >
-              <FaCheck className="me-1" />
-              Mark all read
-            </Button>
-          )}
-        </div>
+          </div>
 
-        {/* Notifications List */}
-        {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <Spinner animation="border" size="sm" />
-            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#6b7280' }}>
-              Loading...
-            </p>
-          </div>
-        ) : notifications.length === 0 ? (
-          <div style={{ padding: '3rem 2rem', textAlign: 'center' }}>
-            <FaBell style={{ fontSize: '3rem', color: '#e5e7eb', marginBottom: '1rem' }} />
-            <p style={{ color: '#6b7280', margin: 0 }}>No notifications yet</p>
-          </div>
-        ) : (
-          notifications.map((notification) => (
-            <Dropdown.Item
-              key={notification._id}
-              onClick={() => handleNotificationClick(notification)}
-              style={{
-                padding: '1rem',
-                borderBottom: '1px solid #f3f4f6',
-                background: notification.is_read ? 'white' : '#eff6ff',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
-              onMouseLeave={(e) => e.target.style.background = notification.is_read ? 'white' : '#eff6ff'}
-            >
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                {/* Icon */}
-                <div style={{
-                  fontSize: '1.5rem',
-                  flexShrink: 0,
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: '#f3f4f6',
-                  borderRadius: '50%'
-                }}>
-                  {notification.icon}
+          {/* List */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {loading ? (
+              <div style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>Loading…</div>
+            ) : notifications.length === 0 ? (
+              <div style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                <FaBell style={{ fontSize: '2.5rem', color: '#e5e7eb', display: 'block', margin: '0 auto 0.75rem' }} />
+                <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.9rem' }}>No notifications yet</p>
+              </div>
+            ) : notifications.map((n) => (
+              <div key={n._id} onClick={() => handleClick(n)}
+                style={{ padding: '0.9rem 1rem', borderBottom: '1px solid #f3f4f6', background: n.is_read ? '#fff' : '#f8faff', cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                onMouseLeave={e => e.currentTarget.style.background = n.is_read ? '#fff' : '#f8faff'}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+                  {n.icon || '🔔'}
                 </div>
-
-                {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: '0.25rem'
-                  }}>
-                    <h6 style={{
-                      margin: 0,
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      color: '#1f2937'
-                    }}>
-                      {notification.title}
-                    </h6>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={(e) => deleteNotification(notification._id, e)}
-                      style={{
-                        padding: '0.25rem',
-                        color: '#9ca3af',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      <FaTimes />
-                    </Button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111', lineHeight: 1.3 }}>{n.title}</span>
+                    <button onClick={(e) => deleteOne(n._id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '0.75rem', padding: '0 0 0 0.5rem', flexShrink: 0 }}><FaTimes /></button>
                   </div>
-                  <p style={{
-                    margin: 0,
-                    fontSize: '0.85rem',
-                    color: '#6b7280',
-                    lineHeight: 1.4
-                  }}>
-                    {notification.message}
-                  </p>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '0.5rem'
-                  }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: '#9ca3af'
-                    }}>
-                      {getTimeAgo(notification.created_at)}
-                    </span>
-                    {!notification.is_read && (
-                      <div style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: '#3b82f6'
-                      }} />
-                    )}
+                  <p style={{ margin: '0.2rem 0 0.4rem', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.45 }}>{n.message}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{getTimeAgo(n.created_at)}</span>
+                    {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />}
                   </div>
                 </div>
               </div>
-            </Dropdown.Item>
-          ))
-        )}
-
-        {/* Footer */}
-        {notifications.length > 0 && (
-          <div style={{
-            padding: '0.75rem',
-            borderTop: '1px solid #e5e7eb',
-            textAlign: 'center',
-            position: 'sticky',
-            bottom: 0,
-            background: 'white'
-          }}>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => {
-                navigate('/notifications');
-                setShow(false);
-              }}
-              style={{
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                textDecoration: 'none'
-              }}
-            >
-              View all notifications
-            </Button>
+            ))}
           </div>
-        )}
-      </Dropdown.Menu>
-    </Dropdown>
+
+          {/* Footer */}
+          {notifications.length > 0 && (
+            <div style={{ padding: '0.75rem', borderTop: '1px solid #e5e7eb', textAlign: 'center', background: '#fff', flexShrink: 0 }}>
+              <button onClick={() => { navigate('/notifications'); setOpen(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#111' }}>
+                View all notifications
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
