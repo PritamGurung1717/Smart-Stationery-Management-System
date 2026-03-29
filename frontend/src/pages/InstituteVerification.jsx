@@ -14,7 +14,7 @@ const InstituteVerification = ({ setUser }) => {
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (!storedUser || storedUser.role !== "institute") { navigate("/login"); return; }
+    if (!storedUser || storedUser.role !== "institute") { navigate("/"); return; }
     setLocalUser(storedUser);
     if (storedUser.instituteVerification) {
       setFormData(p => ({ ...p,
@@ -58,113 +58,90 @@ const InstituteVerification = ({ setUser }) => {
       navigate("/institute-dashboard");
     } catch (err) {
       alert("Failed to submit: " + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
-
-  const inputStyle = {
-    width: "100%", border: "1px solid #e5e7eb", borderRadius: 8,
-    padding: "0.65rem 0.85rem", fontSize: "0.875rem", outline: "none",
-    boxSizing: "border-box", fontFamily: "'Inter', sans-serif", background: "#fff",
-  };
-  const labelStyle = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.4rem" };
-  const sectionLabel = { fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: "#9ca3af", textTransform: "uppercase", marginBottom: "1rem", marginTop: "1.75rem" };
 
   if (!user) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: "#9ca3af" }}>
-      Loading…
-    </div>
+    <div className="d-flex align-items-center justify-content-center text-muted" style={{ minHeight: "100vh" }}>Loading…</div>
   );
 
   const verStatus = user.instituteVerification?.status;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fafafa", fontFamily: "'Inter', sans-serif", padding: "3rem 1rem" }}>
+    <div className="min-vh-100 bg-light py-5 px-3" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
         {/* Brand */}
-        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+        <div className="text-center mb-5">
           <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.75rem", fontWeight: 400, color: "#111", letterSpacing: "-0.02em", cursor: "pointer" }}
             onClick={() => navigate("/institute-dashboard")}>
             smartstationery.
           </div>
-          <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "0.4rem" }}>Institute Verification</p>
+          <p className="text-muted small mt-1 mb-0">Institute Verification</p>
         </div>
 
         {/* Status banners */}
         {verStatus === "pending" && (
-          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-            <div style={{ fontWeight: 700, color: "#92400e", marginBottom: "0.25rem" }}>Verification Pending</div>
-            <div style={{ fontSize: "0.875rem", color: "#78350f" }}>Your request is under review. You'll be notified once approved.</div>
+          <div className="alert alert-warning mb-4">
+            <div className="fw-bold mb-1">Verification Pending</div>
+            <div className="small">Your request is under review. You'll be notified once approved.</div>
             {user.instituteVerification?.comments && (
-              <div style={{ fontSize: "0.875rem", color: "#78350f", marginTop: "0.4rem" }}>Comments: {user.instituteVerification.comments}</div>
+              <div className="small mt-1">Comments: {user.instituteVerification.comments}</div>
             )}
           </div>
         )}
         {verStatus === "rejected" && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
-            <div style={{ fontWeight: 700, color: "#991b1b", marginBottom: "0.25rem" }}>Verification Rejected</div>
-            <div style={{ fontSize: "0.875rem", color: "#7f1d1d" }}>Please update your information and resubmit.</div>
+          <div className="alert alert-danger mb-4">
+            <div className="fw-bold mb-1">Verification Rejected</div>
+            <div className="small">Please update your information and resubmit.</div>
             {user.instituteVerification?.comments && (
-              <div style={{ fontSize: "0.875rem", color: "#7f1d1d", marginTop: "0.4rem" }}>Reason: {user.instituteVerification.comments}</div>
+              <div className="small mt-1">Reason: {user.instituteVerification.comments}</div>
             )}
           </div>
         )}
 
         {/* Card */}
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "2rem 2rem 2.5rem" }}>
-          <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.6rem", fontWeight: 400, color: "#111", margin: "0 0 0.4rem" }}>
+        <div className="card border rounded-3 p-4 shadow-sm">
+          <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.6rem", fontWeight: 400 }} className="mb-1">
             Complete Verification
           </h2>
-          <p style={{ color: "#6b7280", fontSize: "0.875rem", marginBottom: 0 }}>
-            Provide the details below to verify your institute and unlock bulk ordering.
-          </p>
+          <p className="text-muted small mb-4">Provide the details below to verify your institute and unlock bulk ordering.</p>
 
           <form onSubmit={handleSubmit}>
             {/* Institute Info */}
-            <p style={sectionLabel}>Institute Information</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <label style={labelStyle}>Institute Name *</label>
-                <input name="instituteName" value={formData.instituteName} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            <p className="text-uppercase fw-bold small text-muted mb-3 mt-4" style={{ letterSpacing: "0.1em" }}>Institute Information</p>
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Institute Name *</label>
+                <input name="instituteName" value={formData.instituteName} onChange={handleChange} required className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>School / College Name *</label>
-                <input name="schoolName" value={formData.schoolName} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <div className="col-6">
+                <label className="form-label fw-semibold small">School / College Name *</label>
+                <input name="schoolName" value={formData.schoolName} onChange={handleChange} required className="form-control" />
               </div>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <label style={labelStyle}>Invoice Number *</label>
-                <input name="invoiceNumber" value={formData.invoiceNumber} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            <div className="row g-3 mb-3">
+              <div className="col-4">
+                <label className="form-label fw-semibold small">Invoice Number *</label>
+                <input name="invoiceNumber" value={formData.invoiceNumber} onChange={handleChange} required className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>PAN Number *</label>
-                <input name="panNumber" value={formData.panNumber} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <div className="col-4">
+                <label className="form-label fw-semibold small">PAN Number *</label>
+                <input name="panNumber" value={formData.panNumber} onChange={handleChange} required className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>GST Number</label>
-                <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <div className="col-4">
+                <label className="form-label fw-semibold small">GST Number</label>
+                <input name="gstNumber" value={formData.gstNumber} onChange={handleChange} className="form-control" />
               </div>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <label style={labelStyle}>Contact Number *</label>
-                <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Contact Number *</label>
+                <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} required className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>Institute Type *</label>
-                <select name="type" value={formData.type} onChange={handleChange} required
-                  style={{ ...inputStyle, cursor: "pointer" }}>
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Institute Type *</label>
+                <select name="type" value={formData.type} onChange={handleChange} required className="form-select">
                   <option value="school">School</option>
                   <option value="college">College / University</option>
                   <option value="wholesaler">Wholesaler</option>
@@ -173,47 +150,38 @@ const InstituteVerification = ({ setUser }) => {
             </div>
 
             {/* Additional Info */}
-            <p style={sectionLabel}>Additional Information</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <label style={labelStyle}>Contact Person *</label>
-                <input name="contactPerson" value={formData.contactPerson} onChange={handleChange} required style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            <p className="text-uppercase fw-bold small text-muted mb-3 mt-4" style={{ letterSpacing: "0.1em" }}>Additional Information</p>
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Contact Person *</label>
+                <input name="contactPerson" value={formData.contactPerson} onChange={handleChange} required className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>Phone Number</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Phone Number</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-control" />
               </div>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <label style={labelStyle}>Email</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-control" />
               </div>
-              <div>
-                <label style={labelStyle}>Grades / Classes <span style={{ color: "#9ca3af", fontWeight: 400 }}>(comma separated)</span></label>
-                <input name="grades" value={formData.grades} onChange={handleChange} placeholder="e.g. 1, 2, 3 or FY, SY, TY" style={inputStyle}
-                  onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Grades / Classes <span className="text-muted fw-normal">(comma separated)</span></label>
+                <input name="grades" value={formData.grades} onChange={handleChange} placeholder="e.g. 1, 2, 3 or FY, SY, TY" className="form-control" />
               </div>
             </div>
-
-            <div style={{ marginBottom: "2rem" }}>
-              <label style={labelStyle}>Address</label>
+            <div className="mb-4">
+              <label className="form-label fw-semibold small">Address</label>
               <textarea name="address" value={formData.address} onChange={handleChange} rows={3}
-                style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }}
-                onFocus={e => e.target.style.borderColor = "#111"} onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+                className="form-control" style={{ resize: "vertical" }} />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="d-flex justify-content-between align-items-center">
               <button type="button" onClick={() => navigate("/institute-dashboard")}
-                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.65rem 1.25rem", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                Cancel
-              </button>
+                className="btn btn-light border fw-semibold">Cancel</button>
               <button type="submit" disabled={loading}
-                style={{ background: loading ? "#6b7280" : "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.65rem 1.75rem", fontWeight: 600, fontSize: "0.875rem", cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif" }}>
+                className={`btn btn-dark fw-semibold px-4 ${loading ? "opacity-75" : ""}`}>
                 {loading ? "Submitting…" : "Submit for Verification"}
               </button>
             </div>

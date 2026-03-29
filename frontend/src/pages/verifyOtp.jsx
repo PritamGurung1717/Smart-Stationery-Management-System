@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 
+/*
+ * VerifyOtp — converted from inline CSS to Bootstrap 5.
+ * Bootstrap classes used:
+ *   min-vh-100, bg-light, d-flex, flex-column, align-items-center,
+ *   justify-content-center, px-3, py-5, text-center, mb-*, mt-*,
+ *   card, shadow-sm, border, p-4, rounded-3, w-100,
+ *   alert, alert-danger, alert-success,
+ *   btn, btn-dark, btn-secondary, btn-link,
+ *   fw-bold, fw-semibold, text-muted, text-dark, small,
+ *   gap-2, d-flex, justify-content-center
+ *
+ * Inline styles kept only for:
+ *   - Instrument Serif font (no Bootstrap class)
+ *   - OTP box exact dimensions & border color logic (dynamic, can't use static class)
+ */
+
 const VerifyOtp = ({ setUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,7 +31,7 @@ const VerifyOtp = ({ setUser }) => {
 
   useEffect(() => {
     if (location.state?.email) setEmail(location.state.email);
-    else navigate("/register");
+    else navigate("/");
 
     const timer = setInterval(() => {
       setCountdown(prev => {
@@ -92,76 +108,103 @@ const VerifyOtp = ({ setUser }) => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fafafa", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif", padding: "2rem 1rem" }}>
+    // min-vh-100 = full screen height
+    // bg-light = light gray background (#f8f9fa)
+    // d-flex flex-column align-items-center justify-content-center = centered layout
+    <div className="min-vh-100 bg-light d-flex flex-column align-items-center justify-content-center px-3 py-5">
+
       {/* Brand */}
-      <div style={{ marginBottom: "2.5rem", textAlign: "center" }}>
+      <div className="text-center mb-4">
+        {/* Instrument Serif has no Bootstrap class — kept as inline */}
         <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2rem", fontWeight: 400, color: "#111", letterSpacing: "-0.02em" }}>
           smartstationery.
         </div>
-        <p style={{ color: "#6b7280", fontSize: "0.9rem", marginTop: "0.4rem" }}>Verify your email address</p>
+        {/* text-muted = gray | small = smaller font size */}
+        <p className="text-muted small mt-1 mb-0">Verify your email address</p>
       </div>
 
-      {/* Card */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "2.5rem 2rem", width: "100%", maxWidth: 400, textAlign: "center" }}>
-        <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📬</div>
-        <p style={{ color: "#374151", fontSize: "0.9rem", marginBottom: "0.25rem" }}>
-          We sent a 6-digit code to
-        </p>
-        <p style={{ fontWeight: 700, color: "#111", fontSize: "0.95rem", marginBottom: "1.75rem" }}>{email}</p>
+      {/* Card — shadow-sm = subtle shadow | p-4 = padding all sides */}
+      <div className="card shadow-sm border w-100 text-center p-4" style={{ maxWidth: 420, borderRadius: 16 }}>
 
+        {/* Icon */}
+        {/* fs-1 = font-size large | mb-2 = margin-bottom */}
+        <div className="fs-1 mb-2">📬</div>
+
+        {/* Subtitle */}
+        <p className="text-muted small mb-1">We sent a 6-digit code to</p>
+        {/* fw-bold = font-weight bold | mb-4 = margin-bottom larger */}
+        <p className="fw-bold text-dark mb-4">{email}</p>
+
+        {/* Error alert — alert alert-danger = red box */}
         {error && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
+          <div className="alert alert-danger py-2 px-3 small text-start" role="alert">
             {error}
           </div>
         )}
+
+        {/* Success alert — alert alert-success = green box */}
         {success && (
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
+          <div className="alert alert-success py-2 px-3 small text-start" role="alert">
             {success}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* OTP boxes */}
-          <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center", marginBottom: "1.75rem" }}>
+          {/* OTP input boxes */}
+          {/* d-flex gap-2 justify-content-center = horizontal centered row with spacing */}
+          <div className="d-flex gap-2 justify-content-center mb-4">
             {otp.map((digit, i) => (
               <input
-                key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1}
+                key={i}
+                id={`otp-${i}`}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
                 value={digit}
                 onChange={e => handleOtpChange(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
                 onPaste={i === 0 ? handlePaste : undefined}
+                // OTP boxes need exact sizing + dynamic border — inline kept here
                 style={{
-                  width: 46, height: 54, textAlign: "center", fontSize: "1.4rem", fontWeight: 700,
-                  border: `1.5px solid ${digit ? "#111" : "#e5e7eb"}`, borderRadius: 10,
-                  outline: "none", background: digit ? "#f9fafb" : "#fff", transition: "border-color 0.15s",
+                  width: 46, height: 54, textAlign: "center",
+                  fontSize: "1.4rem", fontWeight: 700,
+                  border: `1.5px solid ${digit ? "#111" : "#dee2e6"}`,
+                  borderRadius: 10, outline: "none",
+                  background: digit ? "#f9fafb" : "#fff",
                 }}
                 onFocus={e => e.target.style.borderColor = "#111"}
-                onBlur={e => e.target.style.borderColor = digit ? "#111" : "#e5e7eb"}
+                onBlur={e => e.target.style.borderColor = digit ? "#111" : "#dee2e6"}
               />
             ))}
           </div>
 
-          <button type="submit" disabled={loading}
-            style={{ width: "100%", background: loading ? "#6b7280" : "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.75rem", fontWeight: 600, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer", marginBottom: "1rem" }}>
+          {/* Submit button — btn btn-dark = black | w-100 = full width */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`btn w-100 fw-semibold mb-3 ${loading ? "btn-secondary" : "btn-dark"}`}
+          >
             {loading ? "Verifying…" : "Verify Email"}
           </button>
         </form>
 
-        <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1rem" }}>
+        {/* Resend row */}
+        <p className="small text-muted mb-3">
           Didn't receive the code?{" "}
           {canResend ? (
-            <span onClick={handleResend} style={{ color: "#111", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+            // btn-link = looks like a link, no button styling
+            <button onClick={handleResend} className="btn btn-link p-0 fw-semibold text-dark text-decoration-underline small">
               Resend OTP
-            </span>
+            </button>
           ) : (
-            <span style={{ color: "#9ca3af" }}>Resend in {countdown}s</span>
+            <span className="text-secondary">Resend in {countdown}s</span>
           )}
         </p>
 
-        <span onClick={() => navigate("/login")}
-          style={{ fontSize: "0.875rem", color: "#6b7280", cursor: "pointer", textDecoration: "underline" }}>
-          ← Back to Login
-        </span>
+        {/* Back link */}
+        <button onClick={() => navigate("/")} className="btn btn-link p-0 small text-muted text-decoration-underline">
+          ← Back to Home
+        </button>
       </div>
     </div>
   );

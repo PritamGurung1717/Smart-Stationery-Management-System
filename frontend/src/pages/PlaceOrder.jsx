@@ -56,88 +56,97 @@ const PlaceOrder = () => {
     finally { setLoading(false); }
   };
 
-  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.9rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit", marginBottom: "0.65rem" };
-  const card = { border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.5rem", marginBottom: "1.25rem" };
-
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+
         <button onClick={() => navigate("/dashboard")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1.5rem" }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
         </button>
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400, marginBottom: "2rem" }}>Place Order</h1>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "2rem", alignItems: "start" }}>
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
+          className="mb-4">Place Order</h1>
+
+        <div className="row g-4 align-items-start">
           {/* Products */}
-          <div>
-            <h4 style={{ fontWeight: 700, marginBottom: "1rem" }}>Available Products</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
+          <div className="col-lg-8">
+            <h5 className="fw-bold mb-3">Available Products</h5>
+            <div className="row g-3">
               {products.map(p => (
-                <div key={p.id} style={card}>
-                  {p.image && <img src={p.image} alt={p.name} style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 8, marginBottom: "0.75rem" }} />}
-                  <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>{p.name}</div>
-                  <div style={{ color: "#6b7280", fontSize: "0.82rem", marginBottom: "0.25rem" }}>{p.category}</div>
-                  <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>₹{p.price}</div>
-                  <div style={{ color: "#9ca3af", fontSize: "0.78rem", marginBottom: "0.75rem" }}>Stock: {p.stock}</div>
-                  <button onClick={() => addToCart(p)} disabled={p.stock === 0}
-                    style={{ background: p.stock === 0 ? "#f3f4f6" : "#111", color: p.stock === 0 ? "#9ca3af" : "#fff", border: "none", borderRadius: 8, padding: "0.5rem", fontWeight: 600, fontSize: "0.85rem", cursor: p.stock === 0 ? "not-allowed" : "pointer", width: "100%" }}>
-                    {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                  </button>
+                <div key={p.id} className="col-sm-6 col-md-4">
+                  <div className="border rounded-3 bg-white p-3 h-100">
+                    {p.image && <img src={p.image} alt={p.name} className="rounded-2 w-100 mb-2" style={{ height: 140, objectFit: "cover" }} />}
+                    <div className="fw-bold small mb-1">{p.name}</div>
+                    <div className="text-muted" style={{ fontSize: "0.82rem" }}>{p.category}</div>
+                    <div className="fw-bold mb-1">₹{p.price}</div>
+                    <div className="text-muted mb-2" style={{ fontSize: "0.78rem" }}>Stock: {p.stock}</div>
+                    <button onClick={() => addToCart(p)} disabled={p.stock === 0}
+                      className={`btn btn-sm fw-semibold w-100 ${p.stock === 0 ? "btn-light text-muted" : "btn-dark"}`}>
+                      {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Cart + checkout */}
-          <div>
-            <div style={card}>
-              <h4 style={{ fontWeight: 700, marginBottom: "1rem", marginTop: 0 }}>Your Cart ({cart.length})</h4>
+          <div className="col-lg-4">
+            <div className="border rounded-3 bg-white p-4 mb-4">
+              <h5 className="fw-bold mb-3">Your Cart ({cart.length})</h5>
               {cart.length === 0 ? (
-                <p style={{ color: "#9ca3af", fontSize: "0.9rem" }}>Your cart is empty</p>
+                <p className="text-muted small">Your cart is empty</p>
               ) : (
                 <>
                   {cart.map(item => (
-                    <div key={item.productId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.65rem 0", borderBottom: "1px solid #f3f4f6" }}>
+                    <div key={item.productId} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.name}</div>
-                        <div style={{ color: "#9ca3af", fontSize: "0.78rem" }}>₹{item.price} × {item.quantity}</div>
+                        <div className="fw-semibold small">{item.name}</div>
+                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>₹{item.price} × {item.quantity}</div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} style={{ width: 26, height: 26, border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 700 }}>−</button>
-                        <span style={{ fontWeight: 700, minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} style={{ width: 26, height: 26, border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff", cursor: "pointer", fontWeight: 700 }}>+</button>
-                        <button onClick={() => removeFromCart(item.productId)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Remove</button>
+                      <div className="d-flex align-items-center gap-1">
+                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                          className="btn btn-outline-secondary btn-sm" style={{ width: 26, height: 26, padding: 0 }}>−</button>
+                        <span className="fw-bold" style={{ minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          className="btn btn-outline-secondary btn-sm" style={{ width: 26, height: 26, padding: 0 }}>+</button>
+                        <button onClick={() => removeFromCart(item.productId)}
+                          className="btn btn-link p-0 text-danger small fw-semibold text-decoration-none">Remove</button>
                       </div>
                     </div>
                   ))}
-                  <div style={{ textAlign: "right", marginTop: "0.75rem", fontWeight: 800, fontSize: "1rem" }}>Total: ₹{total}</div>
+                  <div className="text-end mt-2 fw-bold">Total: ₹{total}</div>
                 </>
               )}
             </div>
 
-            <div style={card}>
-              <h4 style={{ fontWeight: 700, marginBottom: "1rem", marginTop: 0 }}>Shipping Address</h4>
-              <input type="text" placeholder="Full Address" value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} style={inp} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.65rem" }}>
-                <input type="text" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} style={{ ...inp, marginBottom: 0 }} />
-                <input type="text" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} style={{ ...inp, marginBottom: 0 }} />
+            <div className="border rounded-3 bg-white p-4">
+              <h5 className="fw-bold mb-3">Shipping Address</h5>
+              <div className="mb-2">
+                <input type="text" className="form-control" placeholder="Full Address"
+                  value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.65rem", marginTop: "0.65rem" }}>
-                <input type="text" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} style={{ ...inp, marginBottom: 0 }} />
-                <input type="text" placeholder="Country" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} style={{ ...inp, marginBottom: 0 }} />
+              <div className="row g-2 mb-2">
+                <div className="col-6"><input type="text" className="form-control" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} /></div>
+                <div className="col-6"><input type="text" className="form-control" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} /></div>
+              </div>
+              <div className="row g-2 mb-4">
+                <div className="col-6"><input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} /></div>
+                <div className="col-6"><input type="text" className="form-control" placeholder="Country" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} /></div>
               </div>
 
-              <h4 style={{ fontWeight: 700, margin: "1.25rem 0 0.75rem" }}>Payment Method</h4>
+              <h5 className="fw-bold mb-3">Payment Method</h5>
               {[["COD","Cash on Delivery"],["Online","Online Payment"]].map(([val, lbl]) => (
-                <label key={val} style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem", cursor: "pointer", fontSize: "0.9rem" }}>
-                  <input type="radio" name="payment" value={val} checked={paymentMethod === val} onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
+                <label key={val} className="d-flex align-items-center gap-2 mb-2 small" style={{ cursor: "pointer" }}>
+                  <input type="radio" name="payment" value={val} checked={paymentMethod === val}
+                    onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
                   {lbl}
                 </label>
               ))}
 
               <button onClick={handlePlaceOrder} disabled={loading || cart.length === 0}
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.75rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", width: "100%", marginTop: "1rem", opacity: (loading || cart.length === 0) ? 0.6 : 1 }}>
+                className={`btn btn-dark fw-bold w-100 mt-3 ${(loading || cart.length === 0) ? "opacity-50" : ""}`}>
                 {loading ? "Processing…" : "Place Order"}
               </button>
             </div>

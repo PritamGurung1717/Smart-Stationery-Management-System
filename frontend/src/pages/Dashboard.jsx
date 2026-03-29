@@ -8,63 +8,31 @@ import {
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 
-/* ─── tiny helpers ─────────────────────────────────────────── */
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 const Hero = ({ navigate }) => (
-  <section style={{ position: "relative", height: "92vh", minHeight: 560, overflow: "hidden" }}>
+  <section className="position-relative overflow-hidden" style={{ height: "92vh", minHeight: 560 }}>
     <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80"
-      alt="Library" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
-    {/* gradient overlay — lighter on right so image shows, darker on left for text legibility */}
-    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 60%, rgba(0,0,0,0.1) 100%)" }} />
-    <div style={{ position: "relative", zIndex: 1, maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-      {/* Main headline — Instrument Serif, matching reference */}
-      <h1 style={{
-        fontFamily: "'Instrument Serif', Georgia, serif",
-        fontSize: "clamp(4rem, 10vw, 7.5rem)",
-        fontWeight: 400,
-        fontStyle: "normal",
-        color: "#fff",
-        lineHeight: 0.95,
-        margin: 0,
-        letterSpacing: "-0.02em",
-      }}>
+      alt="Library" className="position-absolute top-0 start-0 w-100 h-100"
+      style={{ objectFit: "cover", objectPosition: "center" }} />
+    <div className="position-absolute top-0 start-0 w-100 h-100"
+      style={{ background: "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 60%, rgba(0,0,0,0.1) 100%)" }} />
+    <div className="position-relative h-100 d-flex flex-column justify-content-center px-3"
+      style={{ zIndex: 1, maxWidth: 1200, margin: "0 auto" }}>
+      <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem, 10vw, 7.5rem)", fontWeight: 400, color: "#fff", lineHeight: 0.95, margin: 0, letterSpacing: "-0.02em" }}>
         smart<br />stationery.
       </h1>
-      <p style={{
-        fontFamily: "'Inter', system-ui, sans-serif",
-        color: "rgba(255,255,255,0.95)",
-        fontSize: "1rem",
-        fontWeight: 600,
-        margin: "1.5rem 0 0.5rem",
-        letterSpacing: "0.01em"
-      }}>
+      <p className="fw-semibold mb-1" style={{ color: "rgba(255,255,255,0.95)", fontSize: "1rem", marginTop: "1.5rem" }}>
         Everything For Every Student.
       </p>
-      <p style={{
-        fontFamily: "'Inter', system-ui, sans-serif",
-        color: "rgba(255,255,255,0.72)",
-        fontSize: "0.9rem",
-        fontWeight: 400,
-        maxWidth: 360,
-        margin: "0 0 2.25rem",
-        lineHeight: 1.65
-      }}>
-        From textbooks to sports gear, stationery to complete school sets —
-        your one stop destination for all educational needs.
+      <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.9rem", maxWidth: 360, margin: "0 0 2.25rem", lineHeight: 1.65 }}>
+        From textbooks to sports gear, stationery to complete school sets — your one stop destination for all educational needs.
       </p>
       <button onClick={() => navigate("/products")}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: "0.6rem",
-          background: "#fff", color: "#111", border: "none",
-          borderRadius: 50, padding: "0.8rem 2rem",
-          fontFamily: "'Inter', system-ui, sans-serif",
-          fontWeight: 700, fontSize: "0.95rem",
-          cursor: "pointer", width: "fit-content",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.18)"
-        }}>
+        className="btn btn-light fw-bold rounded-pill d-inline-flex align-items-center gap-2 shadow"
+        style={{ padding: "0.8rem 2rem", width: "fit-content" }}>
         Shop Now <FaChevronRight style={{ fontSize: "0.75rem" }} />
       </button>
     </div>
@@ -73,29 +41,31 @@ const Hero = ({ navigate }) => (
 
 /* ─── Categories ────────────────────────────────────────────── */
 const CATS = [
-  { id: "book",        icon: <FaBook />,        label: "Books",        count: "5,000+" },
-  { id: "sports",      icon: <FaRunning />,     label: "Sports",       count: "1,200+" },
-  { id: "stationery",  icon: <FaPencilAlt />,   label: "Stationery",   count: "3,500+" },
-  { id: "electronics", icon: <FaGraduationCap />,label: "School Sets", count: "50+ Schools" },
-  { id: "donation",    icon: <FaHeart />,       label: "Donation Box", count: "500+ Items" },
+  { id: "book",        icon: <FaBook />,         label: "Books",        count: "5,000+" },
+  { id: "sports",      icon: <FaRunning />,      label: "Sports",       count: "1,200+" },
+  { id: "stationery",  icon: <FaPencilAlt />,    label: "Stationery",   count: "3,500+" },
+  { id: "electronics", icon: <FaGraduationCap />, label: "School Sets", count: "50+ Schools" },
+  { id: "donation",    icon: <FaHeart />,        label: "Donation Box", count: "500+ Items" },
 ];
 
 const Categories = ({ selected, onSelect, navigate }) => (
-  <section style={{ padding: "4rem 0 3rem", background: "#fff" }}>
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
-      <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>CATEGORIES</p>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em" }}>Shop by Category</h2>
-        <button onClick={() => navigate("/products")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500 }}>View all categories</button>
+  <section className="py-5 bg-white">
+    <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
+      <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATEGORIES</p>
+      <div className="d-flex justify-content-between align-items-end mb-4">
+        <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Shop by Category</h2>
+        <button onClick={() => navigate("/products")} className="btn btn-link text-muted text-decoration-none fw-medium p-0">View all categories</button>
       </div>
+      {/* 5-col grid — Bootstrap has no col-5, use inline grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
         {CATS.map(cat => (
           <button key={cat.id}
             onClick={() => cat.id === "donation" ? navigate("/donations") : onSelect(cat.id)}
-            style={{ background: selected === cat.id ? "#f9fafb" : "#fff", border: "none", cursor: "pointer", padding: "2rem 1.5rem", textAlign: "left", transition: "background 0.2s" }}>
+            className="btn border-0 text-start"
+            style={{ background: selected === cat.id ? "#f9fafb" : "#fff", padding: "2rem 1.5rem", borderRadius: 0, transition: "background 0.2s" }}>
             <div style={{ fontSize: "1.3rem", color: "#111", marginBottom: "1.5rem" }}>{cat.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: "1rem", color: "#111", marginBottom: "0.25rem" }}>{cat.label}</div>
-            <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{cat.count}</div>
+            <div className="fw-bold" style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>{cat.label}</div>
+            <div className="text-muted" style={{ fontSize: "0.8rem" }}>{cat.count}</div>
           </button>
         ))}
       </div>
@@ -107,37 +77,41 @@ const Categories = ({ selected, onSelect, navigate }) => (
 const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist }) => {
   const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
   return (
-    <div style={{ background: "#fff", border: "1px solid #e5e7eb", position: "relative", display: "flex", flexDirection: "column" }}>
-      {discount && <span style={{ position: "absolute", top: 10, right: 10, background: "#111", color: "#fff", fontSize: "0.7rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: 2 }}>-{discount}%</span>}
-      <button onClick={() => onWishlist(product)} style={{ position: "absolute", top: 10, left: 10, background: "none", border: "none", cursor: "pointer", color: inWishlist ? "#ef4444" : "#ccc", fontSize: "1rem" }}><FaHeart /></button>
-      <div style={{ height: 200, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb" }}>
+      {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
+      <button onClick={() => onWishlist(product)} className="btn btn-link position-absolute p-0"
+        style={{ top: 10, left: 10, color: inWishlist ? "#ef4444" : "#ccc", fontSize: "1rem" }}>
+        <FaHeart />
+      </button>
+      <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
+          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
           : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
       </div>
-      <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-        <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9ca3af", textTransform: "uppercase" }}>{product.category}</span>
-        <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111", lineHeight: 1.3, minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.2rem" }}>
+      <div className="p-3 flex-grow-1 d-flex flex-column gap-1">
+        <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>{product.category}</span>
+        <div className="fw-semibold small lh-sm" style={{ minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
+        <div className="d-flex align-items-center gap-1">
           {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />)}
-          <span style={{ fontSize: "0.75rem", color: "#9ca3af", marginLeft: "0.3rem" }}>(4.0)</span>
+          <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>(4.0)</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "auto" }}>
-          <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "#111" }}>₹{product.price}</span>
-          {product.original_price && <span style={{ fontSize: "0.85rem", color: "#9ca3af", textDecoration: "line-through" }}>₹{product.original_price}</span>}
+        <div className="d-flex align-items-center gap-2 mt-auto">
+          <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>
+          {product.original_price && <span className="text-muted text-decoration-line-through small">₹{product.original_price}</span>}
         </div>
         {product.stock_quantity > 0 ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.5rem" }}>
+          <div className="d-flex align-items-center justify-content-between mt-1">
             <input type="number" min={1} max={product.stock_quantity} value={qty || 1}
               onChange={e => onQtyChange(product.id, e.target.value)}
-              style={{ width: 52, border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.4rem", fontSize: "0.85rem", textAlign: "center" }} />
+              className="form-control text-center" style={{ width: 52, fontSize: "0.85rem", padding: "0.3rem 0.4rem" }} />
             <button onClick={() => onCart(product.id, qty || 1)}
-              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              className="btn btn-dark btn-sm d-flex align-items-center gap-1">
               <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add
             </button>
           </div>
         ) : (
-          <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "#ef4444", fontWeight: 600 }}>Out of Stock</div>
+          <div className="text-danger fw-semibold mt-1" style={{ fontSize: "0.8rem" }}>Out of Stock</div>
         )}
       </div>
     </div>
@@ -148,35 +122,36 @@ const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist
 const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate }) => {
   const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
   return (
-    <section style={{ padding: "4rem 0", background: "#fafafa" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
-        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>CURATED</p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
-          <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em" }}>Featured Products</h2>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+    <section className="py-5" style={{ background: "#fafafa" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
+        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CURATED</p>
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+          <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Featured Products</h2>
+          <div className="d-flex gap-2">
             {FILTER_CATS.map(c => (
               <button key={c} onClick={() => onSelect(c === "All" ? "all" : c.toLowerCase())}
-                style={{ background: (selected === "all" && c === "All") || selected === c.toLowerCase() ? "#111" : "transparent", color: (selected === "all" && c === "All") || selected === c.toLowerCase() ? "#fff" : "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.35rem 1rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>
+                className={`btn btn-sm fw-semibold rounded-pill ${(selected === "all" && c === "All") || selected === c.toLowerCase() ? "btn-dark" : "btn-outline-dark"}`}>
                 {c}
               </button>
             ))}
           </div>
         </div>
         {products.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "4rem", color: "#9ca3af" }}>
-            <FaShoppingBag style={{ fontSize: "3rem", marginBottom: "1rem" }} />
+          <div className="text-center py-5 text-muted">
+            <FaShoppingBag style={{ fontSize: "3rem" }} className="mb-3 d-block mx-auto" />
             <p>No products found</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
             {products.slice(0, 8).map(p => (
-              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange} onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} />
+              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
+                onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} />
             ))}
           </div>
         )}
-        <div style={{ textAlign: "center", marginTop: "2rem" }}>
+        <div className="text-center mt-4">
           <button onClick={() => navigate("/products")}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.95rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+            className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
             View all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
           </button>
         </div>
@@ -215,60 +190,51 @@ const BookSetsSection = ({ navigate }) => {
   };
 
   return (
-    <section style={{ padding: "5rem 0", background: "#fff" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "4rem", alignItems: "start" }}>
-          <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>SCHOOL SETS</p>
-            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
-            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+    <section className="py-5 bg-white">
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
+        <div className="row g-5 align-items-start">
+          <div className="col-md-4">
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>SCHOOL SETS</p>
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
+            <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
               Get complete book sets for your child's class with a single click. Select your school and grade to find the perfect set.
             </p>
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              <select value={grade} onChange={e => setGrade(e.target.value)}
-                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+            <div className="d-flex gap-2 flex-wrap">
+              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select" style={{ width: "auto" }}>
                 <option value="">Select Grade</option>
                 {grades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <select value={school} onChange={e => setSchool(e.target.value)}
-                style={{ border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.6rem 1rem", fontSize: "0.9rem", color: "#111", background: "#fff", cursor: "pointer" }}>
+              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select" style={{ width: "auto" }}>
                 <option value="">Select School</option>
                 {schools.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <button onClick={handleSearch}
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 4, padding: "0.6rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
-                Search Sets
-              </button>
+              <button onClick={handleSearch} className="btn btn-dark fw-bold">Search Sets</button>
             </div>
           </div>
-          <div>
+          <div className="col-md-8">
             {sets.length === 0 ? (
-              <p style={{ color: "#9ca3af", padding: "2rem 0" }}>No book sets available yet.</p>
+              <p className="text-muted py-4">No book sets available yet.</p>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
                 {sets.map(s => (
                   <div key={s.id} onClick={() => navigate(`/book-sets/${s.id}`)}
-                    style={{ background: "#fff", padding: "1.25rem", cursor: "pointer", position: "relative" }}>
-                    {/* School name — primary label */}
-                    <p style={{ fontWeight: 700, fontSize: "1rem", color: "#111", margin: "0 0 0.3rem", lineHeight: 1.3 }}>{s.school_name}</p>
-                    {/* Grade — secondary badge */}
-                    <span style={{ display: "inline-block", background: "#111", color: "#fff", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.15rem 0.5rem", borderRadius: 2, marginBottom: "0.6rem" }}>
-                      Grade {s.grade}
-                    </span>
-                    <p style={{ fontSize: "0.8rem", color: "#9ca3af", margin: "0 0 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      📚 {s.items?.length || 0} books included
-                    </p>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontWeight: 800, fontSize: "1rem" }}>₹{s.total_price}</span>
-                      <FaShoppingCart style={{ color: "#9ca3af" }} />
+                    className="bg-white p-3" style={{ cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                    <p className="fw-bold mb-1" style={{ fontSize: "1rem", lineHeight: 1.3 }}>{s.school_name}</p>
+                    <span className="badge text-bg-dark mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>Grade {s.grade}</span>
+                    <p className="text-muted mb-3" style={{ fontSize: "0.8rem" }}>📚 {s.items?.length || 0} books included</p>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="fw-bold">₹{s.total_price}</span>
+                      <FaShoppingCart className="text-muted" />
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+            <div className="text-center mt-4">
               <button onClick={() => navigate("/book-sets")}
-                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
                 View all school sets <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
@@ -282,6 +248,8 @@ const BookSetsSection = ({ navigate }) => {
 /* ─── Item Request Section ──────────────────────────────────── */
 const RequestSection = () => {
   const [itemName, setItemName] = useState("");
+  const [category, setCategory] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -291,40 +259,57 @@ const RequestSection = () => {
     if (!itemName.trim()) return;
     try {
       setSubmitting(true);
-      await axios.post(`${API}/item-requests`, { itemName, details }, { headers: authH() });
+      await axios.post(`${API}/requests`, { item_name: itemName, category, quantity_requested: quantity, description: details }, { headers: authH() });
       setDone(true);
-      setItemName(""); setDetails("");
+      setItemName(""); setCategory(""); setQuantity(1); setDetails("");
       setTimeout(() => setDone(false), 3000);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to submit request");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err) { alert(err.response?.data?.message || "Failed to submit request"); }
+    finally { setSubmitting(false); }
   };
 
   return (
-    <section style={{ padding: "5rem 0", background: "#fafafa" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
-        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.75rem" }}>REQUEST</p>
-        <h2 style={{ fontSize: "clamp(2rem,5vw,3.5rem)", fontWeight: 800, color: "#111", margin: "0 0 0.75rem", letterSpacing: "-0.03em" }}>Can't Find Something?</h2>
-        <p style={{ color: "#6b7280", fontSize: "1.05rem", maxWidth: 560, lineHeight: 1.7, marginBottom: "2.5rem" }}>
+    <section className="py-5" style={{ background: "#fafafa" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
+        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>REQUEST</p>
+        <h2 className="fw-bold mb-2" style={{ fontSize: "clamp(2rem,5vw,3.5rem)", letterSpacing: "-0.03em" }}>Can't Find Something?</h2>
+        <p className="text-muted mb-5 lh-base" style={{ fontSize: "1.05rem", maxWidth: 560 }}>
           Tell us what you're looking for and we'll source it for you. From rare textbooks to specific sports gear.
         </p>
-        <div style={{ maxWidth: 560, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "2rem" }}>
-          <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "1.5rem" }}>Submit a Request</h3>
-          {done && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#166534", fontSize: "0.9rem" }}>✓ Request submitted! We'll respond within 24 hours.</div>}
+        <div className="border rounded-3 bg-white p-4" style={{ maxWidth: 560 }}>
+          <h5 className="fw-bold mb-4">Submit a Request</h5>
+          {done && <div className="alert alert-success small py-2 mb-3">✓ Request submitted! We'll respond within 24 hours.</div>}
           <form onSubmit={handleSubmit}>
-            <label style={{ fontSize: "0.85rem", color: "#374151", fontWeight: 500, display: "block", marginBottom: "0.4rem" }}>Item Name *</label>
-            <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g., RD Sharma Class 12" required
-              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", marginBottom: "1.25rem", outline: "none", boxSizing: "border-box" }} />
-            <label style={{ fontSize: "0.85rem", color: "#374151", fontWeight: 500, display: "block", marginBottom: "0.4rem" }}>Details (Optional)</label>
-            <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, quantity..." rows={3}
-              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", marginBottom: "1.25rem", outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+            <div className="mb-3">
+              <label className="form-label fw-medium small">Item Name *</label>
+              <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g., RD Sharma Class 12"
+                required className="form-control" />
+            </div>
+            <div className="row g-3 mb-3">
+              <div className="col-6">
+                <label className="form-label fw-medium small">Category *</label>
+                <select value={category} onChange={e => setCategory(e.target.value)} required className="form-select">
+                  <option value="">Select category</option>
+                  {["book","stationery","electronics","sports","other"].map(c => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-6">
+                <label className="form-label fw-medium small">Quantity *</label>
+                <input type="number" min={1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)}
+                  required className="form-control" />
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="form-label fw-medium small">Details (Optional)</label>
+              <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, specifications..." rows={3}
+                className="form-control" style={{ resize: "vertical" }} />
+            </div>
             <button type="submit" disabled={submitting}
-              style={{ width: "100%", background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.9rem", fontWeight: 700, fontSize: "1rem", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", opacity: submitting ? 0.7 : 1 }}>
+              className={`btn btn-dark fw-bold w-100 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}>
               <FaPaperPlane /> {submitting ? "Submitting…" : "Submit Request"}
             </button>
-            <p style={{ textAlign: "center", fontSize: "0.8rem", color: "#9ca3af", marginTop: "0.75rem", marginBottom: 0 }}>Usually responds within 24 hours</p>
+            <p className="text-center text-muted mt-2 mb-0 small">Usually responds within 24 hours</p>
           </form>
         </div>
       </div>
@@ -345,72 +330,72 @@ const DonationSectionNew = ({ navigate }) => {
   }, []);
 
   return (
-    <section style={{ padding: "5rem 0", background: "#fff" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "start" }}>
-          <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.5rem" }}>COMMUNITY</p>
-            <h2 style={{ fontSize: "clamp(1.75rem,3.5vw,2.75rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+    <section className="py-5 bg-white">
+      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
+        <div className="row g-5 align-items-start">
+          <div className="col-md-6">
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>COMMUNITY</p>
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.75rem)", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
               Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400 }}>Learning</em>
             </h2>
-            <p style={{ color: "#6b7280", lineHeight: 1.7, marginBottom: "2rem", fontSize: "0.95rem" }}>
+            <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
               Have books or supplies you no longer need? Donate them to help other students. Or browse available donations to find what you need — for free.
             </p>
-            <div style={{ display: "flex", gap: "1.5rem", marginBottom: "2rem" }}>
+            <div className="d-flex gap-4 mb-4">
               {[["500+","Items Donated"],["200+","Students Helped"],["50+","Active Donors"]].map(([n,l]) => (
                 <div key={l}>
-                  <div style={{ fontWeight: 800, fontSize: "1.5rem", color: "#111" }}>{n}</div>
-                  <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{l}</div>
+                  <div className="fw-bold" style={{ fontSize: "1.5rem" }}>{n}</div>
+                  <div className="text-muted small">{l}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
+            <div className="d-flex gap-2 flex-wrap">
               <button onClick={() => navigate("/donations/create")}
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                className="btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2">
                 🎁 Donate Items
               </button>
               <button onClick={() => navigate("/donations")}
-                style={{ background: "none", color: "#111", border: "1.5px solid #111", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                className="btn btn-outline-dark rounded-pill fw-bold d-flex align-items-center gap-2">
                 Browse Donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
           </div>
-          <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "1rem" }}>RECENTLY AVAILABLE</p>
+          <div className="col-md-6">
+            <p className="text-uppercase fw-bold small text-muted mb-3" style={{ letterSpacing: "0.1em" }}>RECENTLY AVAILABLE</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
               {donations.length === 0 ? (
-                <div style={{ background: "#fff", padding: "2rem", textAlign: "center", color: "#9ca3af", fontSize: "0.9rem" }}>No donations yet</div>
+                <div className="bg-white text-center text-muted small p-4">No donations yet</div>
               ) : donations.map(d => {
                 const imgSrc = d.images?.[0]
                   ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000/${d.images[0]}`)
                   : null;
                 return (
                   <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
-                    style={{ background: "#fff", padding: "0.85rem 1.25rem", display: "flex", alignItems: "center", gap: "1rem", cursor: "pointer" }}
+                    className="bg-white d-flex align-items-center gap-3 px-3 py-2"
+                    style={{ cursor: "pointer" }}
                     onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                    {/* Thumbnail */}
-                    <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#f3f4f6", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div className="rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden"
+                      style={{ width: 48, height: 48 }}>
                       {imgSrc
                         ? <img src={imgSrc} alt={d.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
-                        : <span style={{ fontSize: "1.2rem" }}>📦</span>
-                      }
+                        : <span style={{ fontSize: "1.2rem" }}>📦</span>}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>by {d.donor?.name || "Anonymous"} · {d.created_at ? new Date(d.created_at).toLocaleDateString() : ""}</div>
+                    <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                      <div className="fw-semibold small text-truncate">{d.title}</div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>by {d.donor?.name || "Anonymous"} · {d.created_at ? new Date(d.created_at).toLocaleDateString() : ""}</div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: "0.7rem", color: "#9ca3af", textTransform: "capitalize" }}>{d.condition?.replace("_", " ") || "Good"}</div>
-                      <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#111" }}>FREE</div>
+                    <div className="text-end flex-shrink-0">
+                      <div className="text-muted text-capitalize" style={{ fontSize: "0.7rem" }}>{d.condition?.replace("_", " ") || "Good"}</div>
+                      <div className="fw-bold small">FREE</div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div style={{ textAlign: "center", marginTop: "1.25rem" }}>
+            <div className="text-center mt-3">
               <button onClick={() => navigate("/donations")}
-                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", color: "#6b7280", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
                 View all donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
@@ -424,7 +409,6 @@ const DonationSectionNew = ({ navigate }) => {
 /* ─── Main Dashboard ────────────────────────────────────────── */
 const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
-
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -432,13 +416,10 @@ const Dashboard = ({ setUser }) => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  // App.jsx already guarantees only a logged-in personal user reaches here.
-  // No auth checks needed — just fetch data.
   useEffect(() => {
     let mounted = true;
     const token = localStorage.getItem("token");
     if (!token || token === "null") { setLoading(false); return; }
-
     (async () => {
       try {
         const [prodRes, wlRes] = await Promise.all([
@@ -447,22 +428,14 @@ const Dashboard = ({ setUser }) => {
         ]);
         if (!mounted) return;
         const prods = prodRes.data.products || [];
-        setAllProducts(prods);
-        setProducts(prods);
-        const q = {};
-        prods.forEach(p => { q[p.id] = 1; });
-        setQuantities(q);
+        setAllProducts(prods); setProducts(prods);
+        const q = {}; prods.forEach(p => { q[p.id] = 1; }); setQuantities(q);
         if (wlRes.data.success) {
-          setWishlist(wlRes.data.wishlist.map(i => ({
-            ...i.product,
-            wishlistId: i._id,
-            product_id: i.product?.id  // always integer id, not MongoDB _id
-          })));
+          setWishlist(wlRes.data.wishlist.map(i => ({ ...i.product, wishlistId: i._id, product_id: i.product?.id })));
         }
       } catch {}
       finally { if (mounted) setLoading(false); }
     })();
-
     return () => { mounted = false; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -480,32 +453,20 @@ const Dashboard = ({ setUser }) => {
   const toggleWishlist = async (product) => {
     if (wishlistProcessing.current.has(product.id)) return;
     wishlistProcessing.current.add(product.id);
-
     const inWl = isInWishlist(product.id);
     if (inWl) {
       const next = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try {
-        await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() });
-      } catch {
-        const reverted = [...wishlist];
-        setWishlist(reverted);
-        window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: reverted.length } }));
-      }
+      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() }); }
+      catch { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     } else {
       const next = [...wishlist, { ...product, product_id: product.id }];
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try {
-        await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() });
-      } catch {
-        const reverted = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
-        setWishlist(reverted);
-        window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: reverted.length } }));
-      }
+      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() }); }
+      catch { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     }
-
     wishlistProcessing.current.delete(product.id);
   };
 
@@ -517,42 +478,32 @@ const Dashboard = ({ setUser }) => {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
-        <p style={{ color: "#6b7280", fontSize: "0.95rem" }}>Loading…</p>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div className="d-flex align-items-center justify-content-center bg-white" style={{ minHeight: "100vh" }}>
+      <div className="text-center">
+        <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+          <span className="visually-hidden">Loading…</span>
+        </div>
+        <p className="text-muted">Loading…</p>
       </div>
     </div>
   );
 
-
   return (
     <SharedLayout activeLink="Home">
       <Hero navigate={navigate} />
-
       <Categories selected={selectedCategory} onSelect={handleCategorySelect} navigate={navigate} />
-
       <FeaturedProducts
-        products={products}
-        selected={selectedCategory}
-        onSelect={handleCategorySelect}
+        products={products} selected={selectedCategory} onSelect={handleCategorySelect}
         quantities={quantities}
         onQtyChange={(id, v) => {
           const n = parseInt(v) || 1;
           const p = allProducts.find(x => x.id === id);
           setQuantities(q => ({ ...q, [id]: p ? Math.min(n, p.stock_quantity) : n }));
         }}
-        onCart={addToCart}
-        onWishlist={toggleWishlist}
-        isInWishlist={isInWishlist}
-        navigate={navigate}
+        onCart={addToCart} onWishlist={toggleWishlist} isInWishlist={isInWishlist} navigate={navigate}
       />
-
       <BookSetsSection navigate={navigate} />
-
       <RequestSection />
-
       <DonationSectionNew navigate={navigate} />
     </SharedLayout>
   );

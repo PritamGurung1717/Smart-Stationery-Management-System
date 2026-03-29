@@ -17,7 +17,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!token || !storedUser) { navigate("/login"); return; }
+    if (!token || !storedUser) { navigate("/"); return; }
     setUser(storedUser);
     if (storedUser.role === "institute") setOrderType("bulk");
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -43,7 +43,7 @@ const CheckoutPage = () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/products/${item.product}`);
         const p = res.data.product;
-        if (p.stock < item.quantity) return { valid: false, message: `"${p.name}" has only ${p.stock} in stock but you have ${item.quantity} in cart.` };
+        if (p.stock < item.quantity) return { valid: false, message: `"${p.name}" has only ${p.stock} in stock.` };
       } catch { return { valid: false, message: "Failed to check stock. Please try again." }; }
     }
     return { valid: true };
@@ -71,78 +71,82 @@ const CheckoutPage = () => {
     } finally { setLoading(false); }
   };
 
-  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.9rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
-  const label = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.35rem" };
-  const card = { border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.5rem", marginBottom: "1.25rem" };
-
   if (loadingCart) return (
     <SharedLayout>
-      <div style={{ textAlign: "center", padding: "6rem", color: "#9ca3af" }}>Loading checkout…</div>
+      <div className="text-center py-5 text-muted">Loading checkout…</div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+
         <button onClick={() => navigate("/cart")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1.5rem" }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
         </button>
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400, marginBottom: "2rem" }}>Checkout</h1>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "2rem", alignItems: "start" }}>
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
+          className="mb-4">Checkout</h1>
+
+        <div className="row g-4 align-items-start">
           {/* Left */}
-          <div>
+          <div className="col-lg-8">
             {/* Order summary */}
-            <div style={card}>
-              <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Order Summary</h4>
+            <div className="border rounded-3 bg-white p-4 mb-4">
+              <h5 className="fw-bold mb-4">Order Summary</h5>
               {cart.items.length === 0 ? (
-                <div style={{ color: "#6b7280", fontSize: "0.9rem" }}>Your cart is empty. <button onClick={() => navigate("/products")} style={{ background: "none", border: "none", color: "#111", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>Shop now</button></div>
+                <p className="text-muted small">Your cart is empty. <button onClick={() => navigate("/products")} className="btn btn-link p-0 small fw-semibold text-dark">Shop now</button></p>
               ) : (
                 <>
                   {cart.items.map((item, idx) => (
-                    <div key={item._id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid #f3f4f6", fontSize: "0.9rem" }}>
+                    <div key={item._id || idx} className="d-flex justify-content-between align-items-center py-2 border-bottom small">
                       <div>
-                        <div style={{ fontWeight: 600 }}>Product #{item.product}</div>
-                        <div style={{ color: "#9ca3af", fontSize: "0.8rem" }}>Qty: {item.quantity} × ₹{item.price}</div>
+                        <div className="fw-semibold">Product #{item.product}</div>
+                        <div className="text-muted">Qty: {item.quantity} × ₹{item.price}</div>
                       </div>
-                      <div style={{ fontWeight: 700 }}>₹{item.price * item.quantity}</div>
+                      <div className="fw-bold">₹{item.price * item.quantity}</div>
                     </div>
                   ))}
-                  <div style={{ marginTop: "1rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#6b7280", marginBottom: "0.4rem", fontSize: "0.9rem" }}><span>Subtotal</span><span>₹{subtotal}</span></div>
-                    {discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: "#059669", marginBottom: "0.4rem", fontSize: "0.9rem" }}><span>Institute Discount (10%)</span><span>-₹{discount.toFixed(2)}</span></div>}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.05rem", borderTop: "2px solid #e5e7eb", paddingTop: "0.75rem", marginTop: "0.5rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
+                  <div className="mt-3">
+                    <div className="d-flex justify-content-between text-muted mb-1 small"><span>Subtotal</span><span>₹{subtotal}</span></div>
+                    {discount > 0 && <div className="d-flex justify-content-between text-success mb-1 small"><span>Institute Discount (10%)</span><span>-₹{discount.toFixed(2)}</span></div>}
+                    <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
                   </div>
                 </>
               )}
             </div>
 
             {/* Shipping */}
-            <div style={card}>
-              <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Shipping Address</h4>
-              <div style={{ display: "grid", gap: "1rem" }}>
-                <div>
-                  <label style={label}>Full Address *</label>
-                  <input type="text" value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} placeholder="Enter your full address" style={inp} />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div><label style={label}>City *</label><input type="text" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} placeholder="City" style={inp} /></div>
-                  <div><label style={label}>State *</label><input type="text" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} placeholder="State" style={inp} /></div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <div><label style={label}>ZIP Code *</label><input type="text" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} placeholder="ZIP Code" style={inp} /></div>
-                  <div><label style={label}>Country</label><input type="text" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} style={inp} /></div>
-                </div>
+            <div className="border rounded-3 bg-white p-4 mb-4">
+              <h5 className="fw-bold mb-4">Shipping Address</h5>
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Full Address *</label>
+                <input type="text" className="form-control" placeholder="Enter your full address"
+                  value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
+              </div>
+              <div className="row g-3 mb-3">
+                <div className="col-6"><label className="form-label fw-semibold small">City *</label>
+                  <input type="text" className="form-control" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} /></div>
+                <div className="col-6"><label className="form-label fw-semibold small">State *</label>
+                  <input type="text" className="form-control" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} /></div>
+              </div>
+              <div className="row g-3">
+                <div className="col-6"><label className="form-label fw-semibold small">ZIP Code *</label>
+                  <input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} /></div>
+                <div className="col-6"><label className="form-label fw-semibold small">Country</label>
+                  <input type="text" className="form-control" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} /></div>
               </div>
             </div>
 
             {/* Payment */}
-            <div style={card}>
-              <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Payment Method</h4>
+            <div className="border rounded-3 bg-white p-4">
+              <h5 className="fw-bold mb-4">Payment Method</h5>
               {[["cod","Cash on Delivery (COD)"],["esewa","eSewa"],["khalti","Khalti"]].map(([val, lbl]) => (
-                <label key={val} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", border: `1.5px solid ${paymentMethod === val ? "#111" : "#e5e7eb"}`, borderRadius: 10, marginBottom: "0.6rem", cursor: "pointer", fontSize: "0.9rem", fontWeight: paymentMethod === val ? 600 : 400 }}>
-                  <input type="radio" name="paymentMethod" value={val} checked={paymentMethod === val} onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
+                <label key={val} className="d-flex align-items-center gap-3 p-3 rounded-3 mb-2"
+                  style={{ border: `1.5px solid ${paymentMethod === val ? "#111" : "#e5e7eb"}`, cursor: "pointer", fontWeight: paymentMethod === val ? 600 : 400 }}>
+                  <input type="radio" name="paymentMethod" value={val} checked={paymentMethod === val}
+                    onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
                   {lbl}
                 </label>
               ))}
@@ -150,27 +154,26 @@ const CheckoutPage = () => {
           </div>
 
           {/* Right */}
-          <div style={{ ...card, position: "sticky", top: 80, marginBottom: 0 }}>
-            <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Complete Order</h4>
-            {user?.role === "institute" && (
-              <div style={{ background: "#eff6ff", borderRadius: 8, padding: "0.75rem", fontSize: "0.82rem", color: "#1e40af", marginBottom: "1rem" }}>
-                Institute bulk order — 10% discount applied.
+          <div className="col-lg-4">
+            <div className="border rounded-3 bg-white p-4" style={{ position: "sticky", top: 80 }}>
+              <h5 className="fw-bold mb-4">Complete Order</h5>
+              {user?.role === "institute" && (
+                <div className="alert alert-info small py-2 mb-3">Institute bulk order — 10% discount applied.</div>
+              )}
+              <div className="small mb-3">
+                <div className="d-flex justify-content-between text-muted mb-1"><span>Items</span><span>{cart.items.length}</span></div>
+                <div className="d-flex justify-content-between text-muted mb-1"><span>Subtotal</span><span>₹{subtotal}</span></div>
+                {discount > 0 && <div className="d-flex justify-content-between text-success mb-1"><span>Discount</span><span>-₹{discount.toFixed(2)}</span></div>}
+                <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
               </div>
-            )}
-            <div style={{ fontSize: "0.9rem", marginBottom: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", color: "#6b7280" }}><span>Items</span><span>{cart.items.length}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", color: "#6b7280" }}><span>Subtotal</span><span>₹{subtotal}</span></div>
-              {discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", color: "#059669" }}><span>Discount</span><span>-₹{discount.toFixed(2)}</span></div>}
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.05rem", borderTop: "2px solid #e5e7eb", paddingTop: "0.75rem", marginTop: "0.5rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
+              <button onClick={handlePlaceOrder}
+                disabled={loading || cart.items.length === 0 || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
+                className={`btn btn-dark fw-bold w-100 mb-2 ${(loading || cart.items.length === 0) ? "opacity-50" : ""}`}>
+                {loading ? "Placing Order…" : "Place Order"}
+              </button>
+              <button onClick={() => navigate("/cart")} className="btn btn-outline-secondary fw-semibold w-100">Back to Cart</button>
+              <p className="text-muted text-center mt-3 mb-0" style={{ fontSize: "0.78rem" }}>By placing your order, you agree to our Terms of Service.</p>
             </div>
-            <button onClick={handlePlaceOrder} disabled={loading || cart.items.length === 0 || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
-              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.8rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", width: "100%", marginBottom: "0.65rem", opacity: (loading || cart.items.length === 0) ? 0.6 : 1 }}>
-              {loading ? "Placing Order…" : "Place Order"}
-            </button>
-            <button onClick={() => navigate("/cart")} style={{ background: "#fff", color: "#374151", border: "1px solid #e5e7eb", borderRadius: 10, padding: "0.7rem", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", width: "100%" }}>
-              Back to Cart
-            </button>
-            <p style={{ color: "#9ca3af", fontSize: "0.78rem", marginTop: "1rem", textAlign: "center" }}>By placing your order, you agree to our Terms of Service.</p>
           </div>
         </div>
       </div>

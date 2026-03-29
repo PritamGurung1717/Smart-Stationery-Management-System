@@ -7,37 +7,22 @@ import SharedLayout from "../components/SharedLayout.jsx";
 const API = "http://localhost:5000/api";
 
 const STATUS_CONFIG = {
-  pending:          { bg: "#fef3c7", color: "#92400e", dot: "#f59e0b", label: "Pending" },
-  confirmed:        { bg: "#dbeafe", color: "#1e40af", dot: "#3b82f6", label: "Confirmed" },
-  preparing:        { bg: "#ede9fe", color: "#5b21b6", dot: "#8b5cf6", label: "Preparing" },
-  shipped:          { bg: "#d1fae5", color: "#065f46", dot: "#10b981", label: "Shipped" },
-  out_for_delivery: { bg: "#d1fae5", color: "#065f46", dot: "#10b981", label: "Out for Delivery" },
-  delivered:        { bg: "#d1fae5", color: "#065f46", dot: "#059669", label: "Delivered" },
-  cancelled:        { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444", label: "Cancelled" },
+  pending:          { cls: "text-warning-emphasis bg-warning-subtle",  dot: "#f59e0b", label: "Pending" },
+  confirmed:        { cls: "text-primary-emphasis bg-primary-subtle",  dot: "#3b82f6", label: "Confirmed" },
+  preparing:        { cls: "text-purple bg-purple-subtle",             dot: "#8b5cf6", label: "Preparing" },
+  shipped:          { cls: "text-success-emphasis bg-success-subtle",  dot: "#10b981", label: "Shipped" },
+  out_for_delivery: { cls: "text-success-emphasis bg-success-subtle",  dot: "#10b981", label: "Out for Delivery" },
+  delivered:        { cls: "text-success-emphasis bg-success-subtle",  dot: "#059669", label: "Delivered" },
+  cancelled:        { cls: "text-danger-emphasis bg-danger-subtle",    dot: "#ef4444", label: "Cancelled" },
 };
 
 const StatusBadge = ({ status }) => {
-  const cfg = STATUS_CONFIG[status] || { bg: "#f3f4f6", color: "#374151", dot: "#9ca3af", label: status };
+  const cfg = STATUS_CONFIG[status] || { cls: "text-secondary bg-light", dot: "#9ca3af", label: status };
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: cfg.bg, color: cfg.color, padding: "0.25rem 0.7rem", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700 }}>
+    <span className={`badge ${cfg.cls} d-inline-flex align-items-center gap-1`} style={{ fontSize: "0.75rem", fontWeight: 700 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
       {cfg.label}
     </span>
-  );
-};
-
-const btn = (onClick, children, variant = "default") => {
-  const styles = {
-    default: { background: "#fff", color: "#374151", border: "1px solid #e5e7eb" },
-    danger:  { background: "#fff", color: "#dc2626", border: "1px solid #fecaca" },
-    success: { background: "#fff", color: "#059669", border: "1px solid #bbf7d0" },
-    primary: { background: "#111", color: "#fff", border: "none" },
-  };
-  return (
-    <button onClick={onClick}
-      style={{ ...styles[variant], borderRadius: 7, padding: "0.4rem 0.85rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontFamily: "'Inter', sans-serif" }}>
-      {children}
-    </button>
   );
 };
 
@@ -58,17 +43,15 @@ const UserOrders = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      if (!token) { navigate("/login"); return; }
+      if (!token) { navigate("/"); return; }
       const params = new URLSearchParams({ page, limit: LIMIT });
       if (statusFilter !== "all") params.append("status", statusFilter);
-      const res = await axios.get(`${API}/orders/my-orders?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API}/orders/my-orders?${params}`, { headers: { Authorization: `Bearer ${token}` } });
       setOrders(res.data.orders || []);
       setTotal(res.data.total || 0);
       setTotalPages(res.data.totalPages || 1);
     } catch (err) {
-      if (err.response?.status === 401) navigate("/login");
+      if (err.response?.status === 401) navigate("/");
     } finally { setLoading(false); }
   };
 
@@ -102,54 +85,50 @@ const UserOrders = () => {
   );
 
   const stats = [
-    { label: "Total",     value: total,                                                                          color: "#111" },
-    { label: "Pending",   value: orders.filter(o => o.orderStatus === "pending").length,                        color: "#f59e0b" },
+    { label: "Total",     value: total,                                                                              color: "#111" },
+    { label: "Pending",   value: orders.filter(o => o.orderStatus === "pending").length,                            color: "#f59e0b" },
     { label: "Shipped",   value: orders.filter(o => ["shipped","out_for_delivery"].includes(o.orderStatus)).length, color: "#3b82f6" },
-    { label: "Delivered", value: orders.filter(o => o.orderStatus === "delivered").length,                      color: "#059669" },
+    { label: "Delivered", value: orders.filter(o => o.orderStatus === "delivered").length,                          color: "#059669" },
   ];
 
   return (
     <SharedLayout activeLink="Orders">
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "2.5rem 1.5rem", fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }} className="px-3 py-4">
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
+        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
           <div>
             <button onClick={() => navigate("/dashboard")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1rem" }}>
+              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
-            <p style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: "#9ca3af", textTransform: "uppercase", marginBottom: "0.4rem" }}>Account</p>
-            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, margin: 0, lineHeight: 1.1, color: "#111" }}>My Orders</h1>
-            <p style={{ color: "#6b7280", marginTop: "0.5rem", fontSize: "0.9rem" }}>{total} order{total !== 1 ? "s" : ""} total</p>
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>Account</p>
+            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1.1 }} className="mb-1">My Orders</h1>
+            <p className="text-muted small mb-0">{total} order{total !== 1 ? "s" : ""} total</p>
           </div>
-          <button onClick={() => navigate("/products")}
-            style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 1.25rem", fontWeight: 600, fontSize: "0.875rem", cursor: "pointer" }}>
-            Browse Products
-          </button>
+          <button onClick={() => navigate("/products")} className="btn btn-dark fw-semibold">Browse Products</button>
         </div>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem", marginBottom: "2rem" }}>
+        <div className="row g-3 mb-4">
           {stats.map(s => (
-            <div key={s.label} style={{ border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff", padding: "1.25rem", textAlign: "center" }}>
-              <div style={{ fontSize: "1.75rem", fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ color: "#6b7280", fontSize: "0.8rem", marginTop: "0.3rem" }}>{s.label}</div>
+            <div key={s.label} className="col-6 col-md-3">
+              <div className="border rounded-3 bg-white text-center p-3">
+                <div className="fw-bold" style={{ fontSize: "1.75rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div className="text-muted small mt-1">{s.label}</div>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
-            <FaSearch style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: "0.8rem" }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by order ID or product..."
-              style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.6rem 0.75rem 0.6rem 2.2rem", fontSize: "0.875rem", outline: "none", width: "100%", boxSizing: "border-box" }}
-              onFocus={e => e.target.style.borderColor = "#111"}
-              onBlur={e => e.target.style.borderColor = "#e5e7eb"} />
+        <div className="d-flex gap-2 mb-4 flex-wrap">
+          <div className="position-relative flex-grow-1" style={{ minWidth: 200 }}>
+            <FaSearch className="position-absolute text-muted" style={{ left: 11, top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by order ID or product…"
+              className="form-control ps-4" />
           </div>
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.875rem", outline: "none", background: "#fff", cursor: "pointer" }}>
+          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="form-select" style={{ width: "auto" }}>
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
@@ -161,63 +140,73 @@ const UserOrders = () => {
           </select>
         </div>
 
-        {/* Orders */}
+        {/* Orders list */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "5rem", color: "#9ca3af" }}>Loading orders…</div>
+          <div className="text-center py-5">
+            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
+              <span className="visually-hidden">Loading…</span>
+            </div>
+          </div>
         ) : filtered.length === 0 ? (
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: "5rem 2rem", textAlign: "center", background: "#fff" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📦</div>
-            <h4 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No orders found</h4>
-            <p style={{ color: "#6b7280", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-              {statusFilter !== "all" ? `No ${statusFilter} orders.` : "You haven't placed any orders yet."}
-            </p>
-            <button onClick={() => navigate("/products")}
-              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.65rem 1.5rem", fontWeight: 600, cursor: "pointer" }}>
-              Browse Products
-            </button>
+          <div className="border rounded-3 bg-white text-center py-5">
+            <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
+            <h4 className="fw-bold mb-1">No orders found</h4>
+            <p className="text-muted mb-4 small">{statusFilter !== "all" ? `No ${statusFilter} orders.` : "You haven't placed any orders yet."}</p>
+            <button onClick={() => navigate("/products")} className="btn btn-dark fw-semibold">Browse Products</button>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div className="d-flex flex-column gap-3">
             {filtered.map(order => (
-              <div key={order.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.25rem 1.5rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-
+              <div key={order.id} className="border rounded-3 bg-white px-4 py-3">
+                <div className="d-flex align-items-center gap-3 flex-wrap">
                   {/* Icon + ID */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 160 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <FaBox style={{ color: "#6b7280", fontSize: "1.1rem" }} />
+                  <div className="d-flex align-items-center gap-3" style={{ minWidth: 160 }}>
+                    <div className="rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ width: 44, height: 44 }}>
+                      <FaBox className="text-secondary" style={{ fontSize: "1.1rem" }} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111" }}>ORD-{order.id}</div>
-                      <div style={{ color: "#9ca3af", fontSize: "0.78rem" }}>
+                      <div className="fw-bold small">ORD-{order.id}</div>
+                      <div className="text-muted" style={{ fontSize: "0.78rem" }}>
                         {new Date(order.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </div>
-                      <div style={{ color: "#9ca3af", fontSize: "0.75rem" }}>{(order.products || []).length} item{(order.products || []).length !== 1 ? "s" : ""}</div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>{(order.products || []).length} item{(order.products || []).length !== 1 ? "s" : ""}</div>
                     </div>
                   </div>
 
                   {/* Products */}
-                  <div style={{ flex: 1, fontSize: "0.85rem", color: "#374151", minWidth: 140 }}>
+                  <div className="flex-grow-1 small text-secondary" style={{ minWidth: 140 }}>
                     {(order.products || []).slice(0, 2).map((p, i) => (
-                      <div key={i} style={{ marginBottom: "0.15rem" }}>{p.productName} <span style={{ color: "#9ca3af" }}>×{p.quantity}</span></div>
+                      <div key={i} className="mb-1">{p.productName} <span className="text-muted">×{p.quantity}</span></div>
                     ))}
-                    {(order.products || []).length > 2 && <div style={{ color: "#9ca3af", fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>}
+                    {(order.products || []).length > 2 && <div className="text-muted" style={{ fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>}
                   </div>
 
                   {/* Amount + Status */}
                   <div style={{ minWidth: 110 }}>
-                    <div style={{ fontWeight: 700, fontSize: "1rem", color: "#111", marginBottom: "0.35rem" }}>Rs.{order.totalAmount}</div>
-                    {order.discount > 0 && <div style={{ fontSize: "0.72rem", color: "#059669", marginBottom: "0.35rem" }}>−Rs.{order.discount} off</div>}
+                    <div className="fw-bold mb-1">Rs.{order.totalAmount}</div>
+                    {order.discount > 0 && <div className="text-success mb-1" style={{ fontSize: "0.72rem" }}>−Rs.{order.discount} off</div>}
                     <StatusBadge status={order.orderStatus} />
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", justifyContent: "flex-end" }}>
-                    {btn(() => navigate(`/orders/${order.id}`), <><FaEye /> Details</>)}
-                    {btn(() => handleInvoice(order.id), <><FaFileInvoice /> Invoice</>)}
-                    {order.orderStatus === "pending" && btn(() => handleCancel(order.id), <><FaTimes /> Cancel</>, "danger")}
-                    {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") &&
-                      btn(() => handleConfirmDelivery(order.id), <><FaCheckCircle /> Received</>, "success")}
+                  <div className="d-flex flex-wrap gap-2 justify-content-end">
+                    <button onClick={() => navigate(`/orders/${order.id}`)} className="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1">
+                      <FaEye /> Details
+                    </button>
+                    <button onClick={() => handleInvoice(order.id)} className="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1">
+                      <FaFileInvoice /> Invoice
+                    </button>
+                    {order.orderStatus === "pending" && (
+                      <button onClick={() => handleCancel(order.id)} className="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center gap-1">
+                        <FaTimes /> Cancel
+                      </button>
+                    )}
+                    {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") && (
+                      <button onClick={() => handleConfirmDelivery(order.id)} className="btn btn-outline-success btn-sm fw-semibold d-flex align-items-center gap-1">
+                        <FaCheckCircle /> Received
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -227,19 +216,19 @@ const UserOrders = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "0.5rem", marginTop: "2rem" }}>
+          <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem 0.85rem", background: "#fff", cursor: page === 1 ? "not-allowed" : "pointer", color: page === 1 ? "#d1d5db" : "#111" }}>
+              className="btn btn-outline-secondary btn-sm">
               <FaChevronLeft style={{ fontSize: "0.75rem" }} />
             </button>
             {[...Array(totalPages)].map((_, i) => (
               <button key={i} onClick={() => setPage(i + 1)}
-                style={{ border: `1px solid ${page === i + 1 ? "#111" : "#e5e7eb"}`, borderRadius: 8, padding: "0.5rem 0.85rem", background: page === i + 1 ? "#111" : "#fff", color: page === i + 1 ? "#fff" : "#374151", fontWeight: page === i + 1 ? 700 : 400, cursor: "pointer", fontSize: "0.875rem" }}>
+                className={`btn btn-sm ${page === i + 1 ? "btn-dark" : "btn-outline-secondary"}`}>
                 {i + 1}
               </button>
             ))}
             <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem 0.85rem", background: "#fff", cursor: page === totalPages ? "not-allowed" : "pointer", color: page === totalPages ? "#d1d5db" : "#111" }}>
+              className="btn btn-outline-secondary btn-sm">
               <FaChevronRight style={{ fontSize: "0.75rem" }} />
             </button>
           </div>

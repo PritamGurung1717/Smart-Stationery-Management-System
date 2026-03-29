@@ -3,9 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Container } from "react-bootstrap";
 
 // Import pages
-import Register from "./pages/Register.jsx";
 import VerifyOtp from "./pages/VerifyOtp.jsx";
-import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import InstituteDashboard from "./pages/InstituteDashboard.jsx";
@@ -89,10 +87,10 @@ function App() {
         {/* Public landing page */}
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage setUser={setUser} />} />
 
-        {/* Public Routes — redirect to landing page since auth is embedded there */}
+        {/* Public Routes — auth handled by LandingPage modal */}
         <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
-        <Route path="/verifyOtp" element={<VerifyOtp setUser={setUser} />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
+        <Route path="/verifyOtp" element={<VerifyOtp setUser={setUser} />} />
 
         {/* Protected Routes - Personal User */}
         <Route
@@ -107,7 +105,7 @@ function App() {
                 <Dashboard setUser={setUser} />
               )
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -118,7 +116,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <CartPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -129,7 +127,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <CheckoutPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -140,7 +138,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <PlaceOrder />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -148,42 +146,42 @@ function App() {
         <Route
           path="/products"
           element={
-            user ? <ProductsPage /> : <Navigate to="/login" replace />
+            user ? <ProductsPage /> : <Navigate to="/" replace />
           }
         />
 
         <Route
           path="/my-orders"
           element={
-            user ? <UserOrders /> : <Navigate to="/login" replace />
+            user ? <UserOrders /> : <Navigate to="/" replace />
           }
         />
 
         <Route
           path="/orders/:id"
           element={
-            user ? <OrderDetails /> : <Navigate to="/login" replace />
+            user ? <OrderDetails /> : <Navigate to="/" replace />
           }
         />
 
         <Route
           path="/profile"
           element={
-            user ? <UserProfile setUser={setUser} /> : <Navigate to="/login" replace />
+            user ? <UserProfile setUser={setUser} /> : <Navigate to="/" replace />
           }
         />
 
         <Route
           path="/book-sets"
           element={
-            user ? <BookSetBrowser /> : <Navigate to="/login" replace />
+            user ? <BookSetBrowser /> : <Navigate to="/" replace />
           }
         />
 
         <Route
           path="/book-sets/:id"
           element={
-            user ? <BookSetDetails /> : <Navigate to="/login" replace />
+            user ? <BookSetDetails /> : <Navigate to="/" replace />
           }
         />
 
@@ -194,7 +192,7 @@ function App() {
             user && user.role === "institute" ? (
               <InstituteDashboard setUser={setUser} />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -205,7 +203,7 @@ function App() {
             user && user.role === "institute" ? (
               <InstituteVerification setUser={setUser} />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -216,7 +214,7 @@ function App() {
             user && user.role === "institute" ? (
               <InstituteBookSetRequest />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -228,7 +226,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <DonationList />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -239,7 +237,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <CreateDonation />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -250,7 +248,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <DonationDetails />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -261,7 +259,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <MyDonations />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -272,7 +270,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <MyRequests />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -283,7 +281,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <DonationChat />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -294,7 +292,7 @@ function App() {
             user && (user.role === "personal" || user.role === "institute") ? (
               <MyItemRequests />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -302,7 +300,7 @@ function App() {
         <Route
           path="/notifications"
           element={
-            user ? <NotificationsPage /> : <Navigate to="/login" replace />
+            user ? <NotificationsPage /> : <Navigate to="/" replace />
           }
         />
 
@@ -313,7 +311,7 @@ function App() {
             user && user.role === "admin" ? (
               <AdminDashboard setUser={setUser} />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -324,7 +322,7 @@ function App() {
             user && user.role === "admin" ? (
               <AddProduct />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
@@ -335,7 +333,7 @@ function App() {
             user && user.role === "admin" ? (
               <EditProduct />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />

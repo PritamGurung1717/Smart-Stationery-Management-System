@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaSearch, FaShoppingCart, FaUser, FaHeart, FaHistory,
-  FaSignOutAlt, FaEdit, FaKey, FaTimes, FaGift, FaShoppingBag
+  FaSignOutAlt, FaEdit, FaKey, FaTimes, FaGift, FaShoppingBag, FaBoxOpen
 } from "react-icons/fa";
 import NotificationBell from "./NotificationBell.jsx";
 
@@ -218,6 +218,7 @@ export const Navbar = ({ activeLink = "" }) => {
                     { icon: FaEdit,    label: "Edit Profile",    path: "/profile" },
                     { icon: FaHistory, label: "My Orders",       path: "/my-orders" },
                     { icon: FaGift,    label: "My Donations",    path: "/my-donations" },
+                    { icon: FaBoxOpen, label: "My Requests",     path: "/my-item-requests" },
                     { icon: FaKey,     label: "Change Password", path: "/change-password" },
                   ].map(item => (
                     <button key={item.label} onClick={() => { navigate(item.path); setUserOpen(false); }}

@@ -7,14 +7,18 @@ import SharedLayout from "../components/SharedLayout.jsx";
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
-const STATUS_COLOR = { available: { bg: "#dcfce7", color: "#166534" }, reserved: { bg: "#fef3c7", color: "#92400e" }, completed: { bg: "#f3f4f6", color: "#374151" } };
+const STATUS_BADGE = {
+  available: "text-success-emphasis bg-success-subtle",
+  reserved:  "text-warning-emphasis bg-warning-subtle",
+  completed: "text-secondary bg-light",
+};
 
 const MyDonations = () => {
   const navigate = useNavigate();
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [modal, setModal] = useState(null); // { donation, requests }
+  const [modal, setModal] = useState(null);
   const [loadingReqs, setLoadingReqs] = useState(false);
 
   useEffect(() => { fetchDonations(); }, []);
@@ -82,90 +86,86 @@ const MyDonations = () => {
 
   return (
     <SharedLayout activeLink="Donate">
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "3rem 1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-5">
+
+        <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
           <div>
             <button onClick={() => navigate("/donations")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1rem" }}>
+              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>MY ACCOUNT</p>
-            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MY ACCOUNT</p>
+            <h1 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>
               <FaGift /> My Donations
             </h1>
           </div>
-          <button onClick={() => navigate("/donations/create")}
-            style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}>
+          <button onClick={() => navigate("/donations/create")} className="btn btn-dark rounded-pill fw-bold">
             + Create Donation
           </button>
         </div>
 
-        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
+        {error && <div className="alert alert-danger small py-2">{error}</div>}
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div className="text-center py-5">
+            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
+              <span className="visually-hidden">Loading…</span>
+            </div>
           </div>
         ) : donations.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "5rem 0", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📦</div>
-            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No Donations Yet</h3>
-            <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>Start sharing items you no longer need</p>
-            <button onClick={() => navigate("/create-donation")} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Create First Donation</button>
+          <div className="text-center py-5 border rounded-3">
+            <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
+            <h3 className="fw-bold mb-1">No Donations Yet</h3>
+            <p className="text-muted mb-4">Start sharing items you no longer need</p>
+            <button onClick={() => navigate("/donations/create")} className="btn btn-dark fw-bold">Create First Donation</button>
           </div>
         ) : (
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+          <div className="border rounded-3 overflow-hidden">
+            <table className="table table-hover mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
                   {["Item","Category","Condition","Status","Requests","Date","Actions"].map(h => (
-                    <th key={h} style={{ padding: "0.85rem 1rem", fontWeight: 700, fontSize: "0.82rem", color: "#374151", textAlign: "left" }}>{h}</th>
+                    <th key={h} className="fw-bold small text-dark py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {donations.map(d => {
-                  const sc = STATUS_COLOR[d.status] || STATUS_COLOR.completed;
-                  return (
-                    <tr key={d.id} style={{ borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" }}>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                          {d.images?.[0]
-                            ? <img src={`http://localhost:5000${d.images[0]}`} alt={d.title} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                            : <div style={{ width: 44, height: 44, background: "#f3f4f6", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>📦</div>}
-                          <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{d.title}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: 4, textTransform: "capitalize" }}>{d.category}</span>
-                      </td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <span style={{ fontSize: "0.8rem", color: "#6b7280", textTransform: "capitalize" }}>{d.condition?.replace("_", " ")}</span>
-                      </td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <span style={{ background: sc.bg, color: sc.color, fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 4, textTransform: "capitalize" }}>{d.status}</span>
-                      </td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <button onClick={() => openRequests(d)}
-                          style={{ background: d.pendingCount > 0 ? "#ef4444" : "#f3f4f6", color: d.pendingCount > 0 ? "#fff" : "#374151", border: "none", borderRadius: 6, padding: "0.35rem 0.75rem", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                          <FaBell style={{ fontSize: "0.75rem" }} /> {d.pendingCount > 0 ? d.pendingCount : "View"}
-                        </button>
-                      </td>
-                      <td style={{ padding: "0.85rem 1rem", color: "#9ca3af", fontSize: "0.82rem" }}>{new Date(d.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                          <button onClick={() => navigate(`/donations/${d.id}`)} title="View" style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.5rem", cursor: "pointer", color: "#374151" }}><FaEye /></button>
-                          {d.status === "reserved" && <>
-                            <button onClick={() => markCompleted(d.id)} title="Mark Completed" style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.5rem", cursor: "pointer", color: "#16a34a" }}><FaCheck /></button>
-                            <button onClick={() => navigate(`/donations/${d.id}/chat`)} title="Chat" style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.5rem", cursor: "pointer", color: "#3b82f6" }}><FaComments /></button>
-                          </>}
-                          {d.status === "available" && <button onClick={() => deleteDonation(d.id)} title="Delete" style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 4, padding: "0.3rem 0.5rem", cursor: "pointer", color: "#ef4444" }}><FaTrash /></button>}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {donations.map(d => (
+                  <tr key={d.id}>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        {d.images?.[0]
+                          ? <img src={`http://localhost:5000${d.images[0]}`} alt={d.title} className="rounded-2 flex-shrink-0" style={{ width: 44, height: 44, objectFit: "cover" }} />
+                          : <div className="rounded-2 bg-light d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 44, height: 44 }}>📦</div>}
+                        <span className="fw-semibold small">{d.title}</span>
+                      </div>
+                    </td>
+                    <td><span className="badge bg-light text-dark border text-capitalize" style={{ fontSize: "0.72rem" }}>{d.category}</span></td>
+                    <td><span className="text-muted small text-capitalize">{d.condition?.replace("_", " ")}</span></td>
+                    <td>
+                      <span className={`badge ${STATUS_BADGE[d.status] || "text-secondary bg-light"} text-capitalize`} style={{ fontSize: "0.72rem" }}>{d.status}</span>
+                    </td>
+                    <td>
+                      <button onClick={() => openRequests(d)}
+                        className={`btn btn-sm fw-semibold d-flex align-items-center gap-1 ${d.pendingCount > 0 ? "btn-danger" : "btn-outline-secondary"}`}>
+                        <FaBell style={{ fontSize: "0.75rem" }} /> {d.pendingCount > 0 ? d.pendingCount : "View"}
+                      </button>
+                    </td>
+                    <td className="text-muted small">{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <div className="d-flex gap-1 flex-wrap">
+                        <button onClick={() => navigate(`/donations/${d.id}`)} className="btn btn-outline-secondary btn-sm" title="View"><FaEye /></button>
+                        {d.status === "reserved" && <>
+                          <button onClick={() => markCompleted(d.id)} className="btn btn-outline-success btn-sm" title="Mark Completed"><FaCheck /></button>
+                          <button onClick={() => navigate(`/donations/${d.id}/chat`)} className="btn btn-outline-primary btn-sm" title="Chat"><FaComments /></button>
+                        </>}
+                        {d.status === "available" && (
+                          <button onClick={() => deleteDonation(d.id)} className="btn btn-outline-danger btn-sm" title="Delete"><FaTrash /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -174,47 +174,51 @@ const MyDonations = () => {
 
       {/* Requests modal */}
       {modal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 560, maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontWeight: 700, fontSize: "1rem" }}>Requests — {modal.donation.title}</h3>
-              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem" }}><FaTimes /></button>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem 1.5rem" }}>
-              {loadingReqs ? (
-                <div style={{ textAlign: "center", padding: "2rem" }}>
-                  <div style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
-                </div>
-              ) : modal.requests.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📭</div>
-                  <p style={{ margin: 0 }}>No requests yet</p>
-                </div>
-              ) : modal.requests.map(req => (
-                <div key={req.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "1rem", marginBottom: "0.75rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <FaUser style={{ color: "#9ca3af", fontSize: "0.85rem" }} />
-                      <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{req.requester_name || `User #${req.requester_id}`}</span>
-                      <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.5rem", borderRadius: 4, background: req.status === "pending" ? "#fef3c7" : req.status === "accepted" ? "#dcfce7" : "#fee2e2", color: req.status === "pending" ? "#92400e" : req.status === "accepted" ? "#166534" : "#991b1b" }}>{req.status}</span>
-                    </div>
-                    <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}><FaClock style={{ marginRight: "0.25rem" }} />{new Date(req.created_at).toLocaleDateString()}</span>
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)", zIndex: 3000 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content rounded-3 border-0 shadow-lg">
+              <div className="modal-header border-bottom">
+                <h5 className="modal-title fw-bold">Requests — {modal.donation.title}</h5>
+                <button onClick={() => setModal(null)} className="btn-close" />
+              </div>
+              <div className="modal-body">
+                {loadingReqs ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-dark spinner-border-sm" role="status" />
                   </div>
-                  <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#4b5563", fontStyle: "italic", background: "#f9fafb", padding: "0.6rem 0.75rem", borderRadius: 6 }}>"{req.message}"</p>
-                  {req.status === "pending" && modal.donation.status === "available" && (
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button onClick={() => acceptRequest(req.id)} style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 4, padding: "0.4rem 0.85rem", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}><FaCheck /> Accept</button>
-                      <button onClick={() => rejectRequest(req.id)} style={{ background: "#fff", color: "#ef4444", border: "1px solid #ef4444", borderRadius: 4, padding: "0.4rem 0.85rem", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>Reject</button>
+                ) : modal.requests.length === 0 ? (
+                  <div className="text-center py-4 text-muted">
+                    <div style={{ fontSize: "2.5rem" }} className="mb-2">📭</div>
+                    <p className="mb-0">No requests yet</p>
+                  </div>
+                ) : modal.requests.map(req => (
+                  <div key={req.id} className="border rounded-3 p-3 mb-3">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <FaUser className="text-muted" style={{ fontSize: "0.85rem" }} />
+                        <span className="fw-semibold small">{req.requester_name || `User #${req.requester_id}`}</span>
+                        <span className={`badge ${req.status === "pending" ? "text-warning-emphasis bg-warning-subtle" : req.status === "accepted" ? "text-success-emphasis bg-success-subtle" : "text-danger-emphasis bg-danger-subtle"}`} style={{ fontSize: "0.7rem" }}>{req.status}</span>
+                      </div>
+                      <span className="text-muted small d-flex align-items-center gap-1">
+                        <FaClock style={{ fontSize: "0.7rem" }} />{new Date(req.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                  )}
-                  {req.status === "accepted" && (
-                    <button onClick={() => { setModal(null); navigate(`/donations/${modal.donation.id}/chat`); }}
-                      style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 4, padding: "0.4rem 0.85rem", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      <FaComments /> Open Chat
-                    </button>
-                  )}
-                </div>
-              ))}
+                    <p className="small text-secondary fst-italic bg-light rounded-2 p-2 mb-3">"{req.message}"</p>
+                    {req.status === "pending" && modal.donation.status === "available" && (
+                      <div className="d-flex gap-2">
+                        <button onClick={() => acceptRequest(req.id)} className="btn btn-success btn-sm fw-semibold d-flex align-items-center gap-1"><FaCheck /> Accept</button>
+                        <button onClick={() => rejectRequest(req.id)} className="btn btn-outline-danger btn-sm fw-semibold">Reject</button>
+                      </div>
+                    )}
+                    {req.status === "accepted" && (
+                      <button onClick={() => { setModal(null); navigate(`/donations/${modal.donation.id}/chat`); }}
+                        className="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
+                        <FaComments /> Open Chat
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -17,8 +17,6 @@ const CONDITIONS = [
   { value: "good", label: "Good" }, { value: "used", label: "Used" },
 ];
 
-const inp = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.95rem", width: "100%", outline: "none", boxSizing: "border-box" };
-
 const CreateDonation = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -55,7 +53,6 @@ const CreateDonation = () => {
     if (!form.condition) { setError("Please select a condition"); return; }
     if (!form.pickup_location.trim()) { setError("Pickup location is required"); return; }
     if (images.length === 0) { setError("At least 1 image is required"); return; }
-
     try {
       setLoading(true);
       const fd = new FormData();
@@ -73,46 +70,49 @@ const CreateDonation = () => {
 
   return (
     <SharedLayout activeLink="Donate">
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "3rem 1.5rem" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto" }} className="px-3 py-5">
+
         <button onClick={() => navigate("/donations")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1.5rem" }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
         </button>
-        <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>COMMUNITY</p>
-        <h1 style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", fontWeight: 800, color: "#111", margin: "0 0 2rem", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+
+        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>COMMUNITY</p>
+        <h1 className="fw-bold mb-4 d-flex align-items-center gap-3" style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", letterSpacing: "-0.02em" }}>
           <FaGift style={{ fontSize: "1.5rem" }} /> Create Donation
         </h1>
 
-        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
-        {success && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#166534", fontSize: "0.9rem" }}>✓ {success}</div>}
+        {error   && <div className="alert alert-danger small py-2">{error}</div>}
+        {success && <div className="alert alert-success small py-2">✓ {success}</div>}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <form onSubmit={handleSubmit} className="d-flex flex-column gap-4">
           {/* Title */}
           <div>
-            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Title <span style={{ color: "#ef4444" }}>*</span></label>
-            <input name="title" value={form.title} onChange={handleChange} placeholder="e.g., Mathematics Textbook Grade 10" maxLength={100} style={inp} />
+            <label className="form-label fw-semibold small">Title <span className="text-danger">*</span></label>
+            <input name="title" value={form.title} onChange={handleChange} maxLength={100}
+              placeholder="e.g., Mathematics Textbook Grade 10" className="form-control" />
           </div>
 
           {/* Description */}
           <div>
-            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Description <span style={{ color: "#ef4444" }}>*</span></label>
+            <label className="form-label fw-semibold small">Description <span className="text-danger">*</span></label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={4} maxLength={1000}
               placeholder="Describe the item, its condition, and any relevant details…"
-              style={{ ...inp, resize: "vertical" }} />
+              className="form-control" style={{ resize: "vertical" }} />
           </div>
 
           {/* Category + Condition */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <div>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Category <span style={{ color: "#ef4444" }}>*</span></label>
-              <select name="category" value={form.category} onChange={handleChange} style={inp}>
+          <div className="row g-3">
+            <div className="col-6">
+              <label className="form-label fw-semibold small">Category <span className="text-danger">*</span></label>
+              <select name="category" value={form.category} onChange={handleChange} className="form-select">
                 <option value="">Select Category</option>
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
-            <div>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Condition <span style={{ color: "#ef4444" }}>*</span></label>
-              <select name="condition" value={form.condition} onChange={handleChange} style={inp}>
+            <div className="col-6">
+              <label className="form-label fw-semibold small">Condition <span className="text-danger">*</span></label>
+              <select name="condition" value={form.condition} onChange={handleChange} className="form-select">
                 <option value="">Select Condition</option>
                 {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
@@ -121,26 +121,29 @@ const CreateDonation = () => {
 
           {/* Pickup location */}
           <div>
-            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Pickup Location <span style={{ color: "#ef4444" }}>*</span></label>
-            <input name="pickup_location" value={form.pickup_location} onChange={handleChange} placeholder="e.g., Main Campus, Building A, Room 101" maxLength={200} style={inp} />
+            <label className="form-label fw-semibold small">Pickup Location <span className="text-danger">*</span></label>
+            <input name="pickup_location" value={form.pickup_location} onChange={handleChange} maxLength={200}
+              placeholder="e.g., Main Campus, Building A, Room 101" className="form-control" />
           </div>
 
           {/* Images */}
           <div>
-            <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.4rem" }}>Images <span style={{ color: "#ef4444" }}>*</span></label>
+            <label className="form-label fw-semibold small">Images <span className="text-danger">*</span></label>
             <div onClick={() => document.getElementById("imgInput").click()}
-              style={{ border: "2px dashed #e5e7eb", borderRadius: 8, padding: "2rem", textAlign: "center", cursor: "pointer", background: "#fafafa" }}>
-              <FaImage style={{ fontSize: "2.5rem", color: "#9ca3af", marginBottom: "0.75rem" }} />
-              <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.9rem" }}>Click to upload images (max 5, 5MB each)</p>
+              className="border rounded-3 text-center p-4 bg-light"
+              style={{ borderStyle: "dashed", cursor: "pointer", borderColor: "#e5e7eb" }}>
+              <FaImage style={{ fontSize: "2.5rem", color: "#9ca3af" }} className="mb-2 d-block mx-auto" />
+              <p className="text-muted small mb-0">Click to upload images (max 5, 5MB each)</p>
               <input id="imgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
             </div>
             {previews.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))", gap: "0.75rem", marginTop: "0.75rem" }}>
+              <div className="row g-2 mt-2">
                 {previews.map((pv, i) => (
-                  <div key={i} style={{ position: "relative" }}>
-                    <img src={pv} alt="" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 6 }} />
+                  <div key={i} className="col-3 position-relative">
+                    <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 100, objectFit: "cover" }} />
                     <button type="button" onClick={() => removeImage(i)}
-                      style={{ position: "absolute", top: 4, right: 4, background: "#ef4444", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem" }}>
+                      className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
+                      style={{ top: 8, right: 8, width: 22, height: 22, fontSize: "0.65rem" }}>
                       <FaTimes />
                     </button>
                   </div>
@@ -150,13 +153,11 @@ const CreateDonation = () => {
           </div>
 
           {/* Buttons */}
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+          <div className="d-flex gap-3 justify-content-end">
             <button type="button" onClick={() => navigate("/donations")} disabled={loading}
-              style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.85rem 1.75rem", fontWeight: 600, cursor: "pointer" }}>
-              Cancel
-            </button>
+              className="btn btn-light border fw-semibold px-4">Cancel</button>
             <button type="submit" disabled={loading}
-              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem 1.75rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              className={`btn btn-dark fw-bold px-4 ${loading ? "opacity-75" : ""}`}>
               {loading ? "Creating…" : "Create Donation"}
             </button>
           </div>

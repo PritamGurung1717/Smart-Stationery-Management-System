@@ -38,9 +38,8 @@ const DonationDetails = () => {
       setLoading(true);
       const r = await axios.get(`${API}/donations/${id}`, { headers: authH() });
       if (r.data.success) setDonation(r.data.donation);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load donation details");
-    } finally { setLoading(false); }
+    } catch (err) { setError(err.response?.data?.message || "Failed to load donation details"); }
+    finally { setLoading(false); }
   };
 
   const handleRequest = async () => {
@@ -64,18 +63,19 @@ const DonationDetails = () => {
 
   if (loading) return (
     <SharedLayout>
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
+        <div className="spinner-border text-dark" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+          <span className="visually-hidden">Loading…</span>
+        </div>
       </div>
     </SharedLayout>
   );
 
   if (error || !donation) return (
     <SharedLayout>
-      <div style={{ maxWidth: 600, margin: "4rem auto", padding: "0 1.5rem", textAlign: "center" }}>
-        <p style={{ color: "#ef4444", marginBottom: "1.5rem" }}>{error || "Donation not found"}</p>
-        <button onClick={() => navigate("/donations")} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Back to Donations</button>
+      <div style={{ maxWidth: 600, margin: "4rem auto" }} className="px-3 text-center">
+        <p className="text-danger mb-4">{error || "Donation not found"}</p>
+        <button onClick={() => navigate("/donations")} className="btn btn-dark fw-bold">Back to Donations</button>
       </div>
     </SharedLayout>
   );
@@ -87,103 +87,100 @@ const DonationDetails = () => {
 
   return (
     <SharedLayout activeLink="Donate">
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "3rem 1.5rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-5">
+
         <button onClick={() => navigate("/donations")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "2rem", padding: 0 }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-4 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.75rem" }} /> Back to Donations
         </button>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2.5rem", alignItems: "start" }}>
+        <div className="row g-4 align-items-start">
           {/* Left — images */}
-          <div>
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden", marginBottom: "0.75rem" }}>
+          <div className="col-md-6">
+            <div className="border rounded-3 overflow-hidden mb-3">
               {imgs.length > 0
-                ? <img src={`http://localhost:5000${imgs[imgIdx]}`} alt={donation.title} style={{ width: "100%", height: 380, objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/400x380?text=No+Image"} />
-                : <div style={{ height: 380, display: "flex", alignItems: "center", justifyContent: "center", background: "#f9fafb", fontSize: "5rem" }}>{CAT_ICON[donation.category] || "📦"}</div>}
+                ? <img src={`http://localhost:5000${imgs[imgIdx]}`} alt={donation.title}
+                    style={{ width: "100%", height: 380, objectFit: "cover" }}
+                    onError={e => e.target.src = "https://via.placeholder.com/400x380?text=No+Image"} />
+                : <div className="d-flex align-items-center justify-content-center bg-light" style={{ height: 380, fontSize: "5rem" }}>
+                    {CAT_ICON[donation.category] || "📦"}
+                  </div>}
             </div>
             {imgs.length > 1 && (
-              <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto" }}>
+              <div className="d-flex gap-2 overflow-auto">
                 {imgs.map((img, i) => (
                   <img key={i} src={`http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
-                    style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 4, cursor: "pointer", border: i === imgIdx ? "2px solid #111" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
+                    className="rounded-2 flex-shrink-0"
+                    style={{ width: 72, height: 72, objectFit: "cover", cursor: "pointer", border: i === imgIdx ? "2px solid #111" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
                 ))}
               </div>
             )}
           </div>
 
           {/* Right — details */}
-          <div>
-            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-              <span style={{ background: donation.status === "available" ? "#dcfce7" : "#fef3c7", color: donation.status === "available" ? "#166534" : "#92400e", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4, textTransform: "capitalize" }}>{donation.status}</span>
-              <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4 }}>{CONDITION_MAP[donation.condition] || donation.condition}</span>
-              <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.6rem", borderRadius: 4, textTransform: "capitalize" }}>{CAT_ICON[donation.category]} {donation.category}</span>
+          <div className="col-md-6">
+            <div className="d-flex gap-2 flex-wrap mb-3">
+              <span className={`badge ${donation.status === "available" ? "text-success-emphasis bg-success-subtle" : "text-warning-emphasis bg-warning-subtle"} text-capitalize`}>
+                {donation.status}
+              </span>
+              <span className="badge bg-light text-dark border">{CONDITION_MAP[donation.condition] || donation.condition}</span>
+              <span className="badge bg-light text-dark border text-capitalize">{CAT_ICON[donation.category]} {donation.category}</span>
             </div>
 
-            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#111", margin: "0 0 1rem", letterSpacing: "-0.02em" }}>{donation.title}</h1>
+            <h1 className="fw-bold mb-3" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em" }}>{donation.title}</h1>
+            <p className="text-secondary lh-base mb-4">{donation.description}</p>
 
-            <p style={{ color: "#4b5563", lineHeight: 1.7, marginBottom: "1.5rem", fontSize: "0.95rem" }}>{donation.description}</p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <FaMapMarkerAlt style={{ color: "#ef4444", fontSize: "1rem", flexShrink: 0 }} />
+            <div className="d-flex flex-column gap-3 mb-4">
+              <div className="d-flex align-items-center gap-3">
+                <FaMapMarkerAlt className="text-danger flex-shrink-0" />
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>Pickup Location</div>
-                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{donation.pickup_location}</div>
+                  <div className="text-muted" style={{ fontSize: "0.75rem" }}>Pickup Location</div>
+                  <div className="fw-semibold small">{donation.pickup_location}</div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <FaClock style={{ color: "#3b82f6", fontSize: "1rem", flexShrink: 0 }} />
+              <div className="d-flex align-items-center gap-3">
+                <FaClock className="text-primary flex-shrink-0" />
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>Posted</div>
-                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{getTimeAgo(donation.created_at)}</div>
+                  <div className="text-muted" style={{ fontSize: "0.75rem" }}>Posted</div>
+                  <div className="fw-semibold small">{getTimeAgo(donation.created_at)}</div>
                 </div>
               </div>
             </div>
 
             {/* Donor info */}
             {donation.donor && (
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "1rem", marginBottom: "1.5rem" }}>
-                <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9ca3af", textTransform: "uppercase", marginBottom: "0.75rem" }}>DONOR</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.9rem" }}>
-                    <FaUser style={{ color: "#8b5cf6" }} /> <span style={{ fontWeight: 600 }}>{donation.donor.name}</span>
-                  </div>
-                  {donation.donor.email && <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.85rem", color: "#6b7280" }}><FaEnvelope style={{ color: "#10b981" }} /> {donation.donor.email}</div>}
-                  {donation.donor.phone && <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.85rem", color: "#6b7280" }}><FaPhone style={{ color: "#f59e0b" }} /> {donation.donor.phone}</div>}
+              <div className="border rounded-3 p-3 mb-4">
+                <p className="text-uppercase fw-bold text-muted mb-3" style={{ fontSize: "0.75rem", letterSpacing: "0.08em" }}>DONOR</p>
+                <div className="d-flex flex-column gap-2">
+                  <div className="d-flex align-items-center gap-2 small"><FaUser className="text-secondary" /> <span className="fw-semibold">{donation.donor.name}</span></div>
+                  {donation.donor.email && <div className="d-flex align-items-center gap-2 small text-muted"><FaEnvelope className="text-success" /> {donation.donor.email}</div>}
+                  {donation.donor.phone && <div className="d-flex align-items-center gap-2 small text-muted"><FaPhone className="text-warning" /> {donation.donor.phone}</div>}
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <div className="d-flex flex-column gap-2">
               {canRequest && (
-                <button onClick={() => setShowModal(true)}
-                  style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
-                  Request This Item
-                </button>
+                <button onClick={() => setShowModal(true)} className="btn btn-dark fw-bold w-100">Request This Item</button>
               )}
               {canChat && (
-                <button onClick={() => navigate(`/donations/${id}/chat`)}
-                  style={{ background: "#3b82f6", color: "#fff", border: "none", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                <button onClick={() => navigate(`/donations/${id}/chat`)} className="btn btn-primary fw-bold w-100 d-flex align-items-center justify-content-center gap-2">
                   <FaComments /> Open Chat
                 </button>
               )}
               {isOwner && (
                 <>
-                  <button onClick={() => navigate("/my-donations")}
-                    style={{ background: "#fff", color: "#111", border: "1.5px solid #111", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <button onClick={() => navigate("/my-donations")} className="btn btn-outline-dark fw-bold w-100 d-flex align-items-center justify-content-center gap-2">
                     <FaEdit /> Manage Donation
                   </button>
-                  <button onClick={handleDelete}
-                    style={{ background: "#fff", color: "#ef4444", border: "1.5px solid #ef4444", borderRadius: 6, padding: "0.85rem", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <button onClick={handleDelete} className="btn btn-outline-danger fw-bold w-100 d-flex align-items-center justify-content-center gap-2">
                     <FaTrash /> Delete Donation
                   </button>
                 </>
               )}
               {donation.status === "reserved" && !isOwner && !canChat && (
-                <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.9rem", color: "#92400e" }}>
-                  This item is reserved by another user.
-                </div>
+                <div className="alert alert-warning small py-2 mb-0">This item is reserved by another user.</div>
               )}
             </div>
           </div>
@@ -192,22 +189,26 @@ const DonationDetails = () => {
 
       {/* Request modal */}
       {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 12, padding: "2rem", width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <h3 style={{ margin: 0, fontWeight: 700 }}>Request Donation</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem" }}><FaTimes /></button>
-            </div>
-            <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1rem" }}>Tell the donor why you need this item.</p>
-            <textarea value={requestMsg} onChange={e => setRequestMsg(e.target.value)} rows={5} maxLength={500}
-              placeholder="I would like to request this item because..."
-              style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.75rem", fontSize: "0.9rem", resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: "1rem" }} />
-            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
-              <button onClick={() => setShowModal(false)} style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button onClick={handleRequest} disabled={submitting || requestMsg.trim().length < 10}
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
-                {submitting ? "Sending…" : "Send Request"}
-              </button>
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)", zIndex: 3000 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-3 border-0 shadow-lg">
+              <div className="modal-header border-bottom">
+                <h5 className="modal-title fw-bold">Request Donation</h5>
+                <button onClick={() => setShowModal(false)} className="btn-close" />
+              </div>
+              <div className="modal-body">
+                <p className="text-muted small mb-3">Tell the donor why you need this item.</p>
+                <textarea value={requestMsg} onChange={e => setRequestMsg(e.target.value)} rows={5} maxLength={500}
+                  placeholder="I would like to request this item because..."
+                  className="form-control" style={{ resize: "vertical" }} />
+              </div>
+              <div className="modal-footer border-top">
+                <button onClick={() => setShowModal(false)} className="btn btn-light border fw-semibold">Cancel</button>
+                <button onClick={handleRequest} disabled={submitting || requestMsg.trim().length < 10}
+                  className={`btn btn-dark fw-bold ${submitting ? "opacity-75" : ""}`}>
+                  {submitting ? "Sending…" : "Send Request"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ const UserProfile = ({ setUser }) => {
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) { navigate("/login"); return; }
+    if (!storedUser) { navigate("/"); return; }
     setLocalUser(storedUser);
     setProfileForm({ name: storedUser.name || "", email: storedUser.email || "", phone: storedUser.phone || "", address: storedUser.address || "" });
   }, [navigate]);
@@ -44,89 +44,111 @@ const UserProfile = ({ setUser }) => {
       alert("Password changed successfully! Please login again.");
       localStorage.removeItem("user"); localStorage.removeItem("token");
       if (setUser) setUser(null);
-      navigate("/login");
+      navigate("/");
     } catch (err) { alert("Failed: " + (err.response?.data?.message || err.message)); }
     finally { setLoading(false); }
   };
 
-  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.9rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
-  const label = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "0.35rem" };
   const tabs = ["profile", "password", "account"];
   const tabLabels = { profile: "Profile Information", password: "Change Password", account: "Account Info" };
 
   if (!user) return (
     <SharedLayout>
-      <div style={{ textAlign: "center", padding: "6rem", color: "#9ca3af" }}>Loading…</div>
+      <div className="text-center py-5 text-muted">Loading…</div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto" }} className="px-3 py-4">
+
+        {/* Back button */}
         <button onClick={() => navigate("/dashboard")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1.5rem" }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
         </button>
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400, marginBottom: "2rem" }}>My Profile</h1>
 
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", overflow: "hidden" }}>
-          {/* Tabs */}
-          <div style={{ display: "flex", borderBottom: "1px solid #e5e7eb" }}>
+        {/* Page title — Instrument Serif kept as inline */}
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
+          className="mb-4">My Profile</h1>
+
+        {/* Card */}
+        <div className="border rounded-3 bg-white overflow-hidden">
+
+          {/* Custom tabs — Bootstrap nav-tabs but styled to match the black underline design */}
+          <div className="d-flex border-bottom">
             {tabs.map(t => (
               <button key={t} onClick={() => setActiveTab(t)}
-                style={{ flex: 1, padding: "1rem", background: "none", border: "none", cursor: "pointer", fontWeight: activeTab === t ? 700 : 500, fontSize: "0.9rem", color: activeTab === t ? "#111" : "#6b7280", borderBottom: activeTab === t ? "2px solid #111" : "2px solid transparent", transition: "all 0.15s" }}>
+                className="btn btn-link flex-fill py-3 text-decoration-none rounded-0"
+                style={{
+                  fontWeight: activeTab === t ? 700 : 500,
+                  fontSize: "0.9rem",
+                  color: activeTab === t ? "#111" : "#6b7280",
+                  borderBottom: activeTab === t ? "2px solid #111" : "2px solid transparent",
+                  transition: "all 0.15s"
+                }}>
                 {tabLabels[t]}
               </button>
             ))}
           </div>
 
-          <div style={{ padding: "2rem" }}>
-            {/* Profile tab */}
+          <div className="p-4">
+
+            {/* ── Profile tab ── */}
             {activeTab === "profile" && (
               <form onSubmit={handleProfileUpdate}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", marginBottom: "1.25rem" }}>
-                  <div>
-                    <label style={label}>Full Name</label>
-                    <input type="text" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} style={inp} required />
+                <div className="row g-3 mb-3">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold small text-dark">Full Name</label>
+                    <input type="text" className="form-control" value={profileForm.name}
+                      onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} required />
                   </div>
-                  <div>
-                    <label style={label}>Email</label>
-                    <input type="email" value={profileForm.email} onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} style={inp} required />
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold small text-dark">Email</label>
+                    <input type="email" className="form-control" value={profileForm.email}
+                      onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} required />
                   </div>
-                  <div>
-                    <label style={label}>Phone Number</label>
-                    <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} style={inp} />
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold small text-dark">Phone Number</label>
+                    <input type="tel" className="form-control" value={profileForm.phone}
+                      onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} />
                   </div>
                 </div>
-                <div style={{ marginBottom: "1.5rem" }}>
-                  <label style={label}>Address</label>
-                  <textarea value={profileForm.address} onChange={e => setProfileForm({ ...profileForm, address: e.target.value })} rows={3} style={{ ...inp, resize: "vertical" }} />
+                <div className="mb-4">
+                  <label className="form-label fw-semibold small text-dark">Address</label>
+                  <textarea className="form-control" rows={3} value={profileForm.address}
+                    onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
+                    style={{ resize: "vertical" }} />
                 </div>
-                <button type="submit" disabled={loading} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.7rem 2rem", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                <button type="submit" disabled={loading}
+                  className={`btn btn-dark px-4 fw-bold ${loading ? "opacity-75" : ""}`}>
                   {loading ? "Updating…" : "Update Profile"}
                 </button>
               </form>
             )}
 
-            {/* Password tab */}
+            {/* ── Password tab ── */}
             {activeTab === "password" && (
               <form onSubmit={handlePasswordUpdate}>
                 {[["currentPassword","Current Password"],["newPassword","New Password"],["confirmPassword","Confirm New Password"]].map(([field, lbl]) => (
-                  <div key={field} style={{ marginBottom: "1.25rem" }}>
-                    <label style={label}>{lbl}</label>
-                    <input type="password" value={passwordForm[field]} onChange={e => setPasswordForm({ ...passwordForm, [field]: e.target.value })} style={inp} required />
+                  <div key={field} className="mb-3">
+                    <label className="form-label fw-semibold small text-dark">{lbl}</label>
+                    <input type="password" className="form-control" value={passwordForm[field]}
+                      onChange={e => setPasswordForm({ ...passwordForm, [field]: e.target.value })} required />
                   </div>
                 ))}
-                <div style={{ background: "#eff6ff", borderRadius: 10, padding: "1rem", fontSize: "0.85rem", color: "#1e40af", marginBottom: "1.5rem" }}>
+                {/* Info box — alert-info gives the blue background */}
+                <div className="alert alert-info small py-2 mb-4" role="alert">
                   Password requirements: min 8 characters, one uppercase, one number, one special character (@$!%*?&)
                 </div>
-                <button type="submit" disabled={loading} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.7rem 2rem", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                <button type="submit" disabled={loading}
+                  className={`btn btn-dark px-4 fw-bold ${loading ? "opacity-75" : ""}`}>
                   {loading ? "Changing…" : "Change Password"}
                 </button>
               </form>
             )}
 
-            {/* Account tab */}
+            {/* ── Account tab ── */}
             {activeTab === "account" && (
               <div>
                 {[
@@ -135,28 +157,29 @@ const UserProfile = ({ setUser }) => {
                   { label: "Email Verified", value: user.isVerified ? "Verified" : "Not Verified" },
                   { label: "Member Since", value: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—" },
                 ].map(row => (
-                  <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "0.85rem 0", borderBottom: "1px solid #f3f4f6", fontSize: "0.9rem" }}>
-                    <span style={{ color: "#6b7280" }}>{row.label}</span>
-                    <span style={{ fontWeight: 600 }}>{row.value}</span>
+                  <div key={row.label} className="d-flex justify-content-between py-3 border-bottom small">
+                    <span className="text-muted">{row.label}</span>
+                    <span className="fw-semibold">{row.value}</span>
                   </div>
                 ))}
                 {user.role === "institute" && user.instituteVerification && (
-                  <div style={{ marginTop: "1.5rem" }}>
-                    <h5 style={{ fontWeight: 700, marginBottom: "0.75rem" }}>Institute Verification</h5>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.85rem 0", borderBottom: "1px solid #f3f4f6", fontSize: "0.9rem" }}>
-                      <span style={{ color: "#6b7280" }}>Status</span>
-                      <span style={{ fontWeight: 600 }}>{user.instituteVerification.status}</span>
+                  <div className="mt-4">
+                    <h5 className="fw-bold mb-3">Institute Verification</h5>
+                    <div className="d-flex justify-content-between py-3 border-bottom small">
+                      <span className="text-muted">Status</span>
+                      <span className="fw-semibold">{user.instituteVerification.status}</span>
                     </div>
                     {user.instituteInfo && (
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "0.85rem 0", fontSize: "0.9rem" }}>
-                        <span style={{ color: "#6b7280" }}>Institute Name</span>
-                        <span style={{ fontWeight: 600 }}>{user.instituteInfo.schoolName}</span>
+                      <div className="d-flex justify-content-between py-3 small">
+                        <span className="text-muted">Institute Name</span>
+                        <span className="fw-semibold">{user.instituteInfo.schoolName}</span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
             )}
+
           </div>
         </div>
       </div>

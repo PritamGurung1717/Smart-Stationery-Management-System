@@ -36,9 +36,8 @@ const DonationChat = () => {
       ]);
       if (dRes.data.success) setDonation(dRes.data.donation);
       if (mRes.data.success) setMessages(mRes.data.messages || []);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load chat");
-    } finally { setLoading(false); }
+    } catch (err) { setError(err.response?.data?.message || "Failed to load chat"); }
+    finally { setLoading(false); }
   };
 
   const fetchMessages = async () => {
@@ -62,55 +61,58 @@ const DonationChat = () => {
 
   if (loading) return (
     <SharedLayout>
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
+        <div className="spinner-border text-dark" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+          <span className="visually-hidden">Loading…</span>
+        </div>
       </div>
     </SharedLayout>
   );
 
   if (error || !donation) return (
     <SharedLayout>
-      <div style={{ maxWidth: 600, margin: "4rem auto", padding: "0 1.5rem", textAlign: "center" }}>
-        <p style={{ color: "#ef4444", marginBottom: "1.5rem" }}>{error || "Chat not available"}</p>
-        <button onClick={() => navigate("/donations")} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Back to Donations</button>
+      <div style={{ maxWidth: 600, margin: "4rem auto" }} className="px-3 text-center">
+        <p className="text-danger mb-4">{error || "Chat not available"}</p>
+        <button onClick={() => navigate("/donations")} className="btn btn-dark fw-bold">Back to Donations</button>
       </div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout activeLink="Donate">
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "2rem 1.5rem" }}>
-        {/* Back + title */}
+      <div style={{ maxWidth: 860, margin: "0 auto" }} className="px-3 py-4">
+
         <button onClick={() => navigate(`/donations/${id}`)}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "1.5rem", padding: 0 }}>
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-4 text-decoration-none">
           <FaChevronLeft style={{ fontSize: "0.75rem" }} /> Back to Donation
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          <FaComments style={{ fontSize: "1.25rem", color: "#3b82f6" }} />
+        <div className="d-flex align-items-center gap-3 mb-4">
+          <FaComments className="text-primary" style={{ fontSize: "1.25rem" }} />
           <div>
-            <h2 style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "#111" }}>{donation.title}</h2>
-            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: donation.status === "reserved" ? "#f59e0b" : "#16a34a", textTransform: "capitalize" }}>{donation.status}</span>
+            <h2 className="fw-bold mb-0" style={{ fontSize: "1.25rem" }}>{donation.title}</h2>
+            <span className={`fw-bold text-capitalize small ${donation.status === "reserved" ? "text-warning" : "text-success"}`}>
+              {donation.status}
+            </span>
           </div>
         </div>
 
         {/* Chat box */}
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", height: "calc(100vh - 340px)", minHeight: 400 }}>
+        <div className="border rounded-3 overflow-hidden d-flex flex-column" style={{ height: "calc(100vh - 340px)", minHeight: 400 }}>
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem", background: "#f9fafb", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div className="flex-grow-1 overflow-auto p-4 bg-light d-flex flex-column gap-3">
             {messages.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "3rem 0", color: "#9ca3af" }}>
-                <FaComments style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.4 }} />
-                <p style={{ margin: 0 }}>No messages yet. Start the conversation!</p>
+              <div className="text-center py-5 text-muted">
+                <FaComments style={{ fontSize: "2.5rem", opacity: 0.4 }} className="mb-3 d-block mx-auto" />
+                <p className="mb-0">No messages yet. Start the conversation!</p>
               </div>
             ) : messages.map(msg => {
               const isOwn = msg.sender_id === currentUser?.id;
               return (
-                <div key={msg.id} style={{ display: "flex", justifyContent: isOwn ? "flex-end" : "flex-start" }}>
-                  <div style={{ maxWidth: "70%", padding: "0.75rem 1rem", borderRadius: 12, background: isOwn ? "#111" : "#fff", color: isOwn ? "#fff" : "#1f2937", boxShadow: "0 2px 4px rgba(0,0,0,0.08)" }}>
-                    <p style={{ margin: 0, wordBreak: "break-word", fontSize: "0.9rem" }}>{msg.message}</p>
-                    <div style={{ fontSize: "0.7rem", marginTop: "0.3rem", opacity: 0.65, textAlign: isOwn ? "right" : "left" }}>
+                <div key={msg.id} className={`d-flex ${isOwn ? "justify-content-end" : "justify-content-start"}`}>
+                  <div className="px-3 py-2 rounded-3 shadow-sm" style={{ maxWidth: "70%", background: isOwn ? "#111" : "#fff", color: isOwn ? "#fff" : "#1f2937" }}>
+                    <p className="mb-1 small" style={{ wordBreak: "break-word" }}>{msg.message}</p>
+                    <div className={`text-end ${isOwn ? "text-white-50" : "text-muted"}`} style={{ fontSize: "0.7rem" }}>
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </div>
                   </div>
@@ -121,12 +123,12 @@ const DonationChat = () => {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSend} style={{ padding: "1rem 1.25rem", borderTop: "1px solid #e5e7eb", background: "#fff", display: "flex", gap: "0.75rem" }}>
+          <form onSubmit={handleSend} className="d-flex gap-3 p-3 border-top bg-white">
             <input value={newMessage} onChange={e => setNewMessage(e.target.value)} disabled={sending}
               placeholder="Type your message…"
-              style={{ flex: 1, border: "1px solid #e5e7eb", borderRadius: 50, padding: "0.65rem 1.25rem", fontSize: "0.9rem", outline: "none" }} />
+              className="form-control rounded-pill" />
             <button type="submit" disabled={sending || !newMessage.trim()}
-              style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.65rem 1.5rem", fontWeight: 700, cursor: sending ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "0.4rem", opacity: sending ? 0.7 : 1 }}>
+              className={`btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2 ${sending ? "opacity-75" : ""}`}>
               <FaPaperPlane style={{ fontSize: "0.85rem" }} /> {sending ? "…" : "Send"}
             </button>
           </form>

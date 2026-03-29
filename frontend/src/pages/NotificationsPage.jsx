@@ -34,7 +34,7 @@ const NotificationsPage = () => {
         setUnreadCount(r.data.unreadCount || 0);
       }
     } catch (err) {
-      if (err.response?.status === 401) { navigate("/login"); return; }
+      if (err.response?.status === 401) { navigate("/"); return; }
       setError("Failed to load notifications");
     } finally { setLoading(false); }
   };
@@ -69,72 +69,94 @@ const NotificationsPage = () => {
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 700, margin: "0 auto", padding: "3rem 1.5rem" }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }} className="px-3 py-5">
+
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
           <div>
             <button onClick={() => navigate("/dashboard")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1rem" }}>
+              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>INBOX</p>
-            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>INBOX</p>
+            <h1 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>
               <FaBell /> Notifications
-              {unreadCount > 0 && <span style={{ background: "#111", color: "#fff", fontSize: "0.7rem", fontWeight: 700, padding: "0.15rem 0.5rem", borderRadius: 50 }}>{unreadCount}</span>}
+              {unreadCount > 0 && (
+                <span className="badge text-bg-dark" style={{ fontSize: "0.7rem" }}>{unreadCount}</span>
+              )}
             </h1>
           </div>
           {unreadCount > 0 && (
             <button onClick={markAllAsRead}
-              style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.6rem 1.25rem", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              className="btn btn-light border fw-semibold small d-flex align-items-center gap-2">
               <FaCheck style={{ fontSize: "0.75rem" }} /> Mark all as read
             </button>
           )}
         </div>
 
-        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1.25rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
+        {/* Error */}
+        {error && <div className="alert alert-danger small py-2">{error}</div>}
 
+        {/* Loading spinner */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div className="text-center py-5">
+            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
+              <span className="visually-hidden">Loading…</span>
+            </div>
           </div>
         ) : notifications.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "5rem 0", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+          /* Empty state */
+          <div className="text-center py-5 border rounded-3">
             <FaBell style={{ fontSize: "3rem", color: "#e5e7eb", marginBottom: "1rem" }} />
-            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No notifications yet</h3>
-            <p style={{ color: "#9ca3af", margin: 0 }}>You're all caught up!</p>
+            <h3 className="fw-bold mb-1">No notifications yet</h3>
+            <p className="text-muted mb-0">You're all caught up!</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <div className="d-flex flex-column gap-2">
             {notifications.map(n => (
               <div key={n._id} onClick={() => handleClick(n)}
-                style={{ border: "1px solid #e5e7eb", borderLeft: n.is_read ? "1px solid #e5e7eb" : "4px solid #111", borderRadius: 10, background: n.is_read ? "#fff" : "#fafafa", cursor: n.link ? "pointer" : "default", padding: "1rem 1.25rem", display: "flex", gap: "1rem", alignItems: "flex-start", transition: "background 0.15s" }}
+                className="rounded-3 bg-white d-flex gap-3 align-items-start"
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderLeft: n.is_read ? "1px solid #e5e7eb" : "4px solid #111",
+                  background: n.is_read ? "#fff" : "#fafafa",
+                  cursor: n.link ? "pointer" : "default",
+                  padding: "1rem 1.25rem",
+                  transition: "background 0.15s"
+                }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                 onMouseLeave={e => e.currentTarget.style.background = n.is_read ? "#fff" : "#fafafa"}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0 }}>
+
+                {/* Icon circle */}
+                <div className="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{ width: 44, height: 44, fontSize: "1.2rem" }}>
                   {n.icon || "🔔"}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "#111" }}>
+
+                {/* Content */}
+                <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                  <div className="d-flex justify-content-between align-items-start gap-2">
+                    <span className="fw-bold small">
                       {n.title}
-                      {!n.is_read && <span style={{ marginLeft: "0.5rem", background: "#111", color: "#fff", fontSize: "0.6rem", fontWeight: 700, padding: "0.1rem 0.4rem", borderRadius: 50 }}>New</span>}
+                      {!n.is_read && (
+                        <span className="badge text-bg-dark ms-2" style={{ fontSize: "0.6rem" }}>New</span>
+                      )}
                     </span>
-                    <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+                    <div className="d-flex gap-1 flex-shrink-0">
                       {!n.is_read && (
                         <button onClick={e => { e.stopPropagation(); markAsRead(n._id); }}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", fontSize: "0.8rem", padding: "0.1rem 0.3rem" }}>
+                          className="btn btn-link p-1 text-primary" style={{ fontSize: "0.8rem" }}>
                           <FaCheck />
                         </button>
                       )}
                       <button onClick={e => { e.stopPropagation(); deleteOne(n._id); }}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "0.8rem", padding: "0.1rem 0.3rem" }}>
+                        className="btn btn-link p-1 text-danger" style={{ fontSize: "0.8rem" }}>
                         <FaTrash />
                       </button>
                     </div>
                   </div>
-                  <p style={{ margin: "0.25rem 0 0.4rem", fontSize: "0.85rem", color: "#4b5563", lineHeight: 1.5 }}>{n.message}</p>
-                  <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>{getTimeAgo(n.created_at)}</span>
+                  <p className="mb-1 small text-secondary lh-base" style={{ marginTop: "0.25rem" }}>{n.message}</p>
+                  <span className="text-muted" style={{ fontSize: "0.72rem" }}>{getTimeAgo(n.created_at)}</span>
                 </div>
               </div>
             ))}

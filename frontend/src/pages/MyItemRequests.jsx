@@ -8,14 +8,12 @@ const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 const CATEGORIES = ["book", "stationery", "electronics", "sports", "other"];
 
-const STATUS_STYLE = {
-  pending:   { bg: "#fef3c7", color: "#92400e",  icon: <FaClock />,  label: "Pending" },
-  approved:  { bg: "#dcfce7", color: "#166534",  icon: <FaCheck />,  label: "Approved" },
-  rejected:  { bg: "#fee2e2", color: "#991b1b",  icon: <FaTimes />,  label: "Rejected" },
-  cancelled: { bg: "#f3f4f6", color: "#374151",  icon: <FaBan />,    label: "Cancelled" },
+const STATUS_BADGE = {
+  pending:   { cls: "text-warning-emphasis bg-warning-subtle",  icon: <FaClock />,  label: "Pending" },
+  approved:  { cls: "text-success-emphasis bg-success-subtle",  icon: <FaCheck />,  label: "Approved" },
+  rejected:  { cls: "text-danger-emphasis bg-danger-subtle",    icon: <FaTimes />,  label: "Rejected" },
+  cancelled: { cls: "text-secondary bg-light",                  icon: <FaBan />,    label: "Cancelled" },
 };
-
-const inp = { border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.65rem 0.9rem", fontSize: "0.9rem", width: "100%", outline: "none", boxSizing: "border-box" };
 
 const MyItemRequests = () => {
   const navigate = useNavigate();
@@ -37,7 +35,7 @@ const MyItemRequests = () => {
       const r = await axios.get(`${API}/requests/my`, { headers: authH() });
       setRequests(r.data.requests || []);
     } catch (err) {
-      if (err.response?.status === 401) { navigate("/login"); return; }
+      if (err.response?.status === 401) { navigate("/"); return; }
       setError("Failed to load requests");
     } finally { setLoading(false); }
   };
@@ -81,92 +79,106 @@ const MyItemRequests = () => {
   };
 
   const stats = [
-    { label: "Total", value: requests.length, color: "#4f46e5" },
-    { label: "Pending", value: requests.filter(r => r.status === "pending").length, color: "#f59e0b" },
+    { label: "Total",    value: requests.length,                                      color: "#4f46e5" },
+    { label: "Pending",  value: requests.filter(r => r.status === "pending").length,  color: "#f59e0b" },
     { label: "Approved", value: requests.filter(r => r.status === "approved").length, color: "#16a34a" },
     { label: "Rejected", value: requests.filter(r => r.status === "rejected").length, color: "#ef4444" },
   ];
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "3rem 1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-5">
+
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
           <div>
             <button onClick={() => navigate("/dashboard")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "1rem" }}>
+              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "#6b7280", textTransform: "uppercase", marginBottom: "0.4rem" }}>MY ACCOUNT</p>
-            <h1 style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", fontWeight: 800, color: "#111", margin: 0, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MY ACCOUNT</p>
+            <h1 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>
               <FaBoxOpen /> My Item Requests
             </h1>
           </div>
           <button onClick={() => setShowForm(true)}
-            style={{ background: "#111", color: "#fff", border: "none", borderRadius: 50, padding: "0.75rem 1.5rem", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            className="btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2">
             <FaPlus /> New Request
           </button>
         </div>
 
-        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#dc2626", fontSize: "0.9rem" }}>{error}</div>}
-        {success && <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#166534", fontSize: "0.9rem" }}>✓ {success}</div>}
+        {error   && <div className="alert alert-danger small py-2">{error}</div>}
+        {success && <div className="alert alert-success small py-2">✓ {success}</div>}
 
-        {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1rem", marginBottom: "2rem" }}>
+        {/* Stats row */}
+        <div className="row g-3 mb-4">
           {stats.map(s => (
-            <div key={s.label} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "1.25rem", textAlign: "center" }}>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ color: "#6b7280", fontSize: "0.85rem", fontWeight: 500 }}>{s.label}</div>
+            <div key={s.label} className="col-6 col-md-3">
+              <div className="border rounded-3 text-center p-3">
+                <div className="fw-bold" style={{ fontSize: "2rem", color: s.color }}>{s.value}</div>
+                <div className="text-muted small fw-medium">{s.label}</div>
+              </div>
             </div>
           ))}
         </div>
 
+        {/* Content */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "5rem 0" }}>
-            <div style={{ width: 40, height: 40, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div className="text-center py-5">
+            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
+              <span className="visually-hidden">Loading…</span>
+            </div>
           </div>
         ) : requests.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "5rem 0", border: "1px solid #e5e7eb", borderRadius: 8 }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📦</div>
-            <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>No Requests Yet</h3>
-            <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>Can't find what you need? Submit a request!</p>
-            <button onClick={() => setShowForm(true)} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.75rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>Submit First Request</button>
+          <div className="text-center py-5 border rounded-3">
+            <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
+            <h3 className="fw-bold mb-1">No Requests Yet</h3>
+            <p className="text-muted mb-4">Can't find what you need? Submit a request!</p>
+            <button onClick={() => setShowForm(true)} className="btn btn-dark fw-bold">Submit First Request</button>
           </div>
         ) : (
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+          <div className="border rounded-3 overflow-hidden">
+            <table className="table table-hover mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
                   {["#","Item Name","Category","Qty","Status","Admin Remark","Date","Action"].map(h => (
-                    <th key={h} style={{ padding: "0.85rem 1rem", fontWeight: 700, fontSize: "0.82rem", color: "#374151", textAlign: "left" }}>{h}</th>
+                    <th key={h} className="fw-bold small text-dark py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {requests.map((req, idx) => {
-                  const ss = STATUS_STYLE[req.status] || STATUS_STYLE.pending;
+                  const ss = STATUS_BADGE[req.status] || STATUS_BADGE.pending;
                   return (
-                    <tr key={req.id} style={{ borderBottom: "1px solid #f3f4f6", verticalAlign: "middle" }}>
-                      <td style={{ padding: "0.85rem 1rem", color: "#9ca3af", fontSize: "0.82rem" }}>{idx + 1}</td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{req.item_name}</div>
-                        {req.description && <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.15rem" }}>{req.description.substring(0, 60)}{req.description.length > 60 ? "…" : ""}</div>}
+                    <tr key={req.id}>
+                      <td className="text-muted small">{idx + 1}</td>
+                      <td>
+                        <div className="fw-semibold small">{req.item_name}</div>
+                        {req.description && (
+                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                            {req.description.substring(0, 60)}{req.description.length > 60 ? "…" : ""}
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <span style={{ background: "#f3f4f6", color: "#374151", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: 4, textTransform: "capitalize" }}>{req.category}</span>
+                      <td>
+                        <span className="badge bg-light text-dark border fw-semibold text-capitalize" style={{ fontSize: "0.72rem" }}>
+                          {req.category}
+                        </span>
                       </td>
-                      <td style={{ padding: "0.85rem 1rem", fontWeight: 600 }}>{req.quantity_requested}</td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
-                        <span style={{ background: ss.bg, color: ss.color, fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 4, display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                      <td className="fw-semibold">{req.quantity_requested}</td>
+                      <td>
+                        <span className={`badge ${ss.cls} d-inline-flex align-items-center gap-1`} style={{ fontSize: "0.72rem" }}>
                           {ss.icon} {ss.label}
                         </span>
                       </td>
-                      <td style={{ padding: "0.85rem 1rem", color: "#6b7280", fontSize: "0.82rem", maxWidth: 180 }}>{req.admin_remark || <span style={{ color: "#d1d5db" }}>—</span>}</td>
-                      <td style={{ padding: "0.85rem 1rem", color: "#9ca3af", fontSize: "0.82rem", whiteSpace: "nowrap" }}>{new Date(req.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: "0.85rem 1rem" }}>
+                      <td className="text-muted small" style={{ maxWidth: 180 }}>
+                        {req.admin_remark || <span className="text-secondary">—</span>}
+                      </td>
+                      <td className="text-muted small text-nowrap">{new Date(req.created_at).toLocaleDateString()}</td>
+                      <td>
                         {req.status === "pending" && (
                           <button onClick={() => handleCancel(req.id)} disabled={cancelling === req.id}
-                            style={{ background: "#fff", color: "#ef4444", border: "1px solid #ef4444", borderRadius: 4, padding: "0.35rem 0.75rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
+                            className="btn btn-outline-danger btn-sm fw-semibold">
                             {cancelling === req.id ? "…" : "Cancel"}
                           </button>
                         )}
@@ -180,49 +192,62 @@ const MyItemRequests = () => {
         )}
       </div>
 
-      {/* New Request Modal */}
+      {/* New Request Modal — Bootstrap modal structure */}
       {showForm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontWeight: 700 }}>Request Unavailable Item</h3>
-              <button onClick={() => { setShowForm(false); setFormErrors({}); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "1.1rem" }}><FaTimes /></button>
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)", zIndex: 3000 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-3 border-0 shadow-lg">
+              <div className="modal-header border-bottom">
+                <h5 className="modal-title fw-bold">Request Unavailable Item</h5>
+                <button onClick={() => { setShowForm(false); setFormErrors({}); }} className="btn-close" />
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body">
+                  <div className="alert alert-info small py-2 mb-3">
+                    💡 Can't find what you need? Fill in the details and we'll try to add it!
+                  </div>
+                  <div className="row g-3 mb-3">
+                    <div className="col-8">
+                      <label className="form-label fw-semibold small">Item Name <span className="text-danger">*</span></label>
+                      <input name="item_name" value={form.item_name} onChange={handleChange}
+                        placeholder="e.g. Advanced Physics Book Grade 12"
+                        className={`form-control ${formErrors.item_name ? "is-invalid" : ""}`} />
+                      {formErrors.item_name && <div className="invalid-feedback">{formErrors.item_name}</div>}
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label fw-semibold small">Qty <span className="text-danger">*</span></label>
+                      <input type="number" name="quantity_requested" value={form.quantity_requested}
+                        onChange={handleChange} min={1}
+                        className={`form-control ${formErrors.quantity_requested ? "is-invalid" : ""}`} />
+                      {formErrors.quantity_requested && <div className="invalid-feedback">{formErrors.quantity_requested}</div>}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small">Category <span className="text-danger">*</span></label>
+                    <select name="category" value={form.category} onChange={handleChange}
+                      className={`form-select ${formErrors.category ? "is-invalid" : ""}`}>
+                      <option value="">Select category</option>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                    </select>
+                    {formErrors.category && <div className="invalid-feedback">{formErrors.category}</div>}
+                  </div>
+                  <div>
+                    <label className="form-label fw-semibold small">Description <span className="text-muted">(optional)</span></label>
+                    <textarea name="description" value={form.description} onChange={handleChange}
+                      rows={3} placeholder="Edition, brand, specifications…"
+                      className="form-control" style={{ resize: "none" }} />
+                  </div>
+                </div>
+                <div className="modal-footer border-top">
+                  <button type="button" onClick={() => { setShowForm(false); setFormErrors({}); }}
+                    className="btn btn-light border fw-semibold">Cancel</button>
+                  <button type="submit" disabled={submitting}
+                    className={`btn btn-dark fw-bold ${submitting ? "opacity-75" : ""}`}>
+                    {submitting ? "Submitting…" : "Submit Request"}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleSubmit} style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "0.75rem 1rem", fontSize: "0.85rem", color: "#1e40af" }}>
-                💡 Can't find what you need? Fill in the details and we'll try to add it!
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem" }}>
-                <div>
-                  <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Item Name <span style={{ color: "#ef4444" }}>*</span></label>
-                  <input name="item_name" value={form.item_name} onChange={handleChange} placeholder="e.g. Advanced Physics Book Grade 12" style={{ ...inp, borderColor: formErrors.item_name ? "#ef4444" : "#e5e7eb" }} />
-                  {formErrors.item_name && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.item_name}</p>}
-                </div>
-                <div>
-                  <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Qty <span style={{ color: "#ef4444" }}>*</span></label>
-                  <input type="number" name="quantity_requested" value={form.quantity_requested} onChange={handleChange} min={1} style={{ ...inp, borderColor: formErrors.quantity_requested ? "#ef4444" : "#e5e7eb" }} />
-                  {formErrors.quantity_requested && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.quantity_requested}</p>}
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Category <span style={{ color: "#ef4444" }}>*</span></label>
-                <select name="category" value={form.category} onChange={handleChange} style={{ ...inp, borderColor: formErrors.category ? "#ef4444" : "#e5e7eb" }}>
-                  <option value="">Select category</option>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-                </select>
-                {formErrors.category && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "0.25rem 0 0" }}>{formErrors.category}</p>}
-              </div>
-              <div>
-                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151", display: "block", marginBottom: "0.35rem" }}>Description <span style={{ color: "#9ca3af" }}>(optional)</span></label>
-                <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Edition, brand, specifications…" style={{ ...inp, resize: "none" }} />
-              </div>
-              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => { setShowForm(false); setFormErrors({}); }} style={{ background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, padding: "0.7rem 1.25rem", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button type="submit" disabled={submitting} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 6, padding: "0.7rem 1.5rem", fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1 }}>
-                  {submitting ? "Submitting…" : "Submit Request"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
