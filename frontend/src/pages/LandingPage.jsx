@@ -6,16 +6,23 @@ import {
   FaBook, FaRunning, FaPencilAlt, FaGraduationCap,
   FaStar, FaChevronRight, FaSearch, FaTimes
 } from "react-icons/fa";
+import ProductModal from "../components/ProductModal.jsx";
 
 const API = "http://localhost:5000/api";
 
-/* ─── Auth Modal (slide-in panel) ──────────────────────────── */
+/* ─── Auth Modal ────────────────────────────────────────────── */
 const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [regForm, setRegForm] = useState({ name: "", email: "", password: "", confirmPassword: "", role: "personal" });
+  const [regStep, setRegStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+
+  const CARD_H = 560;
+  const inp = { borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.9rem" };
+
+  const handleSwitchMode = (m) => { switchMode(m); setError(""); setRegStep(1); setShowPw(false); };
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError(""); setLoading(true);
@@ -36,6 +43,12 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
     } finally { setLoading(false); }
   };
 
+  const handleRegStep1 = (e) => {
+    e.preventDefault(); setError("");
+    if (!regForm.name.trim()) { setError("Please enter your full name"); return; }
+    setRegStep(2);
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault(); setError("");
     if (regForm.password !== regForm.confirmPassword) { setError("Passwords do not match"); return; }
@@ -48,108 +61,187 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
     finally { setLoading(false); }
   };
 
+  // Google button — UI only, shows coming soon
+  const GoogleBtn = ({ label }) => (
+    <button type="button" onClick={() => alert("Google sign-in coming soon!")}
+      className="btn w-100 fw-semibold d-flex align-items-center justify-content-center gap-2"
+      style={{ border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "0.6rem", fontSize: "0.9rem", background: "#fff", color: "#374151" }}>
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        <path fill="none" d="M0 0h48v48H0z"/>
+      </svg>
+      {label}
+    </button>
+  );
+
+  const Divider = () => (
+    <div className="d-flex align-items-center gap-2 my-3">
+      <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+      <span className="text-muted" style={{ fontSize: "0.78rem" }}>or</span>
+      <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+    </div>
+  );
+
   return (
-    <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 3000 }}>
-      {/* Backdrop */}
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      style={{ zIndex: 3000, padding: "1rem" }}>
       <div onClick={onClose} className="position-absolute top-0 start-0 w-100 h-100"
-        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }} />
-      {/* Slide panel */}
-      <div className="position-absolute top-0 end-0 h-100 bg-white d-flex flex-column overflow-auto"
-        style={{ width: 420, boxShadow: "-8px 0 40px rgba(0,0,0,0.15)" }}>
-        <div className="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-          <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.4rem", color: "#111" }}>smartstationery.</span>
-          <button onClick={onClose} className="btn btn-link p-0 text-secondary"><FaTimes /></button>
+        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }} />
+
+      {/* Suppress browser native password eye */}
+      <style>{`input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display: none; } input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }`}</style>
+
+      {/* Fixed-size card — all steps same height */}
+      <div className="position-relative bg-white rounded-4 d-flex flex-column"
+        style={{ width: "100%", maxWidth: 440, height: CARD_H, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", zIndex: 1, overflow: "hidden" }}>
+
+        {/* Accent bar */}
+        <div style={{ height: 4, background: "linear-gradient(90deg,#111 0%,#555 100%)", flexShrink: 0 }} />
+
+        {/* Header — brand + subtitle + close */}
+        <div className="d-flex justify-content-between align-items-start px-4 pt-3 pb-0" style={{ flexShrink: 0 }}>
+          <div>
+            <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.4rem", color: "#111", letterSpacing: "-0.01em" }}>
+              smartstationery.
+            </div>
+            <p className="text-muted mb-0" style={{ fontSize: "0.8rem" }}>
+              {mode === "login" ? "Welcome back" : regStep === 1 ? "Create your account" : "Set up your credentials"}
+            </p>
+          </div>
+          <button onClick={onClose} className="btn btn-link p-0 text-secondary mt-1" style={{ fontSize: "1rem" }}>
+            <FaTimes />
+          </button>
         </div>
 
-        <div className="p-4">
-          {/* Tab switcher */}
-          <div className="d-flex border rounded-3 overflow-hidden mb-4">
-            {["login", "register"].map(m => (
-              <button key={m} onClick={() => { switchMode(m); setError(""); }}
-                className={`btn flex-fill rounded-0 fw-semibold ${mode === m ? "btn-dark" : "btn-white text-muted"}`}>
+        {/* Tab switcher — fixed */}
+        <div className="px-4 pt-2 pb-0" style={{ flexShrink: 0 }}>
+          <div className="d-flex rounded-3 overflow-hidden" style={{ border: "1px solid #e5e7eb", background: "#f9fafb" }}>
+            {["login","register"].map(m => (
+              <button key={m} onClick={() => handleSwitchMode(m)}
+                className="btn flex-fill fw-semibold rounded-0"
+                style={{ background: mode === m ? "#111" : "transparent", color: mode === m ? "#fff" : "#6b7280", border: "none", fontSize: "0.88rem", padding: "0.5rem", transition: "all 0.15s" }}>
                 {m === "login" ? "Sign In" : "Sign Up"}
               </button>
             ))}
           </div>
+        </div>
 
-          {error && <div className="alert alert-danger small py-2 mb-3">{error}</div>}
+        {/* Scrollable content area */}
+        <div className="px-4 pt-3 overflow-auto" style={{ flex: 1 }}>
+          {error && <div className="alert alert-danger small py-2 mb-2">⚠️ {error}</div>}
 
-          {mode === "login" ? (
-            <form onSubmit={handleLogin}>
-              <div className="mb-3">
-                <label className="form-label fw-semibold small">Email address</label>
-                <input type="email" className="form-control" value={loginForm.email}
-                  onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))} required placeholder="you@example.com" />
-              </div>
-              <div className="mb-4">
-                <label className="form-label fw-semibold small">Password</label>
-                <div className="position-relative">
-                  <input type={showPw ? "text" : "password"} className="form-control pe-5" value={loginForm.password}
-                    onChange={e => setLoginForm(p => ({ ...p, password: e.target.value }))} required placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPw(!showPw)}
-                    className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 p-0 text-secondary">
-                    {showPw ? "🙈" : "👁️"}
-                  </button>
+          {/* ── LOGIN ── */}
+          {mode === "login" && (
+            <>
+              <form onSubmit={handleLogin}>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small text-dark mb-1">Email</label>
+                  <input type="email" className="form-control" value={loginForm.email}
+                    onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))}
+                    required placeholder="you@example.com" style={inp} />
                 </div>
-              </div>
-              <button type="submit" disabled={loading} className={`btn btn-dark w-100 fw-semibold ${loading ? "opacity-75" : ""}`}>
-                {loading ? "Signing in…" : "Sign In"}
-              </button>
-              <p className="text-center mt-3 small text-muted">
-                No account?{" "}
-                <button type="button" onClick={() => { switchMode("register"); setError(""); }}
-                  className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Create one</button>
-              </p>
-            </form>
-          ) : (
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small text-dark mb-1">Password</label>
+                  <div className="position-relative">
+                    <input type={showPw ? "text" : "password"} className="form-control pe-5" value={loginForm.password}
+                      onChange={e => setLoginForm(p => ({ ...p, password: e.target.value }))}
+                      required placeholder="••••••••" style={inp} />
+                    <button type="button" onClick={() => setShowPw(s => !s)}
+                      className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 p-0 text-secondary" style={{ fontSize: "0.95rem" }}>
+                      {showPw ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={loading}
+                  className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                  style={{ borderRadius: 8, padding: "0.6rem" }}>
+                  {loading ? "Signing in…" : "Sign In"}
+                </button>
+                <p className="text-center mt-3 mb-0 small text-muted">
+                  No account?{" "}
+                  <button type="button" onClick={() => handleSwitchMode("register")}
+                    className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Create one</button>
+                </p>
+              </form>
+              <Divider />
+              <GoogleBtn label="Continue with Google" />
+            </>
+          )}
+
+          {/* ── SIGN UP STEP 1 ── */}
+          {mode === "register" && regStep === 1 && (
+            <>
+              <form onSubmit={handleRegStep1}>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small text-dark mb-1">Full Name</label>
+                  <input type="text" className="form-control" value={regForm.name}
+                    onChange={e => setRegForm(p => ({ ...p, name: e.target.value }))}
+                    required placeholder="Your full name" style={inp} autoFocus />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small text-dark mb-2">I am signing up as…</label>
+                  <div className="d-flex gap-2">
+                    {[["personal","Personal","Students & parents"],["institute","Institute","Schools & colleges"]].map(([r, label, sub]) => (
+                      <div key={r} onClick={() => setRegForm(p => ({ ...p, role: r }))}
+                        className="flex-fill text-center p-3 rounded-3"
+                        style={{ border: `2px solid ${regForm.role === r ? "#111" : "#e5e7eb"}`, cursor: "pointer", background: regForm.role === r ? "#f9fafb" : "#fff", transition: "all 0.15s" }}>
+                        <div className="fw-semibold small">{label}</div>
+                        <div className="text-muted" style={{ fontSize: "0.7rem" }}>{sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-dark w-100 fw-bold" style={{ borderRadius: 8, padding: "0.6rem" }}>
+                  Continue →
+                </button>
+                <p className="text-center mt-3 mb-0 small text-muted">
+                  Have an account?{" "}
+                  <button type="button" onClick={() => handleSwitchMode("login")}
+                    className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Sign in</button>
+                </p>
+              </form>
+              <Divider />
+              <GoogleBtn label="Sign up with Google" />
+            </>
+          )}
+
+          {/* ── SIGN UP STEP 2 ── */}
+          {mode === "register" && regStep === 2 && (
             <form onSubmit={handleRegister}>
               <div className="mb-3">
-                <label className="form-label fw-semibold small">Full Name</label>
-                <input type="text" className="form-control" value={regForm.name}
-                  onChange={e => setRegForm(p => ({ ...p, name: e.target.value }))} required placeholder="Your full name" />
-              </div>
-              <div className="mb-3">
-                <label className="form-label fw-semibold small">Email address</label>
+                <label className="form-label fw-semibold small text-dark mb-1">Email</label>
                 <input type="email" className="form-control" value={regForm.email}
-                  onChange={e => setRegForm(p => ({ ...p, email: e.target.value }))} required placeholder="you@example.com" />
+                  onChange={e => setRegForm(p => ({ ...p, email: e.target.value }))}
+                  required placeholder="you@example.com" style={inp} autoFocus />
               </div>
               <div className="mb-3">
-                <label className="form-label fw-semibold small">Password</label>
+                <label className="form-label fw-semibold small text-dark mb-1">Password</label>
                 <div className="position-relative">
                   <input type={showPw ? "text" : "password"} className="form-control pe-5" value={regForm.password}
-                    onChange={e => setRegForm(p => ({ ...p, password: e.target.value }))} required placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPw(!showPw)}
-                    className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 p-0 text-secondary">
+                    onChange={e => setRegForm(p => ({ ...p, password: e.target.value }))}
+                    required placeholder="••••••••" style={inp} />
+                  <button type="button" onClick={() => setShowPw(s => !s)}
+                    className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 p-0 text-secondary" style={{ fontSize: "0.95rem" }}>
                     {showPw ? "🙈" : "👁️"}
                   </button>
                 </div>
               </div>
               <div className="mb-3">
-                <label className="form-label fw-semibold small">Confirm Password</label>
+                <label className="form-label fw-semibold small text-dark mb-1">Confirm Password</label>
                 <input type={showPw ? "text" : "password"} className="form-control" value={regForm.confirmPassword}
-                  onChange={e => setRegForm(p => ({ ...p, confirmPassword: e.target.value }))} required placeholder="••••••••" />
+                  onChange={e => setRegForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                  required placeholder="••••••••" style={inp} />
               </div>
-              <div className="mb-4">
-                <label className="form-label fw-semibold small">Account Type</label>
-                <div className="d-flex gap-2">
-                  {["personal", "institute"].map(r => (
-                    <label key={r} className="flex-fill d-flex align-items-center gap-2 p-2 rounded-3"
-                      style={{ border: `1.5px solid ${regForm.role === r ? "#111" : "#e5e7eb"}`, cursor: "pointer", fontWeight: regForm.role === r ? 600 : 400, background: regForm.role === r ? "#f9fafb" : "#fff", fontSize: "0.875rem" }}>
-                      <input type="radio" name="role" value={r} checked={regForm.role === r}
-                        onChange={e => setRegForm(p => ({ ...p, role: e.target.value }))} style={{ accentColor: "#111" }} />
-                      {r === "personal" ? "Personal" : "Institute"}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className={`btn btn-dark w-100 fw-semibold ${loading ? "opacity-75" : ""}`}>
+              <button type="submit" disabled={loading}
+                className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                style={{ borderRadius: 8, padding: "0.6rem" }}>
                 {loading ? "Creating Account…" : "Create Account"}
               </button>
-              <p className="text-center mt-3 small text-muted">
-                Have an account?{" "}
-                <button type="button" onClick={() => { switchMode("login"); setError(""); }}
-                  className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Sign in</button>
-              </p>
+              <button type="button" onClick={() => { setRegStep(1); setError(""); }}
+                className="btn btn-link w-100 text-muted small mt-2 text-decoration-none">← Back</button>
             </form>
           )}
         </div>
@@ -157,6 +249,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
     </div>
   );
 };
+
 
 /* ─── Ticker ────────────────────────────────────────────────── */
 const TICKER_ITEMS = ["✓ 100% Authentic Products","📦 Same Day Fulfillment","👥 15K+ Happy Students","🏫 50+ Schools Covered","🚚 Free Delivery above ₹500","❤️ Donate & Share"];
@@ -222,10 +315,11 @@ const GuestToast = ({ onClose, onSignUp }) => (
 );
 
 /* ─── Product Card (guest) ──────────────────────────────────── */
-const ProductCard = ({ product, onGuestAction }) => {
+const ProductCard = ({ product, onGuestAction, onView }) => {
   const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
   return (
-    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb" }}>
+    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb", cursor: "pointer" }}
+      onClick={() => onView?.(product)}>
       {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
       <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
         {product.image_url
@@ -242,7 +336,7 @@ const ProductCard = ({ product, onGuestAction }) => {
           <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>
           {product.original_price && <span className="text-muted text-decoration-line-through small">₹{product.original_price}</span>}
         </div>
-        <button onClick={onGuestAction} className="btn btn-dark btn-sm fw-semibold d-flex align-items-center justify-content-center gap-1 mt-1">
+        <button onClick={e => { e.stopPropagation(); onGuestAction(); }} className="btn btn-dark btn-sm fw-semibold d-flex align-items-center justify-content-center gap-1 mt-1">
           <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add to Cart
         </button>
       </div>
@@ -266,7 +360,7 @@ const Footer = ({ onLogin }) => (
         <div className="col-md-4">
           <h6 className="fw-bold mb-3">Contact</h6>
           <p className="text-muted small lh-lg mb-0">
-            123 Education Street<br />Knowledge Park, New Delhi<br /><br />+91 98765 43210<br />hello@smartstationery.com
+            123 Education Street<br />Knowledge Park, Lamjung<br /><br />+91 98765 43210<br />hello@smartstationery.com
           </p>
         </div>
         <div className="col-md-2 col-6">
@@ -307,6 +401,7 @@ const LandingPage = ({ setUser }) => {
   const [showToast, setShowToast] = useState(false);
   const [donations, setDonations] = useState([]);
   const [bookSets, setBookSets] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     axios.get(`${API}/products`)
@@ -403,7 +498,7 @@ const LandingPage = ({ setUser }) => {
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-                {products.slice(0, 8).map(p => <ProductCard key={p.id} product={p} onGuestAction={handleGuestAction} />)}
+                {products.slice(0, 8).map(p => <ProductCard key={p.id} product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} />)}
               </div>
             )}
             <div className="text-center mt-4">
@@ -544,6 +639,15 @@ const LandingPage = ({ setUser }) => {
       )}
 
       {showToast && <GuestToast onClose={() => setShowToast(false)} onSignUp={() => { setShowToast(false); openRegister(); }} />}
+
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          isGuest={true}
+          onGuestAction={() => { setSelectedProduct(null); handleGuestAction(); }}
+        />
+      )}
     </div>
   );
 };

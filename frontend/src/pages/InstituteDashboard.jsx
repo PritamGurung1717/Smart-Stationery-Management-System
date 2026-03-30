@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaChevronRight, FaShoppingCart, FaBook, FaClipboardList,
   FaBoxOpen, FaGift, FaPaperPlane, FaHistory,
+  FaHeart, FaShoppingBag, FaStar,
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import ProductModal from "../components/ProductModal.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -99,6 +101,99 @@ const QuickActions = ({ navigate, pendingRequestCount }) => {
               <div style={{ fontSize: "0.8rem", color: a.primary ? "rgba(255,255,255,0.65)" : "#9ca3af" }}>{a.sub}</div>
             </button>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Product Card ──────────────────────────────────────────── */
+const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist, onView }) => {
+  const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
+  const inStock = (product.stock_quantity || 0) > 0;
+  return (
+    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb", cursor: "pointer" }}
+      onClick={() => onView?.(product)}>
+      {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
+      <button onClick={e => { e.stopPropagation(); onWishlist?.(product); }} className="btn btn-link position-absolute p-0"
+        style={{ top: 10, left: 10, color: inWishlist ? "#ef4444" : "#ccc", fontSize: "1rem", zIndex: 1 }}>
+        <FaHeart />
+      </button>
+      <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
+          : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
+      </div>
+      <div className="p-3 flex-grow-1 d-flex flex-column gap-1">
+        <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>{product.category}</span>
+        <div className="fw-semibold small lh-sm" style={{ minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
+        <div className="d-flex align-items-center gap-1">
+          {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />)}
+          <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>(4.0)</span>
+        </div>
+        <div className="d-flex align-items-center gap-2 mt-auto">
+          <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>
+          {product.original_price && <span className="text-muted text-decoration-line-through small">₹{product.original_price}</span>}
+        </div>
+        {inStock ? (
+          <div className="d-flex align-items-center justify-content-between mt-1">
+            <input type="number" min={1} max={product.stock_quantity} value={qty || 1}
+              onChange={e => { e.stopPropagation(); onQtyChange?.(product.id, e.target.value); }}
+              onClick={e => e.stopPropagation()}
+              className="form-control text-center" style={{ width: 52, fontSize: "0.85rem", padding: "0.3rem 0.4rem" }} />
+            <button onClick={e => { e.stopPropagation(); onCart?.(product.id, qty || 1); }}
+              className="btn btn-dark btn-sm d-flex align-items-center gap-1">
+              <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add
+            </button>
+          </div>
+        ) : (
+          <div className="text-danger fw-semibold mt-1" style={{ fontSize: "0.8rem" }}>Out of Stock</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Featured Products ─────────────────────────────────────── */
+const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate, onView }) => {
+  const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
+  return (
+    <section className="py-5" style={{ background: "#fafafa" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CURATED</p>
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+          <div>
+            <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Featured Products</h2>
+            <p className="text-success small mb-0 mt-1 fw-semibold">✓ 10% institute discount applied at checkout</p>
+          </div>
+          <div className="d-flex gap-2 flex-wrap">
+            {FILTER_CATS.map(c => (
+              <button key={c} onClick={() => onSelect(c === "All" ? "all" : c.toLowerCase())}
+                className={`btn btn-sm fw-semibold rounded-pill ${(selected === "all" && c === "All") || selected === c.toLowerCase() ? "btn-dark" : "btn-outline-dark"}`}>
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        {products.length === 0 ? (
+          <div className="text-center py-5 text-muted">
+            <FaShoppingBag style={{ fontSize: "3rem" }} className="mb-3 d-block mx-auto" />
+            <p>No products found</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+            {products.slice(0, 8).map(p => (
+              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
+                onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView} />
+            ))}
+          </div>
+        )}
+        <div className="text-center mt-4">
+          <button onClick={() => navigate("/products")}
+            className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
+            View all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
+          </button>
         </div>
       </div>
     </section>
@@ -329,6 +424,13 @@ const InstituteDashboard = ({ setUser }) => {
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState("pending");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
+  const [quantities, setQuantities] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const wishlistProcessing = useRef(new Set());
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "null");
@@ -348,6 +450,17 @@ const InstituteDashboard = ({ setUser }) => {
       ]);
       setOrders(ordersRes.data.orders || []);
       setCart(cartRes.data.cart || { items: [] });
+      // Fetch products + wishlist
+      const [prodRes, wlRes] = await Promise.all([
+        axios.get(`${API}/products`, { headers: authH() }).catch(() => ({ data: { products: [] } })),
+        axios.get(`${API}/wishlist`, { headers: authH() }).catch(() => ({ data: { success: false } })),
+      ]);
+      const prods = prodRes.data.products || [];
+      setAllProducts(prods); setProducts(prods);
+      const q = {}; prods.forEach(p => { q[p.id] = 1; }); setQuantities(q);
+      if (wlRes.data.success) {
+        setWishlist(wlRes.data.wishlist.map(i => ({ ...i.product, wishlistId: i._id, product_id: i.product?.id })));
+      }
       try {
         const donRes = await axios.get(`${API}/donations/user/donations`, { headers: authH() });
         const donations = donRes.data.donations || [];
@@ -361,6 +474,40 @@ const InstituteDashboard = ({ setUser }) => {
       } catch {}
     } catch {}
     finally { setLoading(false); }
+  };
+
+  const addToCart = async (productId, quantity = 1) => {
+    try {
+      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: authH() });
+      alert("Added to cart!");
+    } catch (e) { alert(e.response?.data?.message || "Failed to add to cart"); }
+  };
+
+  const toggleWishlist = async (product) => {
+    if (wishlistProcessing.current.has(product.id)) return;
+    wishlistProcessing.current.add(product.id);
+    const inWl = isInWishlist(product.id);
+    if (inWl) {
+      const next = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
+      setWishlist(next);
+      window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
+      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() }); }
+      catch { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
+    } else {
+      const next = [...wishlist, { ...product, product_id: product.id }];
+      setWishlist(next);
+      window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
+      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() }); }
+      catch { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
+    }
+    wishlistProcessing.current.delete(product.id);
+  };
+
+  const isInWishlist = (id) => wishlist.some(i => i.id === id || i.product_id === id);
+
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    setProducts(cat === "all" ? allProducts : allProducts.filter(p => p.category === cat));
   };
 
   const handleLogout = () => {
@@ -417,9 +564,29 @@ const InstituteDashboard = ({ setUser }) => {
       <Hero user={user} navigate={navigate} />
       <StatsRow orders={orders} cartCount={cartCount} pendingRequestCount={pendingRequestCount} />
       <QuickActions navigate={navigate} pendingRequestCount={pendingRequestCount} />
+      <FeaturedProducts
+        products={products} selected={selectedCategory} onSelect={handleCategorySelect}
+        quantities={quantities}
+        onQtyChange={(id, v) => {
+          const n = parseInt(v) || 1;
+          const p = allProducts.find(x => x.id === id);
+          setQuantities(q => ({ ...q, [id]: p ? Math.min(n, p.stock_quantity) : n }));
+        }}
+        onCart={addToCart} onWishlist={toggleWishlist} isInWishlist={isInWishlist}
+        navigate={navigate} onView={setSelectedProduct}
+      />
       <BookSetsSection navigate={navigate} />
       <RecentOrders orders={orders} navigate={navigate} />
       <DonationSection navigate={navigate} />
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onCart={addToCart}
+          onWishlist={toggleWishlist}
+          inWishlist={isInWishlist(selectedProduct.id)}
+        />
+      )}
     </SharedLayout>
   );
 };

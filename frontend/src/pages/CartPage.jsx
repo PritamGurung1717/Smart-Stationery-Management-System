@@ -9,7 +9,7 @@ const CartPage = () => {
   const [cart, setCart] = useState({ items: [] });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "Nepal" });
+  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "" });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -24,7 +24,24 @@ const CartPage = () => {
   const fetchCart = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/users/cart");
-      setCart(res.data.cart || { items: [] });
+      const cartData = res.data.cart || { items: [] };
+
+      // Enrich items with product details since product is stored as integer ID
+      if (cartData.items?.length) {
+        const enriched = await Promise.all(cartData.items.map(async item => {
+          // If product is already an object with name, use it
+          if (item.product && typeof item.product === "object" && item.product.name) return item;
+          // Otherwise fetch product details by ID
+          try {
+            const pid = typeof item.product === "object" ? item.product.id : item.product;
+            const pr = await axios.get(`http://localhost:5000/api/products/${pid}`);
+            return { ...item, product: pr.data.product || item.product };
+          } catch { return item; }
+        }));
+        setCart({ ...cartData, items: enriched });
+      } else {
+        setCart(cartData);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -53,6 +70,7 @@ const CartPage = () => {
   const subtotal = cart.items.reduce((t, i) => t + i.price * i.quantity, 0);
   const discount = user?.role === "institute" ? subtotal * 0.1 : 0;
   const total = subtotal - discount;
+  const fmt = (n) => Number(n).toLocaleString("en-IN");
 
   const proceedToCheckout = () => {
     if (cart.items.length === 0) { alert("Your cart is empty!"); return; }
@@ -111,11 +129,11 @@ const CartPage = () => {
                     <div className="d-flex align-items-center gap-2">
                       {item.product?.image && <img src={item.product.image} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover" }} />}
                       <div>
-                        <div className="fw-semibold small">{item.product?.name || "Product"}</div>
+                        <div className="fw-semibold small">{item.product?.name || item.name || `Product #${item.product}`}</div>
                         <div className="text-muted" style={{ fontSize: "0.78rem" }}>{item.product?.category || ""}</div>
                       </div>
                     </div>
-                    <div className="text-center fw-semibold small">₹{item.price}</div>
+                    <div className="text-center fw-semibold small">₹{fmt(item.price)}</div>
                     <div className="d-flex align-items-center justify-content-center gap-2">
                       <button onClick={() => updateQuantity(item.product?.id || item.product, item.quantity - 1)}
                         className="btn btn-outline-secondary btn-sm" style={{ width: 28, height: 28, padding: 0, lineHeight: 1 }}>−</button>
@@ -123,7 +141,7 @@ const CartPage = () => {
                       <button onClick={() => updateQuantity(item.product?.id || item.product, item.quantity + 1)}
                         className="btn btn-outline-secondary btn-sm" style={{ width: 28, height: 28, padding: 0, lineHeight: 1 }}>+</button>
                     </div>
-                    <div className="text-center fw-bold">₹{item.price * item.quantity}</div>
+                    <div className="text-center fw-bold">₹{fmt(item.price * item.quantity)}</div>
                     <div className="text-center">
                       <button onClick={() => removeFromCart(item.product?.id || item.product)}
                         className="btn btn-link p-0 text-danger small fw-semibold text-decoration-none">Remove</button>
@@ -160,7 +178,8 @@ const CartPage = () => {
                   </div>
                   <div className="col-6">
                     <label className="form-label fw-semibold small">Country</label>
-                    <input type="text" className="form-control bg-light text-muted" value={shippingAddress.country} readOnly />
+                    <input type="text" className="form-control" placeholder="Country"
+                      value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -170,13 +189,13 @@ const CartPage = () => {
             <div className="col-lg-4">
               <div className="border rounded-3 bg-white p-4" style={{ position: "sticky", top: 80 }}>
                 <h5 className="fw-bold mb-4">Order Summary</h5>
-                <div className="d-flex justify-content-between mb-2 small text-secondary"><span>Subtotal</span><span>₹{subtotal}</span></div>
+                <div className="d-flex justify-content-between mb-2 small text-secondary"><span>Subtotal</span><span>₹{fmt(subtotal)}</span></div>
                 <div className="d-flex justify-content-between mb-2 small"><span className="text-secondary">Shipping</span><span className="text-success fw-semibold">Free</span></div>
                 {discount > 0 && (
-                  <div className="d-flex justify-content-between mb-2 small text-success"><span>Bulk Discount (10%)</span><span>-₹{discount.toFixed(2)}</span></div>
+                  <div className="d-flex justify-content-between mb-2 small text-success"><span>Bulk Discount (10%)</span><span>-₹{fmt(discount.toFixed(2))}</span></div>
                 )}
                 <div className="d-flex justify-content-between fw-bold border-top pt-3 mt-2" style={{ fontSize: "1.1rem" }}>
-                  <span>Total</span><span>₹{total.toFixed(2)}</span>
+                  <span>Total</span><span>₹{fmt(total.toFixed(2))}</span>
                 </div>
                 {user?.role === "institute" && (
                   <div className="alert alert-info small py-2 mt-3 mb-0">Institute discount of 10% applied on all orders.</div>

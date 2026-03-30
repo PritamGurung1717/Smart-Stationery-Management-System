@@ -66,6 +66,7 @@ app.use('/api', bookSetRoutes); // Add book set routes
 app.use('/api/donations', donationRoutes); // Add donation routes
 app.use('/api/notifications', notificationRoutes); // Add notification routes
 app.use('/api/requests', requestRoutes); // Add item request routes
+app.use('/api/reviews', require('./routes/reviewRoutes')); // Add review routes
 
 // Health check route
 app.get("/api/health", (req, res) => {

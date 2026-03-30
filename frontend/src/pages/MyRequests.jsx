@@ -39,9 +39,8 @@ const MyRequests = () => {
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
         </button>
 
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MY ACCOUNT</p>
-        <h1 className="fw-bold mb-4 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>
-          <FaHandHoldingHeart /> My Requests
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1.1 }} className="mb-4">
+          My Requests
         </h1>
 
         {error && <div className="alert alert-danger small py-2">{error}</div>}

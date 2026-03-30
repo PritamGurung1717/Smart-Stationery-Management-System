@@ -102,7 +102,6 @@ const UserOrders = () => {
               className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>Account</p>
             <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1.1 }} className="mb-1">My Orders</h1>
             <p className="text-muted small mb-0">{total} order{total !== 1 ? "s" : ""} total</p>
           </div>
@@ -155,62 +154,62 @@ const UserOrders = () => {
             <button onClick={() => navigate("/products")} className="btn btn-dark fw-semibold">Browse Products</button>
           </div>
         ) : (
-          <div className="d-flex flex-column gap-3">
-            {filtered.map(order => (
-              <div key={order.id} className="border rounded-3 bg-white px-4 py-3">
-                <div className="d-flex align-items-center gap-3 flex-wrap">
-                  {/* Icon + ID */}
-                  <div className="d-flex align-items-center gap-3" style={{ minWidth: 160 }}>
-                    <div className="rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: 44, height: 44 }}>
-                      <FaBox className="text-secondary" style={{ fontSize: "1.1rem" }} />
-                    </div>
-                    <div>
-                      <div className="fw-bold small">ORD-{order.id}</div>
-                      <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                        {new Date(order.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          <div className="border rounded-3 overflow-hidden">
+            <table className="table table-hover mb-0 align-middle">
+              <thead className="table-light">
+                <tr>
+                  <th className="fw-bold small text-dark py-3">Order ID</th>
+                  <th className="fw-bold small text-dark py-3">Date</th>
+                  <th className="fw-bold small text-dark py-3">Items</th>
+                  <th className="fw-bold small text-dark py-3">Amount</th>
+                  <th className="fw-bold small text-dark py-3">Status</th>
+                  <th className="fw-bold small text-dark py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(order => (
+                  <tr key={order.id}>
+                    <td className="fw-semibold small">ORD-{order.id}</td>
+                    <td className="text-muted small text-nowrap">
+                      {new Date(order.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="small text-secondary" style={{ maxWidth: 200 }}>
+                      {(order.products || []).slice(0, 2).map((p, i) => (
+                        <div key={i}>{p.productName} <span className="text-muted">×{p.quantity}</span></div>
+                      ))}
+                      {(order.products || []).length > 2 && (
+                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>
+                      )}
+                    </td>
+                    <td>
+                      <div className="fw-bold small">Rs.{order.totalAmount}</div>
+                      {order.discount > 0 && <div className="text-success" style={{ fontSize: "0.72rem" }}>−Rs.{order.discount} off</div>}
+                    </td>
+                    <td><StatusBadge status={order.orderStatus} /></td>
+                    <td>
+                      <div className="d-flex flex-wrap gap-1">
+                        <button onClick={() => navigate(`/orders/${order.id}`)} className="btn btn-outline-secondary btn-sm fw-semibold">
+                          Details
+                        </button>
+                        <button onClick={() => handleInvoice(order.id)} className="btn btn-outline-secondary btn-sm fw-semibold">
+                          Invoice
+                        </button>
+                        {order.orderStatus === "pending" && (
+                          <button onClick={() => handleCancel(order.id)} className="btn btn-outline-danger btn-sm fw-semibold">
+                            Cancel
+                          </button>
+                        )}
+                        {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") && (
+                          <button onClick={() => handleConfirmDelivery(order.id)} className="btn btn-outline-success btn-sm fw-semibold">
+                            Received
+                          </button>
+                        )}
                       </div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>{(order.products || []).length} item{(order.products || []).length !== 1 ? "s" : ""}</div>
-                    </div>
-                  </div>
-
-                  {/* Products */}
-                  <div className="flex-grow-1 small text-secondary" style={{ minWidth: 140 }}>
-                    {(order.products || []).slice(0, 2).map((p, i) => (
-                      <div key={i} className="mb-1">{p.productName} <span className="text-muted">×{p.quantity}</span></div>
-                    ))}
-                    {(order.products || []).length > 2 && <div className="text-muted" style={{ fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>}
-                  </div>
-
-                  {/* Amount + Status */}
-                  <div style={{ minWidth: 110 }}>
-                    <div className="fw-bold mb-1">Rs.{order.totalAmount}</div>
-                    {order.discount > 0 && <div className="text-success mb-1" style={{ fontSize: "0.72rem" }}>−Rs.{order.discount} off</div>}
-                    <StatusBadge status={order.orderStatus} />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="d-flex flex-wrap gap-2 justify-content-end">
-                    <button onClick={() => navigate(`/orders/${order.id}`)} className="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1">
-                      <FaEye /> Details
-                    </button>
-                    <button onClick={() => handleInvoice(order.id)} className="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1">
-                      <FaFileInvoice /> Invoice
-                    </button>
-                    {order.orderStatus === "pending" && (
-                      <button onClick={() => handleCancel(order.id)} className="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center gap-1">
-                        <FaTimes /> Cancel
-                      </button>
-                    )}
-                    {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") && (
-                      <button onClick={() => handleConfirmDelivery(order.id)} className="btn btn-outline-success btn-sm fw-semibold d-flex align-items-center gap-1">
-                        <FaCheckCircle /> Received
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
