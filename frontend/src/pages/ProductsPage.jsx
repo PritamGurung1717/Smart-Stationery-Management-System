@@ -22,7 +22,7 @@ const ProductCard = ({ product, qty, onQtyChange, onCart, onView, onWishlist, in
       </button>
       <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          ? <img src={product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
           : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
       </div>

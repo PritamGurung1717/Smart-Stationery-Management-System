@@ -17,6 +17,10 @@ import InstituteVerification from "./pages/InstituteVerification.jsx";
 import InstituteBookSetRequest from "./pages/InstituteBookSetRequest.jsx";
 import AddProduct from "./pages/admin/AddProduct.jsx";
 import EditProduct from "./pages/admin/EditProduct.jsx";
+import AdminOrderDetails from "./pages/admin/AdminOrderDetails.jsx";
+import AdminBookSetRequestDetails from "./pages/admin/AdminBookSetRequestDetails.jsx";
+import AdminDonationDetails from "./pages/admin/AdminDonationDetails.jsx";
+import AdminBookSetDetails from "./pages/admin/AdminBookSetDetails.jsx";
 import UserProfile from "./pages/UserProfile.jsx";
 import BookSetBrowser from "./components/BookSetBrowser.jsx";
 import BookSetDetails from "./pages/BookSetDetails.jsx";
@@ -336,6 +340,23 @@ function App() {
               <Navigate to="/" replace />
             )
           }
+        />
+
+        <Route
+          path="/admin/orders/:id"
+          element={user && user.role === "admin" ? <AdminOrderDetails /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/book-set-requests/:id"
+          element={user && user.role === "admin" ? <AdminBookSetRequestDetails /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/book-sets/:id"
+          element={user && user.role === "admin" ? <AdminBookSetDetails /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/donations/:id"
+          element={user && user.role === "admin" ? <AdminDonationDetails /> : <Navigate to="/" replace />}
         />
 
         {/* Catch-all route */}

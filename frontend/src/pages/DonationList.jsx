@@ -21,7 +21,7 @@ const CardImages = ({ images, title }) => {
     );
   }
 
-  const imgSrc = images[idx].startsWith("http") ? images[idx] : `${API}/${images[idx]}`;
+  const imgSrc = images[idx].startsWith("http") ? images[idx] : `${API}${images[idx].startsWith("/") ? "" : "/"}${images[idx]}`;
 
   return (
     <div style={{ height: 180, position: "relative", overflow: "hidden" }} className="bg-light">

@@ -23,6 +23,10 @@ const NotificationsPage = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [error, setError] = useState("");
 
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isAdmin = user?.role === "admin";
+  const backPath = isAdmin ? "/admin-dashboard" : "/dashboard";
+
   useEffect(() => { fetchNotifications(); }, []);
 
   const fetchNotifications = async () => {
@@ -67,14 +71,13 @@ const NotificationsPage = () => {
     if (n.link) navigate(n.link);
   };
 
-  return (
-    <SharedLayout>
-      <div style={{ maxWidth: 700, margin: "0 auto" }} className="px-3 py-5">
+  const content = (
+    <div style={{ maxWidth: 700, margin: "0 auto" }} className="px-3 py-5">
 
         {/* Header */}
         <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
           <div>
-            <button onClick={() => navigate("/dashboard")}
+            <button onClick={() => navigate(backPath)}
               className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
               <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
             </button>
@@ -163,8 +166,17 @@ const NotificationsPage = () => {
           </div>
         )}
       </div>
-    </SharedLayout>
   );
+
+  if (isAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#fafafa" }}>
+        {content}
+      </div>
+    );
+  }
+
+  return <SharedLayout>{content}</SharedLayout>;
 };
 
 export default NotificationsPage;

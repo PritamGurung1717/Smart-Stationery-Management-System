@@ -293,7 +293,7 @@ const DonationSection = () => {
                     >
                       {donation.images && donation.images.length > 0 ? (
                         <img
-                          src={`http://localhost:5000${donation.images[0]}`}
+                          src={donation.images[0].startsWith("http") ? donation.images[0] : `http://localhost:5000${donation.images[0]}`}
                           alt={donation.title}
                           style={{
                             width: "100%",

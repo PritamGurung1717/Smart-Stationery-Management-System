@@ -121,7 +121,7 @@ const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist
       </button>
       <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          ? <img src={product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
           : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
       </div>
@@ -129,8 +129,6 @@ const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist
         <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>{product.category}</span>
         <div className="fw-semibold small lh-sm" style={{ minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
         <div className="d-flex align-items-center gap-1">
-          {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />)}
-          <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>(4.0)</span>
         </div>
         <div className="d-flex align-items-center gap-2 mt-auto">
           <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>

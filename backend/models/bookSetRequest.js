@@ -182,6 +182,13 @@ bookSetRequestSchema.pre("save", function (next) {
 
 // Custom findById that works with integer ID
 bookSetRequestSchema.statics.findById = function(id) {
+  if (typeof id === "string" && /^[a-f\d]{24}$/i.test(id)) {
+    return this.findOne({ _id: id });
+  }
+  const mongoose = require("mongoose");
+  if (id instanceof mongoose.Types.ObjectId) {
+    return this.findOne({ _id: id });
+  }
   const parsedId = parseInt(id);
   if (!isNaN(parsedId)) {
     return this.findOne({ id: parsedId });

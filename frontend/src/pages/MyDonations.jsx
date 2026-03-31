@@ -134,7 +134,7 @@ const MyDonations = () => {
                     <td>
                       <div className="d-flex align-items-center gap-2">
                         {d.images?.[0]
-                          ? <img src={`http://localhost:5000${d.images[0]}`} alt={d.title} className="rounded-2 flex-shrink-0" style={{ width: 44, height: 44, objectFit: "cover" }} />
+                          ? <img src={d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`} alt={d.title} className="rounded-2 flex-shrink-0" style={{ width: 44, height: 44, objectFit: "cover" }} />
                           : <div className="rounded-2 bg-light d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 44, height: 44 }}>📦</div>}
                         <span className="fw-semibold small">{d.title}</span>
                       </div>

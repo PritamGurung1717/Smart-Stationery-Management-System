@@ -323,7 +323,7 @@ const ProductCard = ({ product, onGuestAction, onView }) => {
       {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
       <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
         {product.image_url
-          ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
+          ? <img src={product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
           : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
       </div>
       <div className="p-3 flex-grow-1 d-flex flex-column gap-1">
@@ -537,7 +537,7 @@ const LandingPage = ({ setUser }) => {
                   {donations.length === 0 ? (
                     <div className="bg-white text-center text-muted small p-4">No donations yet</div>
                   ) : donations.map(d => {
-                    const imgSrc = d.images?.[0] ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000/${d.images[0]}`) : null;
+                    const imgSrc = d.images?.[0] ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`) : null;
                     return (
                       <div key={d.id || d._id} className="bg-white d-flex align-items-center gap-3 px-3 py-2"
                         onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}

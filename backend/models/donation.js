@@ -111,8 +111,18 @@ donationSchema.index({ title: "text", description: "text" });
 donationSchema.index({ category: 1, status: 1 });
 donationSchema.index({ donor_id: 1, status: 1 });
 
-// Custom findById that works with integer ID
+// Custom findById that works with both integer ID and MongoDB ObjectId
 donationSchema.statics.findById = function (id) {
+  // Check if it's a valid MongoDB ObjectId (24-char hex string)
+  if (typeof id === "string" && /^[a-f\d]{24}$/i.test(id)) {
+    return this.findOne({ _id: id });
+  }
+  // Check if it's an actual ObjectId instance
+  const mongoose = require("mongoose");
+  if (id instanceof mongoose.Types.ObjectId) {
+    return this.findOne({ _id: id });
+  }
+  // Fall back to numeric id
   const parsedId = parseInt(id);
   if (!isNaN(parsedId)) {
     return this.findOne({ id: parsedId });

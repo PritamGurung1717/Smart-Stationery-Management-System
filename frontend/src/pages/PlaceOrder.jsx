@@ -76,7 +76,7 @@ const PlaceOrder = () => {
               {products.map(p => (
                 <div key={p.id} className="col-sm-6 col-md-4">
                   <div className="border rounded-3 bg-white p-3 h-100">
-                    {p.image && <img src={p.image} alt={p.name} className="rounded-2 w-100 mb-2" style={{ height: 140, objectFit: "cover" }} />}
+                    {p.image && <img src={p.image.startsWith("http") ? p.image : `http://localhost:5000${p.image}`} alt={p.name} className="rounded-2 w-100 mb-2" style={{ height: 140, objectFit: "cover" }} />}
                     <div className="fw-bold small mb-1">{p.name}</div>
                     <div className="text-muted" style={{ fontSize: "0.82rem" }}>{p.category}</div>
                     <div className="fw-bold mb-1">₹{p.price}</div>

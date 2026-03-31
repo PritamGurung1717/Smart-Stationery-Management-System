@@ -1,40 +1,396 @@
-// frontend/src/pages/admin/AdminDashboard.jsx - FIXED WITH UNIQUE KEYS
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import {
-  Container, Row, Col, Card, Button, Table, Badge,
-  Spinner, Nav, Modal, Alert, Form, InputGroup, Pagination
-} from "react-bootstrap";
+import AdminLayout from "../../components/AdminLayout.jsx";
 import {
   FaPlus, FaEdit, FaTrash, FaEye, FaChartLine,
   FaUsers, FaBox, FaShoppingCart, FaCheckCircle,
   FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
-  FaRupeeSign, FaCube, FaListOl, FaSync, FaSearch, FaFilter,
-  FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen
+  FaRupeeSign, FaSync, FaSearch,
+  FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen,
+  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes
 } from "react-icons/fa";
-import NotificationBell from "../../components/NotificationBell.jsx";
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from "recharts";
 
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── Sidebar ───────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  { id: "dashboard",         icon: <FaTachometerAlt />, label: "Dashboard" },
+  { id: "users",             icon: <FaUsers />,         label: "Users" },
+  { id: "products",          icon: <FaBox />,           label: "Products" },
+  { id: "orders",            icon: <FaShoppingCart />,  label: "Orders" },
+  { id: "verifications",     icon: <FaUserCheck />,     label: "Verifications" },
+  { id: "book-set-requests", icon: <FaChartLine />,     label: "Book Set Requests" },
+  { id: "donations",         icon: <FaGift />,          label: "Donations" },
+  { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests" },
+  { id: "notifications",     icon: <FaBell />,          label: "Notifications" },
+];
+
+const Sidebar = ({ active, onTab, admin, stats, onLogout, unreadNotifs }) => (
+  <div className="d-flex flex-column bg-white border-end"
+    style={{ width: 240, minHeight: "100vh", position: "sticky", top: 0, flexShrink: 0 }}>
+    {/* Brand */}
+    <div className="px-4 py-4 border-bottom">
+      <h5 className="fw-bold mb-0" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.3rem", letterSpacing: "-0.01em" }}>
+        smart stationery.
+      </h5>
+      <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.6rem", letterSpacing: "0.12em" }}>Admin Panel</span>
+    </div>
+    {/* Admin info */}
+    <div className="px-4 py-3 border-bottom">
+      <div className="d-flex align-items-center gap-2">
+        <div className="rounded-circle bg-dark d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{ width: 36, height: 36 }}>
+          <span className="text-white fw-bold" style={{ fontSize: "0.85rem" }}>
+            {admin?.name?.charAt(0)?.toUpperCase() || "A"}
+          </span>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div className="fw-semibold small text-truncate">{admin?.name}</div>
+          <div className="text-muted" style={{ fontSize: "0.7rem" }}>Administrator</div>
+        </div>
+      </div>
+    </div>
+    {/* Nav */}
+    <nav className="flex-grow-1 py-3 px-2">
+      {NAV_ITEMS.map(item => {
+        const badge =
+          item.id === "users" ? stats.totalUsers :
+          item.id === "products" ? stats.totalProducts :
+          item.id === "orders" ? stats.totalOrders :
+          item.id === "verifications" ? (stats.pendingVerifications || null) :
+          item.id === "notifications" ? (unreadNotifs || null) :
+          null;
+        const badgeDanger = (item.id === "verifications" && stats.pendingVerifications > 0) ||
+                            (item.id === "notifications" && unreadNotifs > 0);
+        return (
+          <button key={item.id}
+            onClick={() => onTab(item.id)}
+            className="btn border-0 w-100 text-start d-flex align-items-center gap-2 mb-1"
+            style={{
+              padding: "0.6rem 0.85rem",
+              borderRadius: 8,
+              background: active === item.id ? "#111" : "transparent",
+              color: active === item.id ? "#fff" : "#374151",
+              fontSize: "0.875rem",
+              fontWeight: active === item.id ? 600 : 400,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { if (active !== item.id) e.currentTarget.style.background = "#f3f4f6"; }}
+            onMouseLeave={e => { if (active !== item.id) e.currentTarget.style.background = "transparent"; }}>
+            <span style={{ fontSize: "0.85rem", opacity: active === item.id ? 1 : 0.6 }}>{item.icon}</span>
+            <span className="flex-grow-1">{item.label}</span>
+            {badge != null && (
+              <span className={`badge rounded-pill ${badgeDanger ? "bg-danger" : active === item.id ? "bg-white text-dark" : "bg-dark text-white"}`}
+                style={{ fontSize: "0.65rem" }}>
+                {badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
+    {/* Logout */}
+    <div className="px-2 py-3 border-top">
+      <button onClick={onLogout}
+        className="btn border-0 w-100 text-start d-flex align-items-center gap-2"
+        style={{ padding: "0.6rem 0.85rem", borderRadius: 8, color: "#ef4444", fontSize: "0.875rem" }}
+        onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+        <FaSignOutAlt style={{ fontSize: "0.85rem" }} />
+        Logout
+      </button>
+    </div>
+  </div>
+);
+
+/* ─── Stat Card ─────────────────────────────────────────────── */
+const StatCard = ({ label, value, sub, icon, accent }) => (
+  <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
+    <div className="d-flex justify-content-between align-items-start mb-3">
+      <div className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>{label}</div>
+      <div style={{ fontSize: "1rem", color: accent || "#9ca3af" }}>{icon}</div>
+    </div>
+    <div className="fw-bold" style={{ fontSize: "1.75rem", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</div>
+    {sub && <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>{sub}</div>}
+  </div>
+);
+
+/* ─── Section Header ────────────────────────────────────────── */
+const SectionHeader = ({ title, sub, action }) => (
+  <div className="d-flex justify-content-between align-items-end mb-4">
+    <div>
+      {sub && <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>{sub}</p>}
+      <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>{title}</h2>
+    </div>
+    {action}
+  </div>
+);
+
+/* ─── Pagination ────────────────────────────────────────────── */
+const Pager = ({ current, total, onPage }) => {
+  if (total <= 1) return null;
+  const pages = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) pages.push(i);
+    else if (i === current - 3 || i === current + 3) pages.push("...");
+  }
+  return (
+    <div className="d-flex justify-content-center gap-1 mt-4">
+      <button className="btn btn-sm btn-outline-dark" disabled={current === 1} onClick={() => onPage(current - 1)}>‹</button>
+      {pages.map((p, i) =>
+        p === "..." ? <span key={`e${i}`} className="btn btn-sm disabled">…</span> :
+        <button key={p} onClick={() => onPage(p)}
+          className={`btn btn-sm ${p === current ? "btn-dark" : "btn-outline-dark"}`}>{p}</button>
+      )}
+      <button className="btn btn-sm btn-outline-dark" disabled={current === total} onClick={() => onPage(current + 1)}>›</button>
+    </div>
+  );
+};
+
+/* ─── Table Shell ───────────────────────────────────────────── */
+const TableShell = ({ heads, children, loading }) => (
+  <div className="border" style={{ borderColor: "#e5e7eb", overflowX: "auto" }}>
+    {loading ? (
+      <div className="text-center py-5 text-muted">
+        <div className="spinner-border spinner-border-sm me-2" role="status" />
+        Loading…
+      </div>
+    ) : (
+      <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.875rem" }}>
+        <thead style={{ background: "#f9fafb" }}>
+          <tr>
+            {heads.map(h => (
+              <th key={h.label || h} className="fw-semibold text-muted py-3 px-3"
+                style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap", cursor: h.onClick ? "pointer" : "default" }}
+                onClick={h.onClick}>
+                {h.label || h} {h.sort}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    )}
+  </div>
+);
+
+/* ─── Status Badge ──────────────────────────────────────────── */
+const STATUS_STYLES = {
+  pending:   { bg: "#fef3c7", color: "#92400e" },
+  confirmed: { bg: "#dbeafe", color: "#1e40af" },
+  processing:{ bg: "#ede9fe", color: "#5b21b6" },
+  shipped:   { bg: "#d1fae5", color: "#065f46" },
+  delivered: { bg: "#d1fae5", color: "#065f46" },
+  cancelled: { bg: "#fee2e2", color: "#991b1b" },
+  approved:  { bg: "#d1fae5", color: "#065f46" },
+  rejected:  { bg: "#fee2e2", color: "#991b1b" },
+  active:    { bg: "#d1fae5", color: "#065f46" },
+  suspended: { bg: "#fee2e2", color: "#991b1b" },
+  available: { bg: "#d1fae5", color: "#065f46" },
+  reserved:  { bg: "#fef3c7", color: "#92400e" },
+  completed: { bg: "#d1fae5", color: "#065f46" },
+};
+const StatusPill = ({ status }) => {
+  const s = STATUS_STYLES[status] || { bg: "#f3f4f6", color: "#374151" };
+  return (
+    <span className="fw-semibold text-capitalize" style={{ background: s.bg, color: s.color, padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem" }}>
+      {status?.replace(/_/g, " ")}
+    </span>
+  );
+};
+
+/* ─── Delete Confirm Modal ──────────────────────────────────── */
+const DeleteModal = ({ show, item, onConfirm, onCancel, loading }) => {
+  if (!show) return null;
+  return (
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
+      <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 420, width: "90%" }}>
+        <h5 className="fw-bold mb-2">Confirm Delete</h5>
+        <p className="text-muted mb-1">Are you sure you want to delete:</p>
+        <p className="fw-semibold mb-3">"{item}"?</p>
+        <p className="text-muted small mb-4">This action cannot be undone.</p>
+        <div className="d-flex gap-2 justify-content-end">
+          <button className="btn btn-outline-dark" onClick={onCancel} disabled={loading}>Cancel</button>
+          <button className="btn btn-danger fw-semibold" onClick={onConfirm} disabled={loading}>
+            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <FaTrash className="me-1" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Toast ─────────────────────────────────────────────────── */
+const Toast = ({ msg, type, onClose }) => {
+  if (!msg) return null;
+  const bg = type === "error" ? "#fee2e2" : "#d1fae5";
+  const color = type === "error" ? "#991b1b" : "#065f46";
+  return (
+    <div className="position-fixed d-flex align-items-center gap-2 px-4 py-3 rounded-3 shadow"
+      style={{ bottom: 24, right: 24, background: bg, color, zIndex: 9999, fontSize: "0.875rem", fontWeight: 500, maxWidth: 360 }}>
+      {type === "error" ? "✕" : "✓"} {msg}
+      <button className="btn btn-link p-0 ms-2" style={{ color, fontSize: "1rem" }} onClick={onClose}>×</button>
+    </div>
+  );
+};
+
+/* ─── Analytics Charts ──────────────────────────────────────── */
+const CHART_COLORS = ["#111", "#6b7280", "#d1d5db", "#374151", "#9ca3af"];
+
+const AnalyticsSection = ({ orders, products }) => {
+  // Build monthly revenue from orders
+  const monthlyMap = {};
+  orders.forEach(o => {
+    if (!o.orderDate) return;
+    const d = new Date(o.orderDate);
+    const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
+    monthlyMap[key] = (monthlyMap[key] || 0) + (o.totalAmount || 0);
+  });
+  const revenueData = Object.entries(monthlyMap).slice(-6).map(([month, revenue]) => ({ month, revenue }));
+
+  // Category distribution
+  const catMap = {};
+  products.forEach(p => { catMap[p.category] = (catMap[p.category] || 0) + 1; });
+  const catData = Object.entries(catMap).map(([name, value]) => ({ name, value }));
+
+  // Order status distribution
+  const statusMap = {};
+  orders.forEach(o => {
+    const s = o.orderStatus || "pending";
+    statusMap[s] = (statusMap[s] || 0) + 1;
+  });
+  const statusData = Object.entries(statusMap).map(([name, value]) => ({ name, value }));
+
+  // Stock health
+  const stockData = [
+    { name: "In Stock", value: products.filter(p => (p.stock_quantity || 0) > 10).length },
+    { name: "Low Stock", value: products.filter(p => (p.stock_quantity || 0) > 0 && (p.stock_quantity || 0) <= 10).length },
+    { name: "Out of Stock", value: products.filter(p => (p.stock_quantity || 0) <= 0).length },
+  ];
+
+  return (
+    <div className="mt-5">
+      <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>ANALYTICS</p>
+      <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Revenue & Insights</h2>
+
+      {/* Revenue Area Chart */}
+      <div className="bg-white p-4 mb-3" style={{ border: "1px solid #e5e7eb" }}>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <div className="fw-bold" style={{ fontSize: "1rem" }}>Monthly Revenue</div>
+            <div className="text-muted" style={{ fontSize: "0.8rem" }}>Last 6 months</div>
+          </div>
+          <div className="fw-bold" style={{ fontSize: "1.25rem" }}>
+            ₹{orders.reduce((s, o) => s + (o.totalAmount || 0), 0).toLocaleString()}
+          </div>
+        </div>
+        {revenueData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={revenueData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#111" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#111" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false}
+                tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
+              <Tooltip formatter={v => [`₹${v.toLocaleString()}`, "Revenue"]}
+                contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.8rem" }} />
+              <Area type="monotone" dataKey="revenue" stroke="#111" strokeWidth={2} fill="url(#revGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center text-muted py-4" style={{ fontSize: "0.875rem" }}>No revenue data yet</div>
+        )}
+      </div>
+
+      {/* 3-col charts */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+        {/* Category bar */}
+        <div className="bg-white p-4">
+          <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Products by Category</div>
+          <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} total products</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={catData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {catData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Order status pie */}
+        <div className="bg-white p-4">
+          <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Order Status</div>
+          <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{orders.length} total orders</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={statusData} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
+                dataKey="value" paddingAngle={3}>
+                {statusData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Stock health pie */}
+        <div className="bg-white p-4">
+          <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Stock Health</div>
+          <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} products tracked</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={stockData} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
+                dataKey="value" paddingAngle={3}>
+                <Cell fill="#111" />
+                <Cell fill="#fbbf24" />
+                <Cell fill="#ef4444" />
+              </Pie>
+              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main AdminDashboard ───────────────────────────────────── */
 const AdminDashboard = ({ setUser }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [admin, setAdmin] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [fetchingData, setFetchingData] = useState(false);
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: "", type: "success" }), 3500);
+  };
 
-  // Dashboard stats
   const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalProducts: 0,
-    totalOrders: 0,
-    revenue: 0,
-    pendingVerifications: 0,
-    outOfStock: 0,
-    lowStock: 0,
-    totalDonations: 0,
+    totalUsers: 0, totalProducts: 0, totalOrders: 0,
+    revenue: 0, pendingVerifications: 0, outOfStock: 0, lowStock: 0,
   });
 
-  // States for each tab
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -42,2003 +398,991 @@ const AdminDashboard = ({ setUser }) => {
   const [bookSetRequests, setBookSetRequests] = useState([]);
   const [donations, setDonations] = useState([]);
   const [itemRequests, setItemRequests] = useState([]);
-  const [itemRequestFilter, setItemRequestFilter] = useState('all');
-
-  // User names mapping for orders
   const [userNames, setUserNames] = useState({});
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
 
-  // Search and Filter states for each tab
+  // Filters
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [userStatusFilter, setUserStatusFilter] = useState("all");
-
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
   const [productStockFilter, setProductStockFilter] = useState("all");
   const [productSortBy, setProductSortBy] = useState("name");
   const [productSortOrder, setProductSortOrder] = useState("asc");
-
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [orderPaymentFilter, setOrderPaymentFilter] = useState("all");
-
   const [verificationSearch, setVerificationSearch] = useState("");
+  const [itemRequestFilter, setItemRequestFilter] = useState("all");
 
-  // Pagination states
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
-  // Modal states
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
+  // Delete modal
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: "", type: "" });
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
-
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser || storedUser.role !== "admin") {
-      navigate("/login");
-      return;
-    }
-    setAdmin(storedUser);
-
+    if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const stored = JSON.parse(localStorage.getItem("user") || "null");
+    if (!stored || stored.role !== "admin") { navigate("/login"); return; }
+    setAdmin(stored);
     fetchDashboard();
     fetchUserNames();
-  }, [navigate]);
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle tab navigation from AdminLayout sidebar — fires even on same route
+  useEffect(() => {
+    const tab = location.state?.tab;
+    if (tab) {
+      handleTabChange(tab);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const fetchUserNames = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/users/admin/users?limit=500");
-      const users = response.data.users || [];
-      const nameMap = {};
-      users.forEach(user => {
-        nameMap[user.id] = user.name || user.email;
-      });
-      setUserNames(nameMap);
-    } catch (err) {
-      console.error("Failed to fetch user names:", err);
-    }
+      const r = await axios.get(`${API}/users/admin/users?limit=500`);
+      const map = {};
+      (r.data.users || []).forEach(u => { map[u.id] = u.name || u.email; });
+      setUserNames(map);
+    } catch {}
   };
 
   const fetchDashboard = async () => {
     try {
       setLoading(true);
-      setError("");
-
-      const [
-        productsRes,
-        usersRes,
-        ordersRes,
-        verificationsRes,
-        statsRes
-      ] = await Promise.all([
-        axios.get("http://localhost:5000/api/products?limit=100"),
-        axios.get("http://localhost:5000/api/users/admin/users?limit=100"),
-        axios.get("http://localhost:5000/api/orders?limit=100"),
-        axios.get("http://localhost:5000/api/users/admin/verifications/pending"),
-        axios.get("http://localhost:5000/api/orders/stats/overview").catch(err => {
-          console.log("Stats API error:", err.message);
-          return { 
-            data: { 
-              stats: { 
-                today: { count: 0, revenue: 0 },
-                monthly: { count: 0, revenue: 0 },
-                byStatus: [],
-                byPayment: [],
-                dailyRevenue: []
-              } 
-            } 
-          };
-        })
+      const [prodRes, usersRes, ordersRes, verifRes] = await Promise.all([
+        axios.get(`${API}/products?limit=100`).catch(() => ({ data: { products: [] } })),
+        axios.get(`${API}/users/admin/users?limit=100`).catch(() => ({ data: { users: [] } })),
+        axios.get(`${API}/orders?limit=100`).catch(() => ({ data: { orders: [] } })),
+        axios.get(`${API}/users/admin/verifications/pending`).catch(() => ({ data: { pendingVerifications: [] } })),
       ]);
-
-      const allProducts = productsRes.data.products || [];
-      const outOfStock = allProducts.filter(p => {
-        const stock = p.stock_quantity || p.stock || 0;
-        return stock <= 0;
-      }).length;
-
-      const lowStock = allProducts.filter(p => {
-        const stock = p.stock_quantity || p.stock || 0;
-        return stock > 0 && stock <= 10;
-      }).length;
-
+      const prods = prodRes.data.products || [];
       const allUsers = usersRes.data.users || [];
       const allOrders = ordersRes.data.orders || [];
-      const totalRevenue = statsRes.data.stats?.monthly?.revenue || 0;
-      const pendingVerifs = verificationsRes.data.pendingVerifications || [];
-
+      const pendingVerifs = verifRes.data.pendingVerifications || [];
+      setProducts(prods); setUsers(allUsers); setOrders(allOrders); setPendingVerifications(pendingVerifs);
       setStats({
         totalUsers: allUsers.length,
-        totalProducts: allProducts.length,
+        totalProducts: prods.length,
         totalOrders: allOrders.length,
-        revenue: totalRevenue,
+        revenue: allOrders.reduce((s, o) => s + (o.totalAmount || 0), 0),
         pendingVerifications: pendingVerifs.length,
-        outOfStock,
-        lowStock,
+        outOfStock: prods.filter(p => (p.stock_quantity || 0) <= 0).length,
+        lowStock: prods.filter(p => (p.stock_quantity || 0) > 0 && (p.stock_quantity || 0) <= 10).length,
       });
-
-      setProducts(allProducts);
-      setUsers(allUsers);
-      setOrders(allOrders);
-      setPendingVerifications(pendingVerifs);
-
-    } catch (err) {
-      console.error("Dashboard fetch error:", err.response?.data || err.message);
-      if (err.response?.config?.url?.includes('/api/orders')) {
-        setError("Failed to load orders. Make sure you have admin permissions.");
-      } else if (err.response?.config?.url?.includes('/api/users')) {
-        setError("Failed to load users. Make sure you have admin permissions.");
-      } else {
-        setError("Failed to load dashboard data: " + (err.response?.data?.message || err.message));
-      }
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) {
+      showToast("Failed to load dashboard data", "error");
+    } finally { setLoading(false); }
   };
 
-  const fetchUsers = async (page = 1) => {
+  const paginated = async (url, setter, page = 1) => {
     try {
       setFetchingData(true);
-      let url = `http://localhost:5000/api/users/admin/users?page=${page}&limit=${itemsPerPage}`;
-
-      const params = [];
-      if (userSearch) params.push(`search=${encodeURIComponent(userSearch)}`);
-      if (userRoleFilter && userRoleFilter !== "all") params.push(`role=${userRoleFilter}`);
-      if (userStatusFilter && userStatusFilter !== "all") params.push(`status=${userStatusFilter}`);
-
-      if (params.length > 0) {
-        url += `&${params.join("&")}`;
-      }
-
-      const response = await axios.get(url);
-      setUsers(response.data.users || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
+      const r = await axios.get(`${url}&page=${page}&limit=${itemsPerPage}`);
+      setter(r.data);
+      setTotalPages(r.data.totalPages || 1);
+      setTotalItems(r.data.total || 0);
       setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch users error:", err.response?.data || err.message);
-      setError("Failed to load users: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
+    } catch { showToast("Failed to load data", "error"); }
+    finally { setFetchingData(false); }
   };
 
-  const fetchProducts = async (page = 1) => {
+  const fetchUsers = (page = 1, roleOverride, statusOverride, searchOverride) => {
+    const role   = roleOverride   !== undefined ? roleOverride   : userRoleFilter;
+    const status = statusOverride !== undefined ? statusOverride : userStatusFilter;
+    const search = searchOverride !== undefined ? searchOverride : userSearch;
+    let q = `${API}/users/admin/users?`;
+    if (search)          q += `search=${encodeURIComponent(search)}&`;
+    if (role   !== "all") q += `role=${role}&`;
+    if (status !== "all") q += `status=${status}&`;
+    paginated(q, d => setUsers(d.users || []), page);
+  };
+
+  const fetchProducts = (page = 1, catOverride, stockOverride, sortByOverride, sortOrderOverride, searchOverride) => {
+    const cat       = catOverride       !== undefined ? catOverride       : productCategoryFilter;
+    const stock     = stockOverride     !== undefined ? stockOverride     : productStockFilter;
+    const sortBy    = sortByOverride    !== undefined ? sortByOverride    : productSortBy;
+    const sortOrder = sortOrderOverride !== undefined ? sortOrderOverride : productSortOrder;
+    const search    = searchOverride    !== undefined ? searchOverride    : productSearch;
+    let q = `${API}/products?`;
+    if (search)          q += `search=${encodeURIComponent(search)}&`;
+    if (cat   !== "all") q += `category=${cat}&`;
+    if (stock !== "all") q += `inStock=${stock === "inStock"}&`;
+    q += `sortBy=${sortBy}&sortOrder=${sortOrder}&`;
+    paginated(q, d => setProducts(d.products || []), page);
+  };
+
+  const fetchOrders = (page = 1, statusOverride, typeOverride, paymentOverride, searchOverride) => {
+    const status  = statusOverride  !== undefined ? statusOverride  : orderStatusFilter;
+    const type    = typeOverride    !== undefined ? typeOverride    : orderTypeFilter;
+    const payment = paymentOverride !== undefined ? paymentOverride : orderPaymentFilter;
+    const search  = searchOverride  !== undefined ? searchOverride  : orderSearch;
+    let q = `${API}/orders?`;
+    if (search)          q += `search=${encodeURIComponent(search)}&`;
+    if (status  !== "all") q += `status=${status}&`;
+    if (type    !== "all") q += `orderType=${type}&`;
+    if (payment !== "all") q += `paymentStatus=${payment}&`;
+    paginated(q, d => setOrders(d.orders || []), page);
+  };
+
+  const fetchVerifications = () => {
+    let q = `${API}/users/admin/verifications/pending?`;
+    if (verificationSearch) q += `search=${encodeURIComponent(verificationSearch)}&`;
+    paginated(q, d => setPendingVerifications(d.pendingVerifications || []), 1);
+  };
+
+  const fetchBookSetRequests = (page = 1) =>
+    paginated(`${API}/admin/book-set-requests?`, d => setBookSetRequests(d.requests || []), page);
+
+  const fetchDonations = (page = 1) =>
+    paginated(`${API}/donations/admin/all?`, d => setDonations(d.donations || []), page);
+
+  const fetchItemRequests = (page = 1) => {
+    let q = `${API}/requests/admin/all?`;
+    if (itemRequestFilter !== "all") q += `status=${itemRequestFilter}&`;
+    paginated(q, d => setItemRequests(d.requests || []), page);
+  };
+
+  const fetchNotifications = async (page = 1) => {
     try {
       setFetchingData(true);
-      let url = `http://localhost:5000/api/products?page=${page}&limit=${itemsPerPage}`;
-
-      const params = [];
-      if (productSearch) params.push(`search=${encodeURIComponent(productSearch)}`);
-      if (productCategoryFilter && productCategoryFilter !== "all") {
-        params.push(`category=${productCategoryFilter}`);
+      const r = await axios.get(`${API}/notifications?limit=50`, { headers: authH() });
+      if (r.data.success) {
+        setNotifications(r.data.notifications || []);
+        setUnreadNotifs(r.data.unreadCount || 0);
       }
-      if (productStockFilter !== "all") {
-        params.push(`inStock=${productStockFilter === "inStock"}`);
-      }
-      params.push(`sortBy=${productSortBy}`);
-      params.push(`sortOrder=${productSortOrder}`);
-
-      if (params.length > 0) {
-        url += `&${params.join("&")}`;
-      }
-
-      const response = await axios.get(url);
-      setProducts(response.data.products || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
-      setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch products error:", err.response?.data || err.message);
-      setError("Failed to load products: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
+    } catch {} finally { setFetchingData(false); }
   };
 
-  const fetchOrders = async (page = 1) => {
+  const fetchUnreadCount = async () => {
     try {
-      setFetchingData(true);
-      let url = `http://localhost:5000/api/orders?page=${page}&limit=${itemsPerPage}`;
-
-      const params = [];
-      if (orderSearch) params.push(`search=${encodeURIComponent(orderSearch)}`);
-      if (orderStatusFilter && orderStatusFilter !== "all") {
-        params.push(`status=${orderStatusFilter}`);
-      }
-      if (orderTypeFilter && orderTypeFilter !== "all") {
-        params.push(`orderType=${orderTypeFilter}`);
-      }
-      if (orderPaymentFilter && orderPaymentFilter !== "all") {
-        params.push(`paymentStatus=${orderPaymentFilter}`);
-      }
-
-      if (params.length > 0) {
-        url += `&${params.join("&")}`;
-      }
-
-      const response = await axios.get(url);
-      setOrders(response.data.orders || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
-      setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch orders error:", err.response?.data || err.message);
-      setError("Failed to load orders: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
-  };
-
-  const fetchVerifications = async () => {
-    try {
-      setFetchingData(true);
-      let url = `http://localhost:5000/api/users/admin/verifications/pending`;
-
-      if (verificationSearch) {
-        url += `?search=${encodeURIComponent(verificationSearch)}`;
-      }
-
-      const response = await axios.get(url);
-      setPendingVerifications(response.data.pendingVerifications || []);
-      setTotalItems(response.data.count || 0);
-    } catch (err) {
-      console.error("Fetch verifications error:", err.response?.data || err.message);
-      setError("Failed to load verifications: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
-  };
-
-  const fetchBookSetRequests = async (page = 1) => {
-    try {
-      setFetchingData(true);
-      let url = `http://localhost:5000/api/admin/book-set-requests?page=${page}&limit=${itemsPerPage}`;
-
-      const response = await axios.get(url);
-      setBookSetRequests(response.data.requests || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
-      setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch book set requests error:", err.response?.data || err.message);
-      setError("Failed to load book set requests: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
-  };
-
-  const fetchDonations = async (page = 1) => {
-    try {
-      setFetchingData(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `http://localhost:5000/api/donations/admin/all?page=${page}&limit=${itemsPerPage}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setDonations(response.data.donations || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
-      setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch donations error:", err);
-      setError("Failed to load donations: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
-  };
-
-  const fetchItemRequests = async (page = 1) => {
-    try {
-      setFetchingData(true);
-      const token = localStorage.getItem('token');
-      let url = `http://localhost:5000/api/requests/admin/all?page=${page}&limit=${itemsPerPage}`;
-      if (itemRequestFilter && itemRequestFilter !== 'all') url += `&status=${itemRequestFilter}`;
-      const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
-      setItemRequests(response.data.requests || []);
-      setTotalPages(response.data.totalPages || 1);
-      setTotalItems(response.data.total || 0);
-      setCurrentPage(page);
-    } catch (err) {
-      console.error("Fetch item requests error:", err);
-      setError("Failed to load item requests: " + (err.response?.data?.message || err.message));
-    } finally {
-      setFetchingData(false);
-    }
-  };
-
-  const handleApproveItemRequest = async (requestId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/requests/admin/${requestId}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSuccess("Request approved successfully!");
-      fetchItemRequests(currentPage);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to approve request");
-    }
-  };
-
-  const handleRejectItemRequest = async (requestId) => {
-    const remark = prompt("Enter rejection reason (required):");
-    if (!remark || remark.trim().length < 3) {
-      setError("Rejection reason is required (min 3 characters)");
-      return;
-    }
-    try {
-      const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/requests/admin/${requestId}/reject`,
-        { admin_remark: remark },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSuccess("Request rejected");
-      fetchItemRequests(currentPage);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to reject request");
-    }
-  };
-
-  const handleDeleteDonation = async (donationId, donationTitle) => {
-    if (!window.confirm(`Delete donation "${donationTitle}"? This action cannot be undone.`)) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `http://localhost:5000/api/donations/admin/${donationId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSuccess(`Donation "${donationTitle}" deleted successfully`);
-      fetchDonations(currentPage);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Delete donation error:", err);
-      setError("Failed to delete donation: " + (err.response?.data?.message || err.message));
-    }
+      const r = await axios.get(`${API}/notifications/unread-count`, { headers: authH() });
+      if (r.data.success) setUnreadNotifs(r.data.count || 0);
+    } catch {}
   };
 
   const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setCurrentPage(1);
-
-    switch (tab) {
-      case "users":
-        fetchUsers(1);
-        break;
-      case "products":
-        fetchProducts(1);
-        break;
-      case "orders":
-        fetchOrders(1);
-        break;
-      case "verifications":
-        fetchVerifications();
-        break;
-      case "book-set-requests":
-        fetchBookSetRequests(1);
-        break;
-      case "donations":
-        fetchDonations(1);
-        break;
-      case "item-requests":
-        fetchItemRequests(1);
-        break;
-      default:
-        fetchDashboard();
-    }
+    setActiveTab(tab); setCurrentPage(1);
+    const map = { users: fetchUsers, products: fetchProducts, orders: fetchOrders,
+      verifications: fetchVerifications, "book-set-requests": fetchBookSetRequests,
+      donations: fetchDonations, "item-requests": fetchItemRequests,
+      notifications: fetchNotifications };
+    if (map[tab]) map[tab](1); else fetchDashboard();
   };
 
-  const handleUserSearch = () => {
-    fetchUsers(1);
-  };
-
-  const handleProductSearch = () => {
-    fetchProducts(1);
-  };
-
-  const handleOrderSearch = () => {
-    fetchOrders(1);
-  };
-
-  const handleVerificationSearch = () => {
-    fetchVerifications();
-  };
-
-  const handleProductSort = (field) => {
-    if (productSortBy === field) {
-      setProductSortOrder(productSortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setProductSortBy(field);
-      setProductSortOrder("asc");
-    }
-    fetchProducts(1);
-  };
-
-  const handleDeleteProduct = async () => {
-    if (!productToDelete) return;
-
-    try {
-      setDeleteLoading(true);
-      setError("");
-
-      await axios.delete(`http://localhost:5000/api/products/${productToDelete.id}`);
-
-      setSuccess(`Product "${productToDelete.name}" deleted successfully!`);
-      setShowDeleteModal(false);
-      setProductToDelete(null);
-
-      fetchProducts(currentPage);
-
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Delete product error:", err);
-      setError(err.response?.data?.message || "Failed to delete product");
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const confirmDeleteProduct = (product) => {
-    setProductToDelete(product);
-    setShowDeleteModal(true);
-    setError("");
-  };
-
+  // ── Action handlers ──────────────────────────────────────────
   const handleUserStatus = async (userId, status) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/users/admin/users/${userId}`,
-        { status }
-      );
+      await axios.put(`${API}/users/admin/users/${userId}`, { status });
       fetchUsers(currentPage);
-      setSuccess(`User status updated to ${status}`);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Update user status error:", err);
-      setError("Failed to update user status");
-    }
+      showToast(`User ${status === "active" ? "activated" : "suspended"}`);
+    } catch { showToast("Failed to update user", "error"); }
   };
 
-  const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to delete user "${userName}"?`)) return;
-
-    try {
-      await axios.delete(`http://localhost:5000/api/users/admin/users/${userId}`);
-      fetchUsers(currentPage);
-      setSuccess(`User "${userName}" deleted successfully`);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Delete user error:", err);
-      setError("Failed to delete user");
-    }
+  const handleDeleteUser = async (userId, name) => {
+    setDeleteModal({ show: true, id: userId, name, type: "user" });
   };
 
   const handleOrderStatus = async (orderId, status) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/orders/${orderId}`,
-        { orderStatus: status }
-      );
+      await axios.put(`${API}/orders/${orderId}`, { orderStatus: status });
       fetchOrders(currentPage);
-      setSuccess(`Order status updated to ${status}`);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Update order status error:", err);
-      setError("Failed to update order status. The endpoint might not exist.");
-    }
+      showToast("Order status updated");
+    } catch { showToast("Failed to update order", "error"); }
   };
 
   const handleVerification = async (userId, status, comments = "") => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/users/admin/verifications/${userId}/status`,
-        { status, comments }
-      );
+      await axios.put(`${API}/users/admin/verifications/${userId}/status`, { status, comments });
       fetchVerifications();
-      setSuccess(`Verification ${status} successfully`);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Update verification error:", err);
-      setError("Failed to update verification");
-    }
+      showToast(`Verification ${status}`);
+    } catch { showToast("Failed to update verification", "error"); }
   };
 
-  const handleApproveBookSetRequest = async (requestId) => {
-    if (!window.confirm("Are you sure you want to approve this book set request?")) return;
-
+  const handleApproveBookSetRequest = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/admin/book-set-requests/${requestId}/approve`
-      );
+      await axios.put(`${API}/admin/book-set-requests/${id}/approve`);
       fetchBookSetRequests(currentPage);
-      setSuccess("Book set request approved successfully!");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Approve book set request error:", err);
-      setError(err.response?.data?.message || "Failed to approve book set request");
-    }
+      showToast("Book set request approved");
+    } catch (e) { showToast(e.response?.data?.message || "Failed", "error"); }
   };
 
-  const handleRejectBookSetRequest = async (requestId) => {
+  const handleRejectBookSetRequest = async (id) => {
     const remark = prompt("Enter rejection reason:");
-    if (!remark || remark.trim() === "") {
-      setError("Rejection reason is required");
-      return;
-    }
-
+    if (!remark?.trim()) return;
     try {
-      await axios.put(
-        `http://localhost:5000/api/admin/book-set-requests/${requestId}/reject`,
-        { admin_remark: remark }
-      );
+      await axios.put(`${API}/admin/book-set-requests/${id}/reject`, { admin_remark: remark });
       fetchBookSetRequests(currentPage);
-      setSuccess("Book set request rejected successfully");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Reject book set request error:", err);
-      setError(err.response?.data?.message || "Failed to reject book set request");
-    }
+      showToast("Book set request rejected");
+    } catch (e) { showToast(e.response?.data?.message || "Failed", "error"); }
+  };
+
+  const handleApproveItemRequest = async (id) => {
+    try {
+      await axios.put(`${API}/requests/admin/${id}/approve`, {}, { headers: authH() });
+      fetchItemRequests(currentPage);
+      showToast("Request approved");
+    } catch (e) { showToast(e.response?.data?.message || "Failed", "error"); }
+  };
+
+  const handleRejectItemRequest = async (id) => {
+    const remark = prompt("Enter rejection reason (required):");
+    if (!remark || remark.trim().length < 3) { showToast("Rejection reason required (min 3 chars)", "error"); return; }
+    try {
+      await axios.put(`${API}/requests/admin/${id}/reject`, { admin_remark: remark }, { headers: authH() });
+      fetchItemRequests(currentPage);
+      showToast("Request rejected");
+    } catch (e) { showToast(e.response?.data?.message || "Failed", "error"); }
+  };
+
+  const handleDeleteDonation = (id, name) => setDeleteModal({ show: true, id, name, type: "donation" });
+
+  const confirmDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      if (deleteModal.type === "user") {
+        await axios.delete(`${API}/users/admin/users/${deleteModal.id}`);
+        fetchUsers(currentPage);
+      } else if (deleteModal.type === "product") {
+        await axios.delete(`${API}/products/${deleteModal.id}`);
+        fetchProducts(currentPage);
+      } else if (deleteModal.type === "donation") {
+        await axios.delete(`${API}/donations/admin/${deleteModal.id}`, { headers: authH() });
+        fetchDonations(currentPage);
+      }
+      showToast(`"${deleteModal.name}" deleted`);
+      setDeleteModal({ show: false, id: null, name: "", type: "" });
+    } catch { showToast("Failed to delete", "error"); }
+    finally { setDeleteLoading(false); }
+  };
+
+  const markNotifRead = async (id) => {
+    try {
+      await axios.put(`${API}/notifications/${id}/read`, {}, { headers: authH() });
+      setNotifications(p => p.map(n => n._id === id ? { ...n, is_read: true } : n));
+      setUnreadNotifs(p => Math.max(0, p - 1));
+    } catch {}
+  };
+
+  const markAllNotifsRead = async () => {
+    try {
+      await axios.put(`${API}/notifications/mark-all-read`, {}, { headers: authH() });
+      setNotifications(p => p.map(n => ({ ...n, is_read: true })));
+      setUnreadNotifs(0);
+    } catch {}
+  };
+
+  const deleteNotif = async (id) => {
+    try {
+      await axios.delete(`${API}/notifications/${id}`, { headers: authH() });
+      setNotifications(p => p.filter(n => n._id !== id));
+    } catch {}
+  };
+
+  const getTimeAgo = (date) => {
+    const s = Math.floor((new Date() - new Date(date)) / 1000);
+    if (s < 60) return "Just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+    return new Date(date).toLocaleDateString();
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/login");
-  };
-
-  const getStockQuantity = (product) => {
-    return product.stock_quantity || product.stock || 0;
+    localStorage.removeItem("user"); localStorage.removeItem("token");
+    setUser(null); navigate("/login");
   };
 
   const getSortIcon = (field) => {
-    if (productSortBy !== field) return <FaSort className="ms-1" />;
-    return productSortOrder === "asc" ?
-      <FaSortUp className="ms-1" /> :
-      <FaSortDown className="ms-1" />;
+    if (productSortBy !== field) return <FaSort className="ms-1 opacity-50" style={{ fontSize: "0.65rem" }} />;
+    return productSortOrder === "asc"
+      ? <FaSortUp className="ms-1" style={{ fontSize: "0.65rem" }} />
+      : <FaSortDown className="ms-1" style={{ fontSize: "0.65rem" }} />;
   };
 
-  if (!admin || loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <Spinner animation="border" variant="primary" />
-        <span className="ms-3">Loading dashboard data...</span>
+  const handleProductSort = (field) => {
+    if (productSortBy === field) setProductSortOrder(o => o === "asc" ? "desc" : "asc");
+    else { setProductSortBy(field); setProductSortOrder("asc"); }
+    fetchProducts(1);
+  };
+
+  if (loading || !admin) return (
+    <div className="d-flex align-items-center justify-content-center bg-white" style={{ minHeight: "100vh" }}>
+      <div className="text-center">
+        <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+          <span className="visually-hidden">Loading…</span>
+        </div>
+        <p className="text-muted">Loading dashboard…</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  // ── Filter bar helper ────────────────────────────────────────
+  const FilterBar = ({ children }) => (
+    <div className="d-flex flex-wrap gap-2 mb-4 p-3 bg-white" style={{ border: "1px solid #e5e7eb" }}>
+      {children}
+    </div>
+  );
+
+  const SearchInput = ({ value, onChange, onSearch, placeholder }) => (
+    <div className="d-flex" style={{ minWidth: 260 }}>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        onKeyDown={e => e.key === "Enter" && onSearch()}
+        className="form-control form-control-sm border-end-0 rounded-0"
+        style={{ borderColor: "#e5e7eb" }} />
+      <button onClick={onSearch} className="btn btn-dark btn-sm rounded-0 px-3">
+        <FaSearch style={{ fontSize: "0.75rem" }} />
+      </button>
+    </div>
+  );
+
+  const FilterSelect = ({ value, onChange, options }) => (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      className="form-select form-select-sm rounded-0" style={{ width: "auto", borderColor: "#e5e7eb" }}>
+      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    </select>
+  );
 
   return (
-    <Container fluid className="p-0">
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {productToDelete && (
-            <>
-              <p>Are you sure you want to delete the product:</p>
-              <h5 className="text-danger">"{productToDelete.name}"?</h5>
-              <p className="text-muted">This action cannot be undone.</p>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteProduct} disabled={deleteLoading}>
-            {deleteLoading ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <FaTrash className="me-2" />
-                Delete Product
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+    <AdminLayout activeTab={activeTab} setUser={setUser}
+      topBar={
+        <button onClick={() => handleTabChange(activeTab)} className="btn btn-sm btn-outline-dark d-flex align-items-center gap-1">
+          <FaSync style={{ fontSize: "0.7rem" }} /> Refresh
+        </button>
+      }>
+      <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
+      <DeleteModal show={deleteModal.show} item={deleteModal.name}
+        onConfirm={confirmDelete} onCancel={() => setDeleteModal({ show: false, id: null, name: "", type: "" })}
+        loading={deleteLoading} />
 
-      <Row className="g-0">
-        <Col md={2} className="bg-dark text-white vh-100 p-3 d-flex flex-column">
-          <div className="text-center mb-4">
-            <h4 className="mb-0">Admin Panel</h4>
-            <small className="text-muted">Smart Stationery</small>
-          </div>
-
-          <div className="text-center mb-3 p-2 bg-dark rounded">
-            <p className="mb-0 fw-bold">{admin.name}</p>
-            <small className="text-muted">{admin.email}</small>
-            <Badge bg="danger" className="ms-2">Admin</Badge>
-          </div>
-
-          {/* Notification Bell */}
-          <div className="text-center mb-3">
-            <NotificationBell />
-          </div>
-
-          <Nav className="flex-column mt-2">
-            <Nav.Link
-              onClick={() => handleTabChange("dashboard")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "dashboard" ? "bg-primary rounded" : ""}`}
-            >
-              <FaChartLine className="me-2" />
-              Dashboard
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("users")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "users" ? "bg-primary rounded" : ""}`}
-            >
-              <FaUsers className="me-2" />
-              Users
-              <Badge bg="info" className="ms-auto">
-                {stats.totalUsers}
-              </Badge>
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("products")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "products" ? "bg-primary rounded" : ""}`}
-            >
-              <FaBox className="me-2" />
-              Products
-              <Badge bg="warning" className="ms-auto">
-                {stats.totalProducts}
-              </Badge>
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("orders")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "orders" ? "bg-primary rounded" : ""}`}
-            >
-              <FaShoppingCart className="me-2" />
-              Orders
-              <Badge bg="info" className="ms-auto">
-                {stats.totalOrders}
-              </Badge>
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("verifications")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "verifications" ? "bg-primary rounded" : ""}`}
-            >
-              <FaUserCheck className="me-2" />
-              Verifications
-              {stats.pendingVerifications > 0 && (
-                <Badge bg="danger" className="ms-auto">
-                  {stats.pendingVerifications}
-                </Badge>
-              )}
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("book-set-requests")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "book-set-requests" ? "bg-primary rounded" : ""}`}
-            >
-              <FaBox className="me-2" />
-              Book Set Requests
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("donations")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "donations" ? "bg-primary rounded" : ""}`}
-            >
-              <FaGift className="me-2" />
-              Donations
-              {stats.totalDonations > 0 && (
-                <Badge bg="warning" className="ms-auto">
-                  {stats.totalDonations}
-                </Badge>
-              )}
-            </Nav.Link>
-            <Nav.Link
-              onClick={() => handleTabChange("item-requests")}
-              className={`text-white mb-2 d-flex align-items-center ${activeTab === "item-requests" ? "bg-primary rounded" : ""}`}
-            >
-              <FaBoxOpen className="me-2" />
-              Item Requests
-            </Nav.Link>
-            <Button
-              variant="outline-danger"
-              className="mt-auto d-flex align-items-center justify-content-center"
-              onClick={handleLogout}
-            >
-              <FaSignOutAlt className="me-2" />
-              Logout
-            </Button>
-          </Nav>
-        </Col>
-
-        <Col md={10} className="p-4">
-          {error && (
-            <Alert variant="danger" dismissible onClose={() => setError("")}>
-              <strong>Error:</strong> {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-              {success}
-            </Alert>
-          )}
-
+          {/* ── DASHBOARD TAB ── */}
           {activeTab === "dashboard" && (
             <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaChartLine className="me-2" />
-                  Dashboard Overview
-                </h3>
-                <Button variant="outline-primary" size="sm" onClick={fetchDashboard}>
-                  <FaSync className="me-1" />
-                  Refresh
-                </Button>
+              <SectionHeader title="Dashboard Overview" sub="OVERVIEW" />
+
+              {/* Stats grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", marginBottom: "1px" }}>
+                <StatCard label="Total Users" value={stats.totalUsers} icon={<FaUsers />} sub="Registered accounts" />
+                <StatCard label="Total Products" value={stats.totalProducts} icon={<FaBox />} sub="In catalogue" />
+                <StatCard label="Total Orders" value={stats.totalOrders} icon={<FaShoppingCart />} sub="All time" />
+                <StatCard label="Total Revenue" value={`₹${stats.revenue.toLocaleString()}`} icon={<FaRupeeSign />} sub="All orders" accent="#16a34a" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+                <StatCard label="Out of Stock" value={stats.outOfStock} icon={<FaExclamationTriangle />} sub="Need restocking" accent="#ef4444" />
+                <StatCard label="Low Stock" value={stats.lowStock} icon={<FaExclamationTriangle />} sub="≤ 10 units" accent="#f59e0b" />
+                <StatCard label="Pending Verifications" value={stats.pendingVerifications} icon={<FaUserCheck />} sub="Awaiting review" accent={stats.pendingVerifications > 0 ? "#ef4444" : undefined} />
               </div>
 
-              <Row className="g-4 mb-4">
-                <Col sm={6} md={3}>
-                  <Card className="shadow-sm border-0 h-100">
-                    <Card.Body className="text-center">
-                      <FaUsers className="fs-1 text-primary mb-2" />
-                      <Card.Title>Total Users</Card.Title>
-                      <Card.Text className="fs-3 fw-bold">{stats.totalUsers}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col sm={6} md={3}>
-                  <Card className="shadow-sm border-0 h-100">
-                    <Card.Body className="text-center">
-                      <FaBox className="fs-1 text-success mb-2" />
-                      <Card.Title>Total Products</Card.Title>
-                      <Card.Text className="fs-3 fw-bold">{stats.totalProducts}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col sm={6} md={3}>
-                  <Card className="shadow-sm border-0 h-100">
-                    <Card.Body className="text-center">
-                      <FaShoppingCart className="fs-1 text-warning mb-2" />
-                      <Card.Title>Total Orders</Card.Title>
-                      <Card.Text className="fs-3 fw-bold">{stats.totalOrders}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col sm={6} md={3}>
-                  <Card className="shadow-sm border-0 h-100">
-                    <Card.Body className="text-center">
-                      <FaRupeeSign className="fs-1 text-info mb-2" />
-                      <Card.Title>Total Revenue</Card.Title>
-                      <Card.Text className="fs-3 fw-bold">₹{stats.revenue.toLocaleString()}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
-              <Row className="g-4 mb-4">
-                <Col md={4}>
-                  <Card className="shadow-sm border-0 h-100 bg-light">
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <Card.Title>Out of Stock</Card.Title>
-                          <Card.Text className="fs-2 fw-bold text-danger">{stats.outOfStock}</Card.Text>
-                          <small className="text-muted">Products with zero stock</small>
-                        </div>
-                        <FaExclamationTriangle className="fs-1 text-danger" />
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card className="shadow-sm border-0 h-100 bg-light">
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <Card.Title>Low Stock</Card.Title>
-                          <Card.Text className="fs-2 fw-bold text-warning">{stats.lowStock}</Card.Text>
-                          <small className="text-muted">Products with ≤ 10 stock</small>
-                        </div>
-                        <FaExclamationTriangle className="fs-1 text-warning" />
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card className="shadow-sm border-0 h-100 bg-light">
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <Card.Title>Pending Verifications</Card.Title>
-                          <Card.Text className="fs-2 fw-bold text-primary">{stats.pendingVerifications}</Card.Text>
-                          <small className="text-muted">Institute verifications pending</small>
-                        </div>
-                        <FaUserCheck className="fs-1 text-primary" />
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          {activeTab === "users" && (
-            <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaUsers className="me-2" />
-                  Users Management
-                </h3>
-                <Badge bg="info">Total: {totalItems}</Badge>
-              </div>
-
-              <Card className="mb-4 shadow-sm">
-                <Card.Body>
-                  <Row className="g-3">
-                    <Col md={5}>
-                      <InputGroup>
-                        <InputGroup.Text>
-                          <FaSearch />
-                        </InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search users by name, email, phone, or address..."
-                          value={userSearch}
-                          onChange={(e) => setUserSearch(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleUserSearch()}
-                        />
-                        <Button variant="primary" onClick={handleUserSearch}>
-                          Search
-                        </Button>
-                      </InputGroup>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Select
-                        value={userRoleFilter}
-                        onChange={(e) => {
-                          setUserRoleFilter(e.target.value);
-                          fetchUsers(1);
-                        }}
-                      >
-                        <option value="all">All Roles</option>
-                        <option value="admin">Admin</option>
-                        <option value="institute">Institute</option>
-                        <option value="personal">Personal</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Select
-                        value={userStatusFilter}
-                        onChange={(e) => {
-                          setUserStatusFilter(e.target.value);
-                          fetchUsers(1);
-                        }}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="suspended">Suspended</option>
-                      </Form.Select>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading users...</p>
-                </div>
-              ) : users.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Verified</th>
-                            <th>Phone</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {users.map((user) => (
-                            <tr key={user.id}>
-                              <td>{user.name || "N/A"}</td>
-                              <td>{user.email}</td>
-                              <td>
-                                <Badge bg={
-                                  user.role === "admin" ? "danger" :
-                                    user.role === "institute" ? "primary" : "secondary"
-                                }>
-                                  {user.role}
-                                </Badge>
-                              </td>
-                              <td>
-                                <Badge bg={user.status === "active" ? "success" : "warning"}>
-                                  {user.status || "active"}
-                                </Badge>
-                              </td>
-                              <td>
-                                {user.isVerified ? (
-                                  <Badge bg="success">Yes</Badge>
-                                ) : (
-                                  <Badge bg="warning">No</Badge>
-                                )}
-                              </td>
-                              <td>{user.phone || "N/A"}</td>
-                              <td>
-                                <Button
-                                  variant={user.status === "active" ? "warning" : "success"}
-                                  size="sm"
-                                  className="me-2"
-                                  onClick={() => handleUserStatus(user.id, user.status === "active" ? "suspended" : "active")}
-                                >
-                                  {user.status === "active" ? "Suspend" : "Activate"}
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => handleDeleteUser(user.id, user.name)}
-                                >
-                                  <FaTrash />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchUsers(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchUsers(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchUsers(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                          ) {
-                            return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchUsers(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchUsers(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Alert variant="info">
-                  No users found matching your search criteria.
-                </Alert>
-              )}
-            </>
-          )}
-
-          {activeTab === "products" && (
-            <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaBox className="me-2" />
-                  Products Management
-                </h3>
-                <div>
-                  <Badge bg="danger" className="me-2">Out of Stock: {stats.outOfStock}</Badge>
-                  <Badge bg="warning" className="me-2">Low Stock: {stats.lowStock}</Badge>
-                  <Button variant="primary" onClick={() => navigate("/admin/add-product")}>
-                    <FaPlus className="me-2" />
-                    Add New Product
-                  </Button>
+              {/* Quick actions */}
+              <div className="mt-5 mb-4">
+                <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>QUICK ACTIONS</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+                  {[
+                    { label: "Add Product", sub: "New catalogue item", action: () => navigate("/admin/add-product"), primary: true },
+                    { label: "Manage Users", sub: `${stats.totalUsers} accounts`, action: () => handleTabChange("users") },
+                    { label: "View Orders", sub: `${stats.totalOrders} orders`, action: () => handleTabChange("orders") },
+                    { label: "Verifications", sub: `${stats.pendingVerifications} pending`, action: () => handleTabChange("verifications"), alert: stats.pendingVerifications > 0 },
+                    { label: "Donations", sub: "Manage donations", action: () => handleTabChange("donations") },
+                    { label: "Item Requests", sub: "Review requests", action: () => handleTabChange("item-requests") },
+                  ].map(a => (
+                    <button key={a.label} onClick={a.action}
+                      className="btn border-0 text-start"
+                      style={{ background: a.primary ? "#111" : "#fff", padding: "1.5rem", borderRadius: 0 }}
+                      onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#f9fafb"; }}
+                      onMouseLeave={e => { if (!a.primary) e.currentTarget.style.background = "#fff"; }}>
+                      <div className="fw-bold mb-1" style={{ fontSize: "0.9rem", color: a.primary ? "#fff" : "#111" }}>{a.label}</div>
+                      <div style={{ fontSize: "0.75rem", color: a.primary ? "rgba(255,255,255,0.65)" : a.alert ? "#ef4444" : "#9ca3af" }}>{a.sub}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <Card className="mb-4 shadow-sm">
-                <Card.Body>
-                  <Row className="g-3">
-                    <Col md={4}>
-                      <InputGroup>
-                        <InputGroup.Text>
-                          <FaSearch />
-                        </InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search by name, category, author, genre..."
-                          value={productSearch}
-                          onChange={(e) => setProductSearch(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleProductSearch()}
-                        />
-                        <Button variant="primary" onClick={handleProductSearch}>
-                          Search
-                        </Button>
-                      </InputGroup>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={productCategoryFilter}
-                        onChange={(e) => {
-                          setProductCategoryFilter(e.target.value);
-                          fetchProducts(1);
-                        }}
-                      >
-                        <option value="all">All Categories</option>
-                        <option value="book">Books</option>
-                        <option value="stationery">Stationery</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={productStockFilter}
-                        onChange={(e) => {
-                          setProductStockFilter(e.target.value);
-                          fetchProducts(1);
-                        }}
-                      >
-                        <option value="all">All Stock</option>
-                        <option value="inStock">In Stock</option>
-                        <option value="outOfStock">Out of Stock</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={productSortBy}
-                        onChange={(e) => {
-                          setProductSortBy(e.target.value);
-                          fetchProducts(1);
-                        }}
-                      >
-                        <option value="name">Sort by Name</option>
-                        <option value="price">Sort by Price</option>
-                        <option value="stock_quantity">Sort by Stock</option>
-                        <option value="created_at">Sort by Date</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={2}>
-                      <Button
-                        variant={productSortOrder === "asc" ? "outline-primary" : "outline-secondary"}
-                        onClick={() => {
-                          setProductSortOrder(productSortOrder === "asc" ? "desc" : "asc");
-                          fetchProducts(1);
-                        }}
-                        className="w-100"
-                      >
-                        {productSortOrder === "asc" ? "Ascending" : "Descending"}
-                      </Button>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
+              <AnalyticsSection orders={orders} products={products} />
 
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading products...</p>
+              {/* Recent Orders */}
+              <div className="mt-5">
+                <div className="d-flex justify-content-between align-items-end mb-3">
+                  <div>
+                    <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>RECENT ACTIVITY</p>
+                    <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Recent Orders</h2>
+                  </div>
+                  <button onClick={() => handleTabChange("orders")}
+                    className="btn btn-link text-muted text-decoration-none fw-medium d-flex align-items-center gap-1 p-0">
+                    View all <FaChevronRight style={{ fontSize: "0.7rem" }} />
+                  </button>
                 </div>
-              ) : products.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleProductSort("name")}
-                            >
-                              Name {getSortIcon("name")}
-                            </th>
-                            <th
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleProductSort("category")}
-                            >
-                              Category {getSortIcon("category")}
-                            </th>
-                            <th
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleProductSort("price")}
-                            >
-                              Price (₹) {getSortIcon("price")}
-                            </th>
-                            <th
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleProductSort("stock_quantity")}
-                            >
-                              Stock {getSortIcon("stock_quantity")}
-                            </th>
-                            <th>Author/Type</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {products.map((product) => {
-                            const stock = getStockQuantity(product);
-                            return (
-                              <tr key={product.id}>
-                                <td>
-                                  <div className="d-flex align-items-center">
-                                    {product.image_url && (
-                                      <img
-                                        src={product.image_url}
-                                        alt={product.name}
-                                        style={{ width: '40px', height: '40px', objectFit: 'cover', marginRight: '10px' }}
-                                        onError={(e) => e.target.style.display = 'none'}
-                                      />
-                                    )}
-                                    <span>{product.name}</span>
-                                  </div>
-                                </td>
-                                <td>
-                                  <Badge bg={product.category === "book" ? "info" : "primary"}>
-                                    {product.category}
-                                  </Badge>
-                                </td>
-                                <td>₹{product.price}</td>
-                                <td>
-                                  <Badge bg={stock > 10 ? "success" : stock > 0 ? "warning" : "danger"}>
-                                    {stock}
-                                  </Badge>
-                                </td>
-                                <td>
-                                  {product.category === "book" ? product.author || "N/A" : "Stationery"}
-                                </td>
-                                <td>
-                                  <Button
-                                    variant="warning"
-                                    size="sm"
-                                    className="me-2"
-                                    onClick={() => navigate(`/admin/edit-product/${product.id}`)}
-                                  >
-                                    <FaEdit />
-                                  </Button>
-                                  <Button
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={() => confirmDeleteProduct(product)}
-                                  >
-                                    <FaTrash />
-                                  </Button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchProducts(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchProducts(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchProducts(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                          ) {
-                            return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchProducts(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchProducts(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Alert variant="info">
-                  No products found matching your search criteria. <Button variant="link" onClick={() => navigate("/admin/add-product")}>Add your first product</Button>
-                </Alert>
-              )}
-            </>
-          )}
-
-          {activeTab === "orders" && (
-            <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaShoppingCart className="me-2" />
-                  Orders Management
-                </h3>
-                <Badge bg="info">Total: {totalItems}</Badge>
-              </div>
-
-              <Card className="mb-4 shadow-sm">
-                <Card.Body>
-                  <Row className="g-3">
-                    <Col md={4}>
-                      <InputGroup>
-                        <InputGroup.Text>
-                          <FaSearch />
-                        </InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search by Order ID, customer name, email, phone..."
-                          value={orderSearch}
-                          onChange={(e) => setOrderSearch(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleOrderSearch()}
-                        />
-                        <Button variant="primary" onClick={handleOrderSearch}>
-                          Search
-                        </Button>
-                      </InputGroup>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={orderStatusFilter}
-                        onChange={(e) => {
-                          setOrderStatusFilter(e.target.value);
-                          fetchOrders(1);
-                        }}
-                      >
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={orderTypeFilter}
-                        onChange={(e) => {
-                          setOrderTypeFilter(e.target.value);
-                          fetchOrders(1);
-                        }}
-                      >
-                        <option value="all">All Types</option>
-                        <option value="regular">Regular</option>
-                        <option value="bulk">Bulk</option>
-                      </Form.Select>
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        value={orderPaymentFilter}
-                        onChange={(e) => {
-                          setOrderPaymentFilter(e.target.value);
-                          fetchOrders(1);
-                        }}
-                      >
-                        <option value="all">All Payment</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                      </Form.Select>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading orders...</p>
-                </div>
-              ) : orders.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th>Order ID</th>
-                            <th>Customer</th>
-                            <th>Amount (₹)</th>
-                            <th>Status</th>
-                            <th>Payment</th>
-                            <th>Type</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orders.map((order) => {
-                            const customer = userNames[order.user] || `User ID: ${order.user || "N/A"}`;
-                            const amount = order.totalAmount || order.total_amount || 0;
-                            const status = order.orderStatus || "pending";
-                            const payment = order.paymentStatus || "pending";
-                            const date = order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "N/A";
-                            const type = order.orderType || "regular";
-
-                            return (
-                              <tr key={order.id}>
-                                <td>
-                                  <small className="text-muted" title={`ORD-${order.id}`}>
-                                    <FaIdCard className="me-1" />
-                                    ORD-{order.id}
-                                  </small>
-                                </td>
-                                <td>{customer}</td>
-                                <td>₹{amount}</td>
-                                <td>
-                                  <Badge bg={
-                                    status === "delivered" ? "success" :
-                                      status === "pending" ? "warning" :
-                                        status === "cancelled" ? "danger" :
-                                          status === "processing" ? "primary" : "info"
-                                  }>
-                                    {status}
-                                  </Badge>
-                                </td>
-                                <td>
-                                  <Badge bg={payment === "completed" ? "success" : "warning"}>
-                                    {payment}
-                                  </Badge>
-                                </td>
-                                <td>
-                                  <Badge bg={type === "bulk" ? "primary" : "secondary"}>
-                                    {type}
-                                  </Badge>
-                                </td>
-                                <td>{date}</td>
-                                <td>
-                                  <Button
-                                    variant="info"
-                                    size="sm"
-                                    className="me-2"
-                                    onClick={() => navigate(`/orders/${order.id}`)}
-                                  >
-                                    <FaEye />
-                                  </Button>
-                                  <select
-                                    className="form-select form-select-sm"
-                                    style={{ width: '120px' }}
-                                    value={status}
-                                    onChange={(e) => handleOrderStatus(order.id, e.target.value)}
-                                  >
-                                    <option value="pending">Pending</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="processing">Processing</option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="cancelled">Cancelled</option>
-                                  </select>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchOrders(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchOrders(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchOrders(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                          ) {
-                            return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchOrders(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchOrders(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Alert variant="info">
-                  No orders found matching your search criteria.
-                </Alert>
-              )}
-            </>
-          )}
-
-          {activeTab === "verifications" && (
-            <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaUserCheck className="me-2" />
-                  Institute Verifications
-                </h3>
-                <Badge bg="danger">Pending: {totalItems}</Badge>
-              </div>
-
-              <Card className="mb-4 shadow-sm">
-                <Card.Body>
-                  <Row>
-                    <Col md={6}>
-                      <InputGroup>
-                        <InputGroup.Text>
-                          <FaSearch />
-                        </InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search by institute name, school name, contact person..."
-                          value={verificationSearch}
-                          onChange={(e) => setVerificationSearch(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleVerificationSearch()}
-                        />
-                        <Button variant="primary" onClick={handleVerificationSearch}>
-                          Search
-                        </Button>
-                      </InputGroup>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading verifications...</p>
-                </div>
-              ) : pendingVerifications.length > 0 ? (
-                <Card className="shadow-sm border-0">
-                  <Card.Body>
-                    <Table striped hover responsive>
-                      <thead className="table-dark">
+                {orders.length === 0 ? (
+                  <div className="text-center py-4 text-muted bg-white" style={{ border: "1px solid #e5e7eb", fontSize: "0.875rem" }}>
+                    No orders yet
+                  </div>
+                ) : (
+                  <div style={{ border: "1px solid #e5e7eb", overflowX: "auto" }}>
+                    <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.875rem" }}>
+                      <thead style={{ background: "#f9fafb" }}>
                         <tr>
-                          <th>Institute Name</th>
-                          <th>Contact Person</th>
-                          <th>Email</th>
-                          <th>Contact Number</th>
-                          <th>School Name</th>
-                          <th>Status</th>
-                          <th>Actions</th>
+                          {["Order ID","Customer","Amount","Status","Payment","Date",""].map(h => (
+                            <th key={h} className="px-3 py-3 fw-semibold text-muted"
+                              style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap" }}>
+                              {h}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {pendingVerifications.map((user) => {
-                          const instituteName = user.instituteVerification?.instituteName ||
-                            user.instituteInfo?.schoolName ||
-                            user.instituteName ||
-                            "N/A";
-                          const contactNumber = user.instituteVerification?.contactNumber ||
-                            user.instituteInfo?.phone ||
-                            user.phone ||
-                            "N/A";
-                          const schoolName = user.instituteInfo?.schoolName || "N/A";
-
+                        {orders.slice(0, 5).map(o => {
+                          const customer = userNames[o.user] || `User #${o.user || "?"}`;
+                          const status = o.orderStatus || "pending";
+                          const payment = o.paymentStatus || "pending";
                           return (
-                            <tr key={user.id}>
-                              <td>{instituteName}</td>
-                              <td>{user.name}</td>
-                              <td>{user.email}</td>
-                              <td>{contactNumber}</td>
-                              <td>{schoolName}</td>
-                              <td>
-                                <Badge bg="warning">Pending</Badge>
+                            <tr key={o.id}>
+                              <td className="px-3">
+                                <span className="text-muted" style={{ fontSize: "0.8rem" }}>
+                                  <FaIdCard className="me-1" />ORD-{o.id}
+                                </span>
                               </td>
-                              <td>
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  className="me-2"
-                                  onClick={() => handleVerification(user.id, "approved")}
-                                >
-                                  <FaCheckCircle className="me-1" />
-                                  Approve
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => {
-                                    const comments = prompt("Enter rejection reason:");
-                                    if (comments !== null) {
-                                      handleVerification(user.id, "rejected", comments);
-                                    }
-                                  }}
-                                >
-                                  Reject
-                                </Button>
+                              <td className="px-3 fw-semibold">{customer}</td>
+                              <td className="px-3 fw-bold">₹{o.totalAmount || 0}</td>
+                              <td className="px-3"><StatusPill status={status} /></td>
+                              <td className="px-3"><StatusPill status={payment} /></td>
+                              <td className="text-muted px-3" style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                                {o.orderDate ? new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
+                              </td>
+                              <td className="px-3">
+                                <button onClick={() => navigate(`/admin/orders/${o.id}`)}
+                                  className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                                  <FaEye />
+                                </button>
                               </td>
                             </tr>
                           );
                         })}
                       </tbody>
-                    </Table>
-                  </Card.Body>
-                </Card>
-              ) : (
-                <Alert variant="success">
-                  <FaCheckCircle className="me-2" />
-                  {verificationSearch ?
-                    "No verifications found matching your search criteria." :
-                    "All verifications have been processed. No pending verifications."
-                  }
-                </Alert>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── USERS TAB ── */}
+          {activeTab === "users" && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>USERS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Users Management</h2>
+                </div>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <SearchInput value={userSearch} onChange={setUserSearch} onSearch={() => fetchUsers(1)} placeholder="Search name, email, phone…" />
+                  <FilterSelect value={userRoleFilter} onChange={v => { setUserRoleFilter(v); fetchUsers(1, v); }}
+                    options={[["all","All Roles"],["admin","Admin"],["institute","Institute"],["personal","Personal"]]} />
+                  <FilterSelect value={userStatusFilter} onChange={v => { setUserStatusFilter(v); fetchUsers(1, undefined, v); }}
+                    options={[["all","All Status"],["active","Active"],["suspended","Suspended"]]} />
+                  <span className="text-muted small">Total: {totalItems || stats.totalUsers}</span>
+                </div>
+              </div>
+              <TableShell loading={fetchingData} heads={["Name","Email","Role","Status","Verified","Phone","Actions"]}>
+                {users.map(u => (
+                  <tr key={u.id}>
+                    <td className="fw-semibold px-3">{u.name || "N/A"}</td>
+                    <td className="text-muted px-3">{u.email}</td>
+                    <td className="px-3"><StatusPill status={u.role} /></td>
+                    <td className="px-3"><StatusPill status={u.status || "active"} /></td>
+                    <td className="px-3"><StatusPill status={u.isVerified ? "approved" : "pending"} /></td>
+                    <td className="text-muted px-3">{u.phone || "—"}</td>
+                    <td className="px-3">
+                      <div className="d-flex gap-1">
+                        <button onClick={() => handleUserStatus(u.id, u.status === "active" ? "suspended" : "active")}
+                          className={`btn btn-sm fw-semibold ${u.status === "active" ? "btn-outline-warning" : "btn-outline-success"}`}
+                          style={{ fontSize: "0.75rem" }}>
+                          {u.status === "active" ? "Suspend" : "Activate"}
+                        </button>
+                        <button onClick={() => handleDeleteUser(u.id, u.name)}
+                          className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+              {users.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">No users found</div>
+              )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchUsers} />
+            </>
+          )}
+
+          {/* ── PRODUCTS TAB ── */}
+          {activeTab === "products" && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>PRODUCTS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Products Management</h2>
+                </div>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <SearchInput value={productSearch} onChange={setProductSearch} onSearch={() => fetchProducts(1)} placeholder="Search products…" />
+                  <FilterSelect value={productCategoryFilter} onChange={v => { setProductCategoryFilter(v); fetchProducts(1, v); }}
+                    options={[["all","All Categories"],["book","Books"],["stationery","Stationery"],["sports","Sports"],["electronics","Electronics"]]} />
+                  <FilterSelect value={productStockFilter} onChange={v => { setProductStockFilter(v); fetchProducts(1, undefined, v); }}
+                    options={[["all","All Stock"],["inStock","In Stock"],["outOfStock","Out of Stock"]]} />
+                  <FilterSelect value={productSortBy} onChange={v => { setProductSortBy(v); fetchProducts(1, undefined, undefined, v); }}
+                    options={[["name","Sort: Name"],["price","Sort: Price"],["stock_quantity","Sort: Stock"],["created_at","Sort: Date"]]} />
+                  <button onClick={() => { const next = productSortOrder === "asc" ? "desc" : "asc"; setProductSortOrder(next); fetchProducts(1, undefined, undefined, undefined, next); }}
+                    className="btn btn-sm btn-outline-dark rounded-0" style={{ fontSize: "0.8rem" }}>
+                    {productSortOrder === "asc" ? "↑ Asc" : "↓ Desc"}
+                  </button>
+                  <button onClick={() => navigate("/admin/add-product")}
+                    className="btn btn-dark fw-bold d-flex align-items-center gap-1">
+                    <FaPlus style={{ fontSize: "0.75rem" }} /> Add Product
+                  </button>
+                </div>
+              </div>
+              <TableShell loading={fetchingData} heads={[
+                { label: "Product", onClick: () => handleProductSort("name"), sort: getSortIcon("name") },
+                { label: "Category" },
+                { label: "Price", onClick: () => handleProductSort("price"), sort: getSortIcon("price") },
+                { label: "Stock", onClick: () => handleProductSort("stock_quantity"), sort: getSortIcon("stock_quantity") },
+                { label: "Author/Type" },
+                { label: "Actions" },
+              ]}>
+                {products.map(p => {
+                  const stock = p.stock_quantity || 0;
+                  return (
+                    <tr key={p.id}>
+                      <td className="px-3">
+                        <div className="d-flex align-items-center gap-2">
+                          {p.image_url && (
+                            <img src={p.image_url.startsWith("http") ? p.image_url : `http://localhost:5000${p.image_url}`} alt={p.name}
+                              style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                              onError={e => e.target.style.display = "none"} />
+                          )}
+                          <span className="fw-semibold">{p.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-3"><StatusPill status={p.category} /></td>
+                      <td className="px-3 fw-semibold">₹{p.price}</td>
+                      <td className="px-3">
+                        <span className="fw-semibold" style={{ color: stock > 10 ? "#16a34a" : stock > 0 ? "#d97706" : "#dc2626" }}>
+                          {stock}
+                        </span>
+                      </td>
+                      <td className="text-muted px-3">{p.category === "book" ? (p.author || "—") : p.category}</td>
+                      <td className="px-3">
+                        <div className="d-flex gap-1">
+                          <button onClick={() => navigate(`/admin/edit-product/${p.id}`)}
+                            className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                            <FaEdit />
+                          </button>
+                          <button onClick={() => setDeleteModal({ show: true, id: p.id, name: p.name, type: "product" })}
+                            className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </TableShell>
+              {products.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">
+                  No products found.{" "}
+                  <button onClick={() => navigate("/admin/add-product")} className="btn btn-link p-0">Add one</button>
+                </div>
+              )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchProducts} />
+            </>
+          )}
+
+          {/* ── ORDERS TAB ── */}
+          {activeTab === "orders" && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>ORDERS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Orders Management</h2>
+                </div>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <SearchInput value={orderSearch} onChange={setOrderSearch} onSearch={() => fetchOrders(1)} placeholder="Search order ID, customer…" />
+                  <FilterSelect value={orderStatusFilter} onChange={v => { setOrderStatusFilter(v); fetchOrders(1, v); }}
+                    options={[["all","All Status"],["pending","Pending"],["confirmed","Confirmed"],["processing","Processing"],["shipped","Shipped"],["delivered","Delivered"],["cancelled","Cancelled"]]} />
+                  <FilterSelect value={orderTypeFilter} onChange={v => { setOrderTypeFilter(v); fetchOrders(1, undefined, v); }}
+                    options={[["all","All Types"],["regular","Regular"],["bulk","Bulk"]]} />
+                  <FilterSelect value={orderPaymentFilter} onChange={v => { setOrderPaymentFilter(v); fetchOrders(1, undefined, undefined, v); }}
+                    options={[["all","All Payment"],["pending","Pending"],["completed","Completed"]]} />
+                  <span className="text-muted small">Total: {totalItems || stats.totalOrders}</span>
+                </div>
+              </div>
+              <TableShell loading={fetchingData} heads={["Order ID","Customer","Amount","Status","Payment","Type","Date","Actions"]}>
+                {orders.map(o => {
+                  const customer = userNames[o.user] || `User #${o.user || "?"}`;
+                  const status = o.orderStatus || "pending";
+                  const payment = o.paymentStatus || "pending";
+                  const type = o.orderType || "regular";
+                  return (
+                    <tr key={o.id}>
+                      <td className="px-3">
+                        <span className="text-muted" style={{ fontSize: "0.8rem" }}>
+                          <FaIdCard className="me-1" />ORD-{o.id}
+                        </span>
+                      </td>
+                      <td className="px-3 fw-semibold">{customer}</td>
+                      <td className="px-3 fw-bold">₹{o.totalAmount || 0}</td>
+                      <td className="px-3"><StatusPill status={status} /></td>
+                      <td className="px-3"><StatusPill status={payment} /></td>
+                      <td className="px-3"><StatusPill status={type} /></td>
+                      <td className="text-muted px-3" style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                        {o.orderDate ? new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
+                      </td>
+                      <td className="px-3">
+                        <div className="d-flex gap-1 align-items-center">
+                          <button onClick={() => navigate(`/admin/orders/${o.id}`)}
+                            className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                            <FaEye />
+                          </button>
+                          <select className="form-select form-select-sm rounded-0" style={{ width: 110, fontSize: "0.75rem", borderColor: "#e5e7eb" }}
+                            value={status} onChange={e => handleOrderStatus(o.id, e.target.value)}>
+                            {["pending","confirmed","processing","shipped","delivered","cancelled"].map(s => (
+                              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </TableShell>
+              {orders.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">No orders found</div>
+              )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchOrders} />
+            </>
+          )}
+
+          {/* ── VERIFICATIONS TAB ── */}
+          {activeTab === "verifications" && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>VERIFICATIONS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Institute Verifications</h2>
+                </div>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <SearchInput value={verificationSearch} onChange={setVerificationSearch}
+                    onSearch={fetchVerifications} placeholder="Search institute, contact…" />
+                  {stats.pendingVerifications > 0 && (
+                    <span className="fw-semibold" style={{ color: "#ef4444", fontSize: "0.875rem" }}>
+                      {stats.pendingVerifications} pending
+                    </span>
+                  )}
+                </div>
+              </div>
+              <TableShell loading={fetchingData} heads={["Institute","Contact Person","Email","Phone","School","Status","Actions"]}>
+                {pendingVerifications.map(u => {
+                  const instituteName = u.instituteVerification?.instituteName || u.instituteInfo?.schoolName || "N/A";
+                  const phone = u.instituteVerification?.contactNumber || u.phone || "N/A";
+                  return (
+                    <tr key={u.id}>
+                      <td className="px-3 fw-semibold">{instituteName}</td>
+                      <td className="px-3">{u.name}</td>
+                      <td className="text-muted px-3">{u.email}</td>
+                      <td className="text-muted px-3">{phone}</td>
+                      <td className="text-muted px-3">{u.instituteInfo?.schoolName || "—"}</td>
+                      <td className="px-3"><StatusPill status="pending" /></td>
+                      <td className="px-3">
+                        <div className="d-flex gap-1">
+                          <button onClick={() => handleVerification(u.id, "approved")}
+                            className="btn btn-sm btn-outline-success fw-semibold" style={{ fontSize: "0.75rem" }}>
+                            <FaCheckCircle className="me-1" />Approve
+                          </button>
+                          <button onClick={() => {
+                            const c = prompt("Rejection reason:");
+                            if (c !== null) handleVerification(u.id, "rejected", c);
+                          }} className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </TableShell>
+              {pendingVerifications.length === 0 && !fetchingData && (
+                <div className="text-center py-5">
+                  <FaCheckCircle style={{ fontSize: "2rem", color: "#16a34a" }} className="mb-2 d-block mx-auto" />
+                  <p className="text-muted">All verifications processed</p>
+                </div>
               )}
             </>
           )}
 
+          {/* ── BOOK SET REQUESTS TAB ── */}
           {activeTab === "book-set-requests" && (
             <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaBox className="me-2" />
-                  Book Set Requests
-                </h3>
-                <Badge bg="info">Total: {totalItems}</Badge>
-              </div>
-
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading book set requests...</p>
+              <div className="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>BOOK SETS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Book Set Requests</h2>
                 </div>
-              ) : bookSetRequests.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th>ID</th>
-                            <th>Institute</th>
-                            <th>School</th>
-                            <th>Grade</th>
-                            <th>Books</th>
-                            <th>Total Price</th>
-                            <th>Status</th>
-                            <th>Submitted</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bookSetRequests.map((request) => (
-                            <tr key={request.id}>
-                              <td>{request.id}</td>
-                              <td>
-                                <div>
-                                  <strong>{request.institute_name}</strong>
-                                  <br />
-                                  <small className="text-muted">{request.institute_email}</small>
-                                </div>
-                              </td>
-                              <td>{request.school_name}</td>
-                              <td>{request.grade}</td>
-                              <td>{request.item_count}</td>
-                              <td>₹{request.total_estimated_price?.toFixed(2)}</td>
-                              <td>
-                                <Badge bg={
-                                  request.status === "approved" ? "success" :
-                                  request.status === "rejected" ? "danger" : "warning"
-                                }>
-                                  {request.status}
-                                </Badge>
-                              </td>
-                              <td>{new Date(request.created_at).toLocaleDateString()}</td>
-                              <td>
-                                <Button
-                                  variant="info"
-                                  size="sm"
-                                  className="me-2"
-                                  onClick={() => navigate(`/admin/book-set-requests/${request.id}`)}
-                                >
-                                  <FaEye />
-                                </Button>
-                                {request.status === "pending" && (
-                                  <>
-                                    <Button
-                                      variant="success"
-                                      size="sm"
-                                      className="me-2"
-                                      onClick={() => handleApproveBookSetRequest(request.id)}
-                                    >
-                                      <FaCheckCircle />
-                                    </Button>
-                                    <Button
-                                      variant="danger"
-                                      size="sm"
-                                      onClick={() => handleRejectBookSetRequest(request.id)}
-                                    >
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchBookSetRequests(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchBookSetRequests(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchBookSetRequests(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                          ) {
-                            return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchBookSetRequests(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchBookSetRequests(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Alert variant="info">
-                  No book set requests found.
-                </Alert>
+                <span className="text-muted small">Total: {totalItems}</span>
+              </div>
+              <TableShell loading={fetchingData} heads={["ID","Institute","School","Grade","Books","Total Price","Status","Date","Actions"]}>
+                {bookSetRequests.map(r => (
+                  <tr key={r.id}>
+                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>#{r.id}</td>
+                    <td className="px-3">
+                      <div className="fw-semibold">{r.institute_name}</div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>{r.institute_email}</div>
+                    </td>
+                    <td className="px-3">{r.school_name}</td>
+                    <td className="px-3">{r.grade}</td>
+                    <td className="px-3">{r.item_count}</td>
+                    <td className="px-3 fw-semibold">₹{r.total_estimated_price?.toFixed(2)}</td>
+                    <td className="px-3"><StatusPill status={r.status} /></td>
+                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>
+                      {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </td>
+                    <td className="px-3">
+                      <div className="d-flex gap-1">
+                        <button onClick={() => navigate(`/admin/book-set-requests/${r._id}`)}
+                          className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                          <FaEye />
+                        </button>
+                        {r.status === "pending" && (
+                          <>
+                            <button onClick={() => handleApproveBookSetRequest(r._id)}
+                              className="btn btn-sm btn-outline-success" style={{ fontSize: "0.75rem" }}>
+                              <FaCheckCircle />
+                            </button>
+                            <button onClick={() => handleRejectBookSetRequest(r._id)}
+                              className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                              ✕
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+              {bookSetRequests.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">No book set requests found</div>
               )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchBookSetRequests} />
             </>
           )}
 
-          {activeTab === "item-requests" && (
-            <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaBoxOpen className="me-2" />
-                  Item Requests Management
-                </h3>
-                <Badge bg="info">Total: {totalItems}</Badge>
-              </div>
-
-              <Card className="mb-4 shadow-sm">
-                <Card.Body>
-                  <Row className="g-3 align-items-center">
-                    <Col md={4}>
-                      <Form.Label className="fw-semibold mb-1">Filter by Status</Form.Label>
-                      <Form.Select
-                        value={itemRequestFilter}
-                        onChange={(e) => {
-                          setItemRequestFilter(e.target.value);
-                          fetchItemRequests(1);
-                        }}
-                      >
-                        <option value="all">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
-                      </Form.Select>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading item requests...</p>
-                </div>
-              ) : itemRequests.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th>#</th>
-                            <th>User</th>
-                            <th>Item Name</th>
-                            <th>Category</th>
-                            <th>Qty</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {itemRequests.map((req, idx) => (
-                            <tr key={req.id} style={{ verticalAlign: 'middle' }}>
-                              <td className="text-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                              <td>{userNames[req.user_id] || `User #${req.user_id}`}</td>
-                              <td className="fw-semibold">{req.item_name}</td>
-                              <td>
-                                <Badge bg="light" text="dark" style={{ textTransform: 'capitalize' }}>
-                                  {req.category}
-                                </Badge>
-                              </td>
-                              <td>{req.quantity_requested}</td>
-                              <td style={{ maxWidth: '200px', fontSize: '0.85rem', color: '#6b7280' }}>
-                                {req.description
-                                  ? req.description.substring(0, 80) + (req.description.length > 80 ? '...' : '')
-                                  : <span className="text-muted">—</span>}
-                              </td>
-                              <td>
-                                <Badge bg={
-                                  req.status === 'approved' ? 'success' :
-                                  req.status === 'rejected' ? 'danger' :
-                                  req.status === 'cancelled' ? 'secondary' : 'warning'
-                                }>
-                                  {req.status}
-                                </Badge>
-                                {req.admin_remark && (
-                                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.2rem' }}>
-                                    {req.admin_remark.substring(0, 40)}{req.admin_remark.length > 40 ? '...' : ''}
-                                  </div>
-                                )}
-                              </td>
-                              <td style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                                {new Date(req.created_at).toLocaleDateString()}
-                              </td>
-                              <td>
-                                {req.status === 'pending' && (
-                                  <>
-                                    <Button
-                                      variant="success"
-                                      size="sm"
-                                      className="me-2"
-                                      onClick={() => handleApproveItemRequest(req.id)}
-                                    >
-                                      <FaCheckCircle className="me-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      variant="danger"
-                                      size="sm"
-                                      onClick={() => handleRejectItemRequest(req.id)}
-                                    >
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchItemRequests(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchItemRequests(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`ir-page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchItemRequests(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
-                            return <Pagination.Ellipsis key={`ir-ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchItemRequests(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchItemRequests(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Alert variant="info">
-                  <FaBoxOpen className="me-2" />
-                  No item requests found{itemRequestFilter !== 'all' ? ` with status "${itemRequestFilter}"` : ''}.
-                </Alert>
-              )}
-            </>
-          )}
-
+          {/* ── DONATIONS TAB ── */}
           {activeTab === "donations" && (
             <>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="mb-0">
-                  <FaGift className="me-2" />
-                  Donations Management
-                </h3>
-                <Badge bg="info">Total: {totalItems}</Badge>
+              <div className="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>DONATIONS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Donations Management</h2>
+                </div>
+                <span className="text-muted small">Total: {totalItems}</span>
+              </div>
+              <TableShell loading={fetchingData} heads={["Title","Donor","Category","Condition","Status","Date","Actions"]}>
+                {donations.map(d => (
+                  <tr key={d.id}>
+                    <td className="px-3">
+                      <div className="d-flex align-items-center gap-2">
+                        {d.images?.[0] && (
+                          <img src={d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`} alt={d.title}
+                            style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
+                            onError={e => e.target.style.display = "none"} />
+                        )}
+                        <span className="fw-semibold">{d.title}</span>
+                      </div>
+                    </td>
+                    <td className="text-muted px-3">{userNames[d.donor_id] || `#${d.donor_id}`}</td>
+                    <td className="px-3"><StatusPill status={d.category} /></td>
+                    <td className="px-3"><StatusPill status={d.condition} /></td>
+                    <td className="px-3"><StatusPill status={d.status} /></td>
+                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>
+                      {new Date(d.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </td>
+                    <td className="px-3">
+                      <div className="d-flex gap-1">
+                        <button onClick={() => navigate(`/admin/donations/${d._id || d.id}`)}
+                          className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                          <FaEye />
+                        </button>
+                        <button onClick={() => handleDeleteDonation(d.id, d.title)}
+                          className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+              {donations.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">No donations found</div>
+              )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchDonations} />
+            </>
+          )}
+
+          {/* ── ITEM REQUESTS TAB ── */}
+          {activeTab === "item-requests" && (
+            <>
+              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>REQUESTS</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Item Requests</h2>
+                </div>
+                <div className="d-flex gap-2 align-items-center">
+                  <FilterSelect value={itemRequestFilter} onChange={v => { setItemRequestFilter(v); fetchItemRequests(1); }}
+                    options={[["all","All Statuses"],["pending","Pending"],["approved","Approved"],["rejected","Rejected"],["cancelled","Cancelled"]]} />
+                  <span className="text-muted small">Total: {totalItems}</span>
+                </div>
+              </div>
+              <TableShell loading={fetchingData} heads={["#","User","Item","Category","Qty","Description","Status","Date","Actions"]}>
+                {itemRequests.map((req, idx) => (
+                  <tr key={req.id}>
+                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                    <td className="px-3">{userNames[req.user_id] || `#${req.user_id}`}</td>
+                    <td className="px-3 fw-semibold">{req.item_name}</td>
+                    <td className="px-3"><StatusPill status={req.category} /></td>
+                    <td className="px-3">{req.quantity_requested}</td>
+                    <td className="text-muted px-3" style={{ maxWidth: 180, fontSize: "0.8rem" }}>
+                      {req.description ? req.description.substring(0, 70) + (req.description.length > 70 ? "…" : "") : "—"}
+                    </td>
+                    <td className="px-3">
+                      <StatusPill status={req.status} />
+                      {req.admin_remark && (
+                        <div className="text-muted mt-1" style={{ fontSize: "0.7rem" }}>
+                          {req.admin_remark.substring(0, 40)}{req.admin_remark.length > 40 ? "…" : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-muted px-3" style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {new Date(req.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </td>
+                    <td className="px-3">
+                      {req.status === "pending" && (
+                        <div className="d-flex gap-1">
+                          <button onClick={() => handleApproveItemRequest(req.id)}
+                            className="btn btn-sm btn-outline-success fw-semibold" style={{ fontSize: "0.75rem" }}>
+                            <FaCheckCircle className="me-1" />Approve
+                          </button>
+                          <button onClick={() => handleRejectItemRequest(req.id)}
+                            className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+              {itemRequests.length === 0 && !fetchingData && (
+                <div className="text-center text-muted py-5">
+                  No item requests{itemRequestFilter !== "all" ? ` with status "${itemRequestFilter}"` : ""}
+                </div>
+              )}
+              <Pager current={currentPage} total={totalPages} onPage={fetchItemRequests} />
+            </>
+          )}
+
+          {/* ── NOTIFICATIONS TAB ── */}
+          {activeTab === "notifications" && (
+            <>
+              <div className="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>INBOX</p>
+                  <h2 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
+                    <FaBell style={{ fontSize: "1.2rem" }} /> Notifications
+                    {unreadNotifs > 0 && (
+                      <span className="badge text-bg-dark" style={{ fontSize: "0.65rem" }}>{unreadNotifs}</span>
+                    )}
+                  </h2>
+                </div>
+                {unreadNotifs > 0 && (
+                  <button onClick={markAllNotifsRead}
+                    className="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center gap-1">
+                    <FaCheck style={{ fontSize: "0.7rem" }} /> Mark all as read
+                  </button>
+                )}
               </div>
 
               {fetchingData ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" />
-                  <p className="mt-2">Loading donations...</p>
+                <div className="text-center py-5 text-muted">
+                  <div className="spinner-border spinner-border-sm me-2" role="status" />
+                  Loading…
                 </div>
-              ) : donations.length > 0 ? (
-                <>
-                  <Card className="shadow-sm border-0">
-                    <Card.Body className="p-0">
-                      <Table striped hover responsive className="mb-0">
-                        <thead className="table-dark">
-                          <tr>
-                            <th>Title</th>
-                            <th>Donor</th>
-                            <th>Category</th>
-                            <th>Condition</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {donations.map((donation) => (
-                            <tr key={donation.id}>
-                              <td>
-                                <div className="d-flex align-items-center">
-                                  {donation.images && donation.images[0] && (
-                                    <img
-                                      src={`http://localhost:5000${donation.images[0]}`}
-                                      alt={donation.title}
-                                      style={{ width: '40px', height: '40px', objectFit: 'cover', marginRight: '10px', borderRadius: '4px' }}
-                                      onError={(e) => e.target.style.display = 'none'}
-                                    />
-                                  )}
-                                  <span>{donation.title}</span>
-                                </div>
-                              </td>
-                              <td>{userNames[donation.donor_id] || `User #${donation.donor_id}`}</td>
-                              <td>
-                                <Badge bg="light" text="dark">{donation.category}</Badge>
-                              </td>
-                              <td>
-                                <Badge bg={
-                                  donation.condition === 'new' ? 'success' :
-                                  donation.condition === 'like_new' ? 'info' :
-                                  donation.condition === 'good' ? 'primary' : 'secondary'
-                                }>
-                                  {donation.condition.replace('_', ' ')}
-                                </Badge>
-                              </td>
-                              <td>
-                                <Badge bg={
-                                  donation.status === 'available' ? 'success' :
-                                  donation.status === 'reserved' ? 'warning' : 'secondary'
-                                }>
-                                  {donation.status}
-                                </Badge>
-                              </td>
-                              <td>{new Date(donation.created_at).toLocaleDateString()}</td>
-                              <td>
-                                <Button
-                                  variant="info"
-                                  size="sm"
-                                  className="me-2"
-                                  onClick={() => navigate(`/donations/${donation.id}`)}
-                                >
-                                  <FaEye />
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => handleDeleteDonation(donation.id, donation.title)}
-                                >
-                                  <FaTrash />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-
-                  {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
-                      <Pagination>
-                        <Pagination.First onClick={() => fetchDonations(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => fetchDonations(currentPage - 1)} disabled={currentPage === 1} />
-                        {[...Array(totalPages)].map((_, i) => {
-                          const pageNum = i + 1;
-                          if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                          ) {
-                            return (
-                              <Pagination.Item
-                                key={`donation-page-${pageNum}`}
-                                active={pageNum === currentPage}
-                                onClick={() => fetchDonations(pageNum)}
-                              >
-                                {pageNum}
-                              </Pagination.Item>
-                            );
-                          } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                          ) {
-                            return <Pagination.Ellipsis key={`donation-ellipsis-${pageNum}`} />;
-                          }
-                          return null;
-                        })}
-                        <Pagination.Next onClick={() => fetchDonations(currentPage + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => fetchDonations(totalPages)} disabled={currentPage === totalPages} />
-                      </Pagination>
-                    </div>
-                  )}
-                </>
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-5 bg-white" style={{ border: "1px solid #e5e7eb" }}>
+                  <FaBell style={{ fontSize: "2.5rem", color: "#e5e7eb" }} className="mb-3 d-block mx-auto" />
+                  <p className="fw-semibold mb-1">No notifications yet</p>
+                  <p className="text-muted small mb-0">You're all caught up!</p>
+                </div>
               ) : (
-                <Alert variant="info">
-                  No donations found.
-                </Alert>
+                <div className="d-flex flex-column" style={{ gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", maxWidth: 720 }}>
+                  {notifications.map(n => (
+                    <div key={n._id}
+                      className="bg-white d-flex gap-3 align-items-start"
+                      style={{
+                        padding: "1rem 1.25rem",
+                        borderLeft: n.is_read ? "3px solid transparent" : "3px solid #111",
+                        background: n.is_read ? "#fff" : "#fafafa",
+                        cursor: "default",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                      onMouseLeave={e => e.currentTarget.style.background = n.is_read ? "#fff" : "#fafafa"}>
+                      <div className="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                        style={{ width: 40, height: 40, fontSize: "1.1rem" }}>
+                        {n.icon || "🔔"}
+                      </div>
+                      <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                        <div className="d-flex justify-content-between align-items-start gap-2">
+                          <span className="fw-semibold small">
+                            {n.title}
+                            {!n.is_read && (
+                              <span className="badge text-bg-dark ms-2" style={{ fontSize: "0.58rem" }}>New</span>
+                            )}
+                          </span>
+                          <div className="d-flex gap-1 flex-shrink-0">
+                            {!n.is_read && (
+                              <button onClick={() => markNotifRead(n._id)}
+                                className="btn btn-link p-1 text-muted" style={{ fontSize: "0.75rem" }}
+                                title="Mark as read">
+                                <FaCheck />
+                              </button>
+                            )}
+                            <button onClick={() => deleteNotif(n._id)}
+                              className="btn btn-link p-1 text-danger" style={{ fontSize: "0.75rem" }}
+                              title="Delete">
+                              <FaTimes />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mb-1 text-muted lh-base" style={{ fontSize: "0.8rem", marginTop: "0.2rem" }}>{n.message}</p>
+                        <span className="text-muted" style={{ fontSize: "0.7rem" }}>{getTimeAgo(n.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </>
           )}
-        </Col>
-      </Row>
-    </Container>
+
+    </AdminLayout>
   );
 };
 

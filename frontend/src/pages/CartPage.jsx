@@ -127,7 +127,9 @@ const CartPage = () => {
                     className="px-4 py-3 border-top d-grid align-items-center"
                     style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem" }}>
                     <div className="d-flex align-items-center gap-2">
-                      {item.product?.image && <img src={item.product.image} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover" }} />}
+                      {(item.product?.image || item.product?.image_url) && (
+                        <img src={(() => { const u = item.product.image || item.product.image_url; return u.startsWith("http") ? u : `http://localhost:5000${u}`; })()} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover" }} />
+                      )}
                       <div>
                         <div className="fw-semibold small">{item.product?.name || item.name || `Product #${item.product}`}</div>
                         <div className="text-muted" style={{ fontSize: "0.78rem" }}>{item.product?.category || ""}</div>

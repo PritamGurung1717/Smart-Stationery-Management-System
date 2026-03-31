@@ -1,667 +1,377 @@
-// frontend/src/pages/admin/AddProduct.jsx
 import React, { useState, useEffect } from "react";
-import { 
-  Container, Card, Form, Button, Row, Col, Spinner, Alert,
-  Badge, FloatingLabel, Modal, InputGroup
-} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { 
-  FaArrowLeft, FaPlus, FaImage, FaSave, FaEye, FaEyeSlash, 
-  FaExclamationTriangle, FaTimes, FaCheck, FaEdit, FaTrash 
-} from "react-icons/fa";
+import { FaPlus, FaImage, FaSave, FaCheck, FaTimes, FaTrash } from "react-icons/fa";
+import AdminLayout from "../../components/AdminLayout.jsx";
 
+const API = "http://localhost:5000/api";
+const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── Toast ─────────────────────────────────────────────────── */
+const Toast = ({ msg, type, onClose }) => {
+  if (!msg) return null;
+  const bg = type === "error" ? "#fee2e2" : "#d1fae5";
+  const color = type === "error" ? "#991b1b" : "#065f46";
+  return (
+    <div className="position-fixed d-flex align-items-center gap-2 px-4 py-3 rounded-3 shadow"
+      style={{ bottom: 24, right: 24, background: bg, color, zIndex: 9999, fontSize: "0.875rem", fontWeight: 500 }}>
+      {type === "error" ? "✕" : "✓"} {msg}
+      <button className="btn btn-link p-0 ms-2" style={{ color, fontSize: "1rem" }} onClick={onClose}>×</button>
+    </div>
+  );
+};
+
+/* ─── Add Category Modal ─────────────────────────────────────── */
+const AddCategoryModal = ({ onClose, onAdded }) => {
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleAdd = async () => {
+    if (!name.trim()) { setErr("Category name is required"); return; }
+    setSaving(true); setErr("");
+    try {
+      await axios.post(`${API}/categories`, { name: name.trim(), description: desc.trim() }, { headers: authH() });
+      onAdded(name.trim().toLowerCase());
+    } catch (e) { setErr(e.response?.data?.message || "Failed to add category"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
+      <div className="bg-white rounded-3 shadow p-4" style={{ maxWidth: 420, width: "90%" }}>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h5 className="fw-bold mb-0">Add New Category</h5>
+          <button className="btn btn-link p-0 text-muted" onClick={onClose}><FaTimes /></button>
+        </div>
+        {err && <div className="alert alert-danger small py-2 mb-3">{err}</div>}
+        <div className="mb-3">
+          <label className="form-label fw-medium small">Category Name *</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Electronics"
+            className="form-control rounded-0" style={{ borderColor: "#e5e7eb" }} />
+        </div>
+        <div className="mb-4">
+          <label className="form-label fw-medium small">Description (optional)</label>
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
+            className="form-control rounded-0" style={{ borderColor: "#e5e7eb", resize: "none" }} />
+        </div>
+        <div className="d-flex gap-2 justify-content-end">
+          <button className="btn btn-outline-dark rounded-0" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn-dark rounded-0 fw-semibold" onClick={handleAdd} disabled={saving || !name.trim()}>
+            {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <FaCheck className="me-1" />}
+            Add Category
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Field ──────────────────────────────────────────────────── */
+const Field = ({ label, required, children }) => (
+  <div className="mb-3">
+    <label className="form-label fw-medium small mb-1">
+      {label}{required && <span className="text-danger ms-1">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const inputStyle = { borderColor: "#e5e7eb", borderRadius: 0, fontSize: "0.9rem" };
+
+/* ─── AddProduct ─────────────────────────────────────────────── */
 const AddProduct = () => {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    price: "",
-    stock_quantity: "",
-    description: "",
-    author: "",
-    genre: "",
-    image_url: ""
-  });
-  const [imagePreview, setImagePreview] = useState("");
-  const [showImagePreview, setShowImagePreview] = useState(true);
-  
-  // Category states
-  const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  
-  // Modal states
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
-  const [addingCategory, setAddingCategory] = useState(false);
-  
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast({ msg: "", type: "success" }), 3500); };
 
-  // Fetch categories on component mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const [formData, setFormData] = useState({
+    name: "", category: "", price: "", original_price: "",
+    stock_quantity: "", description: "", author: "", genre: ""
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+
+  const [categories, setCategories] = useState([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [showCatModal, setShowCatModal] = useState(false);
+
+  useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
+    setLoadingCats(true);
     try {
-      setLoadingCategories(true);
-      const response = await axios.get("http://localhost:5000/api/categories");
-      
-      if (response.data.success) {
-        // Use categories from API or fallback to basic ones
-        const categoryList = response.data.formattedCategories || 
-          response.data.categories || 
-          ["book", "stationery"];
-        
-        // Format categories for dropdown
-        const formattedCategories = categoryList.map(cat => {
-          if (typeof cat === 'string') {
-            return {
-              value: cat,
-              label: cat.charAt(0).toUpperCase() + cat.slice(1),
-              description: `${cat} products`
-            };
-          }
-          return cat; // Already formatted
-        });
-        
-        setCategories(formattedCategories);
-        
-        // Set default category if none selected
-        if (!formData.category && formattedCategories.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            category: formattedCategories[0].value
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      // Fallback to basic categories
-      setCategories([
-        { value: "book", label: "Book", description: "Books and reading materials" },
-        { value: "stationery", label: "Stationery", description: "Office and school supplies" }
-      ]);
-      
-      if (!formData.category) {
-        setFormData(prev => ({ ...prev, category: "book" }));
-      }
-    } finally {
-      setLoadingCategories(false);
-    }
+      const r = await axios.get(`${API}/categories`);
+      const list = r.data.formattedCategories || r.data.categories || ["book", "stationery"];
+      const formatted = list.map(c => typeof c === "string"
+        ? { value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }
+        : c);
+      setCategories(formatted);
+      if (!formData.category && formatted.length > 0)
+        setFormData(p => ({ ...p, category: formatted[0].value }));
+    } catch {
+      const fallback = [
+        { value: "book", label: "Book" },
+        { value: "stationery", label: "Stationery" },
+        { value: "sports", label: "Sports" },
+        { value: "electronics", label: "Electronics" },
+      ];
+      setCategories(fallback);
+      if (!formData.category) setFormData(p => ({ ...p, category: "book" }));
+    } finally { setLoadingCats(false); }
   };
 
-  // Add new category function
-  const handleAddCategory = async () => {
-    if (!newCategory.name.trim()) {
-      setError("Category name is required");
-      return;
-    }
-
-    setAddingCategory(true);
-    setError("");
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:5000/api/categories",
-        {
-          name: newCategory.name.trim(),
-          description: newCategory.description.trim()
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      if (response.data.success) {
-        // Refresh categories
-        await fetchCategories();
-        
-        // Set the new category as selected
-        setFormData(prev => ({
-          ...prev,
-          category: newCategory.name.trim().toLowerCase()
-        }));
-        
-        // Close modal and reset form
-        setShowAddCategoryModal(false);
-        setNewCategory({ name: "", description: "" });
-        
-        setSuccess(`Category "${newCategory.name}" added successfully!`);
-      }
-    } catch (error) {
-      console.error("Error adding category:", error);
-      setError(error.response?.data?.message || "Failed to add category");
-    } finally {
-      setAddingCategory(false);
-    }
-  };
-
-  // Update author/genre when category changes
   useEffect(() => {
-    if (formData.category !== "book") {
-      setFormData(prev => ({
-        ...prev,
-        author: "",
-        genre: ""
-      }));
-    }
+    if (formData.category !== "book")
+      setFormData(p => ({ ...p, author: "", genre: "" }));
   }, [formData.category]);
 
-  const handleChange = (e) => {
+  const set = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    if (name === "image_url") {
-      setImagePreview(value);
-    }
+    setFormData(p => ({ ...p, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = [];
+    if (!formData.name.trim()) errs.push("Product name is required");
+    if (!formData.category) errs.push("Category is required");
+    if (!formData.price || parseFloat(formData.price) <= 0) errs.push("Valid price is required");
+    if (formData.stock_quantity === "" || parseInt(formData.stock_quantity) < 0) errs.push("Valid stock quantity is required");
+    if (formData.category === "book" && !formData.author.trim()) errs.push("Author is required for books");
+    if (errs.length) { showToast(errs[0], "error"); return; }
+
     setSaving(true);
-    setError("");
-    setSuccess("");
-
     try {
-      // Validation
-      const errors = [];
-      if (!formData.name.trim()) errors.push("Product name is required");
-      if (!formData.category.trim()) errors.push("Category is required");
-      if (!formData.price || isNaN(formData.price) || parseFloat(formData.price) <= 0) {
-        errors.push("Valid price is required");
-      }
-      if (!formData.stock_quantity || isNaN(formData.stock_quantity) || parseInt(formData.stock_quantity) < 0) {
-        errors.push("Valid stock quantity is required");
-      }
-      
-      // Book-specific validation
-      if (formData.category === "book" && !formData.author.trim()) {
-        errors.push("Author is required for books");
-      }
-      
-      if (errors.length > 0) {
-        throw new Error(errors.join(", "));
-      }
-
-      const productData = {
-        name: formData.name.trim(),
-        category: formData.category,
-        price: parseFloat(formData.price),
-        stock_quantity: parseInt(formData.stock_quantity),
-        description: formData.description || "",
-        author: formData.author || "",
-        genre: formData.genre || "",
-        image_url: formData.image_url || ""
-      };
-
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/products", productData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const fd = new FormData();
+      fd.append("name", formData.name.trim());
+      fd.append("category", formData.category);
+      fd.append("price", parseFloat(formData.price));
+      if (formData.original_price) fd.append("original_price", parseFloat(formData.original_price));
+      fd.append("stock_quantity", parseInt(formData.stock_quantity));
+      fd.append("description", formData.description);
+      fd.append("author", formData.author);
+      fd.append("genre", formData.genre);
+      if (imageFile) fd.append("image", imageFile);
+
+      await axios.post(`${API}/products`, fd, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
       });
 
-      setSuccess("Product added successfully!");
-      
-      // Clear form after successful submission
-      setFormData({
-        name: "",
-        category: categories.length > 0 ? categories[0].value : "",
-        price: "",
-        stock_quantity: "",
-        description: "",
-        author: "",
-        genre: "",
-        image_url: ""
-      });
-      setImagePreview("");
-      
-      // Navigate after 2 seconds
-      setTimeout(() => {
-        navigate("/admin/products");
-      }, 2000);
-
-    } catch (error) {
-      console.error("Error adding product:", error);
-      
-      if (error.response?.status === 400) {
-        setError(error.response.data.message || "Validation failed. Please check your inputs.");
-      } else if (error.response?.status === 401) {
-        setError("Unauthorized. Please log in again.");
-        setTimeout(() => navigate("/login"), 2000);
-      } else if (error.response?.status === 500) {
-        setError("Server error. Please try again later.");
-      } else {
-        setError(error.response?.data?.message || error.message || "Failed to add product");
-      }
-    } finally {
-      setSaving(false);
-    }
+      showToast("Product added successfully!");
+      setTimeout(() => navigate("/admin-dashboard"), 1500);
+    } catch (e) {
+      showToast(e.response?.data?.message || "Failed to add product", "error");
+    } finally { setSaving(false); }
   };
 
+  const stock = parseInt(formData.stock_quantity) || 0;
+  const isBook = formData.category === "book";
+  const isComplete = formData.name && formData.price && formData.stock_quantity !== "" && formData.category && (!isBook || formData.author);
+
   return (
-    <Container className="py-4">
-      {/* Header with Back Button */}
-      <div className="d-flex align-items-center justify-content-between mb-4">
-        <div className="d-flex align-items-center">
-          <Button variant="outline-secondary" onClick={() => navigate("/admin/products")} className="me-3">
-            <FaArrowLeft className="me-2" />
-            Back to Products
-          </Button>
-          <h2 className="mb-0">Add New Product</h2>
-        </div>
-        <Button 
-          variant="outline-primary" 
-          size="sm" 
-          onClick={() => setShowAddCategoryModal(true)}
-        >
-          <FaPlus className="me-1" /> Add New Category
-        </Button>
+    <AdminLayout activeTab="products"
+      topBar={
+        <button onClick={() => setShowCatModal(true)}
+          className="btn btn-sm btn-outline-dark d-flex align-items-center gap-1">
+          <FaPlus style={{ fontSize: "0.7rem" }} /> New Category
+        </button>
+      }>
+      <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
+      {showCatModal && (
+        <AddCategoryModal
+          onClose={() => setShowCatModal(false)}
+          onAdded={async (val) => {
+            await fetchCategories();
+            setFormData(p => ({ ...p, category: val }));
+            setShowCatModal(false);
+            showToast("Category added");
+          }}
+        />
+      )}
+
+      {/* Page title */}
+      <div className="mb-4">
+        <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>PRODUCTS</p>
+        <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Add New Product</h2>
       </div>
-      
-      {/* Alerts */}
-      {error && <Alert variant="danger" dismissible onClose={() => setError("")}>
-        <FaExclamationTriangle className="me-2" />
-        {error}
-      </Alert>}
-      {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-        {success}
-      </Alert>}
-      
-      {/* Add Category Modal */}
-      <Modal show={showAddCategoryModal} onHide={() => setShowAddCategoryModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title><FaPlus className="me-2" />Add New Category</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <FloatingLabel label="Category Name *">
-              <Form.Control
-                type="text"
-                placeholder="e.g., Electronics"
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                disabled={addingCategory}
-              />
-            </FloatingLabel>
-            <Form.Text className="text-muted">
-              Enter a name for the new category
-            </Form.Text>
-          </Form.Group>
-          
-          <Form.Group>
-            <FloatingLabel label="Description (Optional)">
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Describe this category..."
-                value={newCategory.description}
-                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                disabled={addingCategory}
-              />
-            </FloatingLabel>
-          </Form.Group>
-          
-          <div className="mt-4">
-            <small className="text-muted">
-              <FaExclamationTriangle className="me-1" />
-              This category will be available for all products after creation.
-            </small>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setShowAddCategoryModal(false)}>
-            <FaTimes className="me-1" /> Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAddCategory}
-            disabled={addingCategory || !newCategory.name.trim()}
-          >
-            {addingCategory ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                Adding...
-              </>
-            ) : (
-              <>
-                <FaCheck className="me-1" /> Add Category
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      
-      {/* Main Form Card */}
-      <Card className="shadow-sm border-0">
-        <Card.Header className="bg-white border-bottom py-3">
-          <h5 className="mb-0 text-primary"><FaPlus className="me-2" />Product Details</h5>
-          <small className="text-muted">Fields marked with * are required</small>
-        </Card.Header>
-        <Card.Body className="p-4">
-          <Form onSubmit={handleSubmit}>
-            <Row className="g-4">
-              {/* Left Column - Main Info */}
-              <Col lg={8}>
-                <Card className="mb-4 border">
-                  <Card.Body>
-                    <h6 className="mb-3 border-bottom pb-2">Basic Information</h6>
-                    
-                    {/* Product Name */}
-                    <Form.Group className="mb-3">
-                      <FloatingLabel label="Product Name *" className="mb-3">
-                        <Form.Control
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          required
-                          placeholder=" "
-                          className="form-control-lg"
-                        />
-                      </FloatingLabel>
-                    </Form.Group>
-                    
-                    {/* Category, Price, and Stock */}
-                    <Row className="g-3 mb-3">
-                      <Col md={6}>
-                        <Form.Group>
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <FloatingLabel label="Category *">
-                              <InputGroup>
-                                <Form.Select
-                                  name="category"
-                                  value={formData.category}
-                                  onChange={handleChange}
-                                  required
-                                  disabled={loadingCategories}
-                                  style={{ height: '58px', paddingTop: '1.625rem' }}
-                                >
-                                  <option value="">Select a category...</option>
-                                  {loadingCategories ? (
-                                    <option disabled>Loading categories...</option>
-                                  ) : categories.length === 0 ? (
-                                    <option disabled>No categories available</option>
-                                  ) : (
-                                    categories.map((cat, index) => (
-                                      <option key={index} value={cat.value}>
-                                        {cat.label}
-                                      </option>
-                                    ))
-                                  )}
-                                </Form.Select>
-                                <Button 
-                                  variant="outline-secondary"
-                                  onClick={() => setShowAddCategoryModal(true)}
-                                  style={{ height: '58px' }}
-                                >
-                                  <FaPlus />
-                                </Button>
-                              </InputGroup>
-                            </FloatingLabel>
-                          </div>
-                          <div className="d-flex justify-content-between align-items-center mt-1">
-                            <Form.Text className="text-muted">
-                              {formData.category === "book" 
-                                ? "Books require author information"
-                                : formData.category 
-                                ? `${categories.find(c => c.value === formData.category)?.description || 'Category'}`
-                                : "Select or add a category"
-                              }
-                            </Form.Text>
-                            <Badge pill bg="info">
-                              {categories.length} {categories.length === 1 ? 'category' : 'categories'}
-                            </Badge>
-                          </div>
-                        </Form.Group>
-                      </Col>
-                      
-                      <Col md={3}>
-                        <Form.Group>
-                          <FloatingLabel label="Price (₹) *">
-                            <Form.Control
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              name="price"
-                              value={formData.price}
-                              onChange={handleChange}
-                              required
-                              placeholder=" "
-                              className="form-control-lg"
-                            />
-                          </FloatingLabel>
-                        </Form.Group>
-                      </Col>
-                      
-                      <Col md={3}>
-                        <Form.Group>
-                          <FloatingLabel label="Stock *">
-                            <Form.Control
-                              type="number"
-                              min="0"
-                              name="stock_quantity"
-                              value={formData.stock_quantity}
-                              onChange={handleChange}
-                              required
-                              placeholder=" "
-                              className="form-control-lg"
-                            />
-                          </FloatingLabel>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                    
-                    {/* Author and Genre for Books */}
-                    {formData.category === "book" && (
-                      <Row className="g-3 mb-3">
-                        <Col md={6}>
-                          <Form.Group>
-                            <FloatingLabel label="Author *">
-                              <Form.Control
-                                type="text"
-                                name="author"
-                                value={formData.author}
-                                onChange={handleChange}
-                                required={formData.category === "book"}
-                                placeholder=" "
-                              />
-                            </FloatingLabel>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <FloatingLabel label="Genre">
-                              <Form.Control
-                                type="text"
-                                name="genre"
-                                value={formData.genre}
-                                onChange={handleChange}
-                                placeholder=" "
-                              />
-                            </FloatingLabel>
-                          </Form.Group>
-                        </Col>
-                      </Row>
-                    )}
-                    
-                    {/* Description */}
-                    <Form.Group>
-                      <FloatingLabel label="Description" className="mb-3">
-                        <Form.Control
-                          as="textarea"
-                          rows={4}
-                          name="description"
-                          value={formData.description}
-                          onChange={handleChange}
-                          placeholder=" "
-                          style={{ height: '120px' }}
-                        />
-                      </FloatingLabel>
-                    </Form.Group>
-                  </Card.Body>
-                </Card>
-              </Col>
-              
-              {/* Right Column - Image */}
-              <Col lg={4}>
-                <Card className="border">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="mb-0"><FaImage className="me-2" />Product Image</h6>
-                      <Button 
-                        variant="outline-secondary" 
-                        size="sm"
-                        onClick={() => setShowImagePreview(!showImagePreview)}
-                      >
-                        {showImagePreview ? <FaEyeSlash /> : <FaEye />}
-                      </Button>
-                    </div>
-                    
-                    {/* Image URL */}
-                    <Form.Group className="mb-3">
-                      <FloatingLabel label="Image URL">
-                        <Form.Control
-                          type="text"
-                          name="image_url"
-                          value={formData.image_url}
-                          onChange={handleChange}
-                          placeholder=" "
-                        />
-                      </FloatingLabel>
-                      <Form.Text className="text-muted">
-                        Optional. Enter a valid image URL
-                      </Form.Text>
-                    </Form.Group>
-                    
-                    {/* Image Preview */}
-                    {showImagePreview && imagePreview && (
-                      <div className="mt-3">
-                        <p className="text-muted mb-2">Preview:</p>
-                        <div className="border rounded p-3 bg-light text-center">
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="img-fluid rounded"
-                            style={{
-                              maxHeight: '200px',
-                              objectFit: 'contain'
-                            }}
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                              e.target.parentElement.innerHTML = 
-                                '<div class="text-muted p-4">' +
-                                '<FaImage className="fs-1 mb-2" /><br/>' +
-                                '<small>Invalid image URL</small></div>';
-                            }}
-                          />
+        <form onSubmit={handleSubmit}>
+          <div className="row g-4">
+
+            {/* Left — main fields */}
+            <div className="col-lg-8">
+              {/* Basic info */}
+              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+                <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
+                  <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>BASIC INFORMATION</p>
+                </div>
+                <div className="p-4">
+                  <Field label="Product Name" required>
+                    <input name="name" value={formData.name} onChange={set} required
+                      className="form-control" style={inputStyle} placeholder="e.g., RD Sharma Class 12" />
+                  </Field>
+
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <Field label="Category" required>
+                        <div className="d-flex">
+                          <select name="category" value={formData.category} onChange={set} required
+                            disabled={loadingCats}
+                            className="form-select flex-grow-1" style={{ ...inputStyle, borderRight: "none" }}>
+                            <option value="">Select category…</option>
+                            {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                          </select>
+                          <button type="button" onClick={() => setShowCatModal(true)}
+                            className="btn btn-outline-dark d-flex align-items-center px-3"
+                            style={{ borderRadius: 0, borderColor: "#e5e7eb", borderLeft: "none" }}>
+                            <FaPlus style={{ fontSize: "0.7rem" }} />
+                          </button>
                         </div>
+                      </Field>
+                    </div>
+                    <div className="col-md-3">
+                      <Field label="Price (₹)" required>
+                        <input name="price" type="number" min="0" step="0.01" value={formData.price} onChange={set} required
+                          className="form-control" style={inputStyle} placeholder="0.00" />
+                      </Field>
+                    </div>
+                    <div className="col-md-3">
+                      <Field label="Original Price (₹)">
+                        <input name="original_price" type="number" min="0" step="0.01" value={formData.original_price} onChange={set}
+                          className="form-control" style={inputStyle} placeholder="MRP" />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <Field label="Stock Quantity" required>
+                        <input name="stock_quantity" type="number" min="0" value={formData.stock_quantity} onChange={set} required
+                          className="form-control" style={inputStyle} placeholder="0" />
+                      </Field>
+                    </div>
+                  </div>
+
+                  {isBook && (
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <Field label="Author" required>
+                          <input name="author" value={formData.author} onChange={set} required
+                            className="form-control" style={inputStyle} placeholder="Author name" />
+                        </Field>
                       </div>
-                    )}
-                    
-                    {showImagePreview && !imagePreview && (
-                      <div className="text-center border rounded p-5 bg-light">
-                        <FaImage className="fs-1 text-muted mb-2" />
-                        <p className="text-muted mb-0">Image preview will appear here</p>
+                      <div className="col-md-6">
+                        <Field label="Genre">
+                          <input name="genre" value={formData.genre} onChange={set}
+                            className="form-control" style={inputStyle} placeholder="e.g., Science, Fiction" />
+                        </Field>
                       </div>
-                    )}
-                  </Card.Body>
-                </Card>
-                
-                {/* Product Summary */}
-                <Card className="mt-3 border">
-                  <Card.Body>
-                    <h6 className="mb-3">Product Summary</h6>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-muted">Category:</span>
-                      <Badge bg={formData.category ? "primary" : "secondary"}>
-                        {formData.category 
-                          ? (categories.find(c => c.value === formData.category)?.label || formData.category)
-                          : "Not selected"
-                        }
-                      </Badge>
                     </div>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-muted">Required Fields:</span>
-                      <Badge bg={
-                        formData.name && formData.price && formData.stock_quantity && formData.category &&
-                        (formData.category !== "book" || formData.author) ? "success" : "warning"
-                      }>
-                        {
-                          formData.name && formData.price && formData.stock_quantity && formData.category &&
-                          (formData.category !== "book" || formData.author) ? "Complete" : "Incomplete"
-                        }
-                      </Badge>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-muted">Price:</span>
-                      <span className="fw-bold">₹{formData.price || "0.00"}</span>
-                    </div>
-                    <div className="d-flex justify-content-between">
-                      <span className="text-muted">Stock Status:</span>
-                      <Badge bg={formData.stock_quantity > 0 ? "success" : "secondary"}>
-                        {formData.stock_quantity > 0 ? "In Stock" : "Out of Stock"}
-                      </Badge>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-            
-            {/* Action Buttons */}
-            <div className="border-top pt-4 mt-4">
-              <div className="d-flex justify-content-between">
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => navigate("/admin/products")}
-                  disabled={saving}
-                  className="px-4"
-                >
-                  Cancel
-                </Button>
-                
-                <Button 
-                  variant="primary" 
-                  type="submit"
-                  disabled={saving || !formData.category}
-                  className="px-4"
-                >
-                  {saving ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Adding Product...
-                    </>
-                  ) : (
-                    <>
-                      <FaSave className="me-2" />
-                      Add Product
-                    </>
                   )}
-                </Button>
+
+                  <Field label="Description">
+                    <textarea name="description" value={formData.description} onChange={set} rows={4}
+                      className="form-control" style={{ ...inputStyle, resize: "vertical" }}
+                      placeholder="Product description…" />
+                  </Field>
+                </div>
               </div>
             </div>
-          </Form>
-        </Card.Body>
-      </Card>
-      
-      {/* Help Text */}
-      <div className="mt-4 text-muted small">
-        <p className="mb-1">
-          <FaPlus className="me-1" />
-          <strong>Need a new category?</strong> Click "Add New Category" button to create one.
-        </p>
-        <p className="mb-0">
-          Books require author information. Other categories may have different requirements.
-        </p>
-      </div>
-    </Container>
+
+            {/* Right — image + summary */}
+            <div className="col-lg-4">
+              {/* Image */}
+              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+                <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
+                  <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
+                    <FaImage className="me-1" />PRODUCT IMAGE
+                  </p>
+                </div>
+                <div className="p-4">
+                  {/* File picker */}
+                  <label className="form-label fw-medium small mb-1">Upload Image</label>
+                  <input type="file" accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setImageFile(file);
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="form-control rounded-0 mb-3" style={{ borderColor: "#e5e7eb" }} />
+                  {/* Preview */}
+                  <div className="d-flex align-items-center justify-content-center bg-light"
+                    style={{ height: 180, border: "1px solid #e5e7eb", position: "relative" }}>
+                    {imagePreview ? (
+                      <>
+                        <img src={imagePreview} alt="Preview"
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        <button type="button"
+                          onClick={() => { setImageFile(null); setImagePreview(""); }}
+                          className="btn btn-sm btn-danger position-absolute"
+                          style={{ top: 6, right: 6, padding: "0.2rem 0.4rem", fontSize: "0.7rem" }}>
+                          <FaTrash />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center text-muted">
+                        <FaImage style={{ fontSize: "2rem", color: "#d1d5db" }} className="mb-2 d-block mx-auto" />
+                        <span style={{ fontSize: "0.8rem" }}>Preview will appear here</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-muted mt-2 mb-0" style={{ fontSize: "0.75rem" }}>
+                    JPEG, PNG, WebP — max 5MB
+                  </p>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-white" style={{ border: "1px solid #e5e7eb" }}>
+                <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
+                  <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>SUMMARY</p>
+                </div>
+                <div className="p-4">
+                  {[
+                    ["Category", formData.category || "—"],
+                    ["Price", formData.price ? `₹${formData.price}` : "—"],
+                    ["Stock", formData.stock_quantity !== "" ? formData.stock_quantity : "—"],
+                    ["Status", stock > 10 ? "In Stock" : stock > 0 ? "Low Stock" : "Out of Stock"],
+                    ["Image", imageFile ? imageFile.name : "None"],
+                    ["Form", isComplete ? "Complete" : "Incomplete"],
+                  ].map(([k, v]) => (
+                    <div key={k} className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="text-muted small">{k}</span>
+                      <span className="fw-semibold small text-capitalize"
+                        style={{ color: v === "Complete" ? "#16a34a" : v === "Incomplete" ? "#d97706" : v === "Out of Stock" ? "#dc2626" : "#111" }}>
+                        {v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="d-flex justify-content-between align-items-center mt-4 pt-4" style={{ borderTop: "1px solid #e5e7eb" }}>
+            <button type="button" onClick={() => navigate("/admin-dashboard")}
+              className="btn btn-outline-dark rounded-0 px-4" disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !formData.category}
+              className="btn btn-dark rounded-0 fw-bold px-5 d-flex align-items-center gap-2">
+              {saving
+                ? <><span className="spinner-border spinner-border-sm" /> Adding…</>
+                : <><FaSave style={{ fontSize: "0.85rem" }} /> Add Product</>}
+            </button>
+          </div>
+        </form>
+    </AdminLayout>
   );
 };
 

@@ -26,6 +26,9 @@ const NotificationBell = () => {
   const intervalRef = useRef(null);
   const mountedRef = useRef(true);
 
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isAdmin = user?.role === "admin";
+
   // Track token as state so component reacts when user logs in/out
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
@@ -206,7 +209,7 @@ const NotificationBell = () => {
           {/* Footer */}
           {notifications.length > 0 && (
             <div style={{ padding: '0.75rem', borderTop: '1px solid #e5e7eb', textAlign: 'center', background: '#fff', flexShrink: 0 }}>
-              <button onClick={() => { navigate('/notifications'); setOpen(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#111' }}>
+              <button onClick={() => { navigate('/notifications'); setOpen(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: isAdmin ? '#374151' : '#111' }}>
                 View all notifications
               </button>
             </div>

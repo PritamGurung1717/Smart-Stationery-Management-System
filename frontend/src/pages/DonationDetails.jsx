@@ -99,7 +99,7 @@ const DonationDetails = () => {
           <div className="col-md-6">
             <div className="border rounded-3 overflow-hidden mb-3">
               {imgs.length > 0
-                ? <img src={`http://localhost:5000${imgs[imgIdx]}`} alt={donation.title}
+                ? <img src={imgs[imgIdx].startsWith("http") ? imgs[imgIdx] : `http://localhost:5000${imgs[imgIdx]}`} alt={donation.title}
                     style={{ width: "100%", height: 380, objectFit: "cover" }}
                     onError={e => e.target.src = "https://via.placeholder.com/400x380?text=No+Image"} />
                 : <div className="d-flex align-items-center justify-content-center bg-light" style={{ height: 380, fontSize: "5rem" }}>
@@ -109,7 +109,7 @@ const DonationDetails = () => {
             {imgs.length > 1 && (
               <div className="d-flex gap-2 overflow-auto">
                 {imgs.map((img, i) => (
-                  <img key={i} src={`http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
+                  <img key={i} src={img.startsWith("http") ? img : `http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
                     className="rounded-2 flex-shrink-0"
                     style={{ width: 72, height: 72, objectFit: "cover", cursor: "pointer", border: i === imgIdx ? "2px solid #111" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
                 ))}

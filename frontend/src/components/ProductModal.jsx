@@ -77,7 +77,7 @@ const ReviewsSection = ({ productId, isGuest, onStatsChange }) => {
           <div style={{ fontSize: "2rem", fontWeight: 800, lineHeight: 1 }}>{average || "—"}</div>
           <div className="d-flex gap-1 justify-content-center mt-1">
             {[1,2,3,4,5].map(s => (
-              <FaStar key={s} style={{ fontSize: "0.8rem", color: s <= Math.round(average || 0) ? "#fbbf24" : "#e5e7eb" }} />
+              <FaStar key={s} style={{ fontSize: "0.8rem", color: average && s <= Math.round(average) ? "#fbbf24" : "#e5e7eb" }} />
             ))}
           </div>
           <div className="text-muted small mt-1">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</div>
@@ -228,7 +228,7 @@ const ProductModal = ({ product, onClose, onCart, onWishlist, inWishlist, isGues
   const inStock = (product.stock_quantity || product.stock || 0) > 0;
   const images = product.images?.length
     ? product.images.map(img => img.startsWith("http") ? img : `http://localhost:5000/${img}`)
-    : product.image_url ? [product.image_url] : [];
+    : product.image_url ? [product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`] : [];
 
   const handleCart = () => {
     if (isGuest) { onGuestAction?.(); return; }
@@ -281,14 +281,18 @@ const ProductModal = ({ product, onClose, onCart, onWishlist, inWishlist, isGues
 
             {product.author && <p className="text-muted small mb-2">by {product.author}</p>}
 
-            {/* Stars — fetched from reviews */}
+            {/* Stars — only show when there are actual reviews */}
             <div className="d-flex align-items-center gap-1 mb-3">
-              {[1,2,3,4,5].map(s => (
-                <FaStar key={s} style={{ fontSize: "0.85rem", color: s <= Math.round(reviewStats.average || 0) ? "#fbbf24" : "#e5e7eb" }} />
-              ))}
-              <span className="text-muted ms-1 small">
-                {reviewStats.average ? `(${reviewStats.average})` : "No reviews yet"}
-              </span>
+              {reviewStats.average > 0 ? (
+                <>
+                  {[1,2,3,4,5].map(s => (
+                    <FaStar key={s} style={{ fontSize: "0.85rem", color: s <= Math.round(reviewStats.average) ? "#fbbf24" : "#e5e7eb" }} />
+                  ))}
+                  <span className="text-muted ms-1 small">({reviewStats.average})</span>
+                </>
+              ) : (
+                <span className="text-muted small">No reviews yet</span>
+              )}
             </div>
 
             <div className="d-flex align-items-center gap-3 mb-3">
