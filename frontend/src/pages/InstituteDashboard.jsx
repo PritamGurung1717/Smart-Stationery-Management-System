@@ -4,10 +4,11 @@ import axios from "axios";
 import {
   FaChevronRight, FaShoppingCart, FaBook, FaClipboardList,
   FaBoxOpen, FaGift, FaPaperPlane, FaHistory,
-  FaHeart, FaShoppingBag, FaStar,
+  FaHeart, FaShoppingBag, FaComments,
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
+import ChatPage from "./ChatPage.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -72,7 +73,7 @@ const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
 };
 
 /* ─── Quick Actions ─────────────────────────────────────────── */
-const QuickActions = ({ navigate, pendingRequestCount }) => {
+const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
   const actions = [
     { icon: <FaBook />,         label: "Book Set Request",  sub: "Submit new request",          path: "/institute/book-set-request", primary: true },
     { icon: <FaClipboardList />, label: "Browse Book Sets", sub: "View approved sets",           path: "/book-sets" },
@@ -80,6 +81,7 @@ const QuickActions = ({ navigate, pendingRequestCount }) => {
     { icon: <FaHistory />,      label: "My Orders",         sub: "Track all orders",             path: "/my-orders" },
     { icon: <FaGift />,         label: "My Donations",      sub: pendingRequestCount > 0 ? `${pendingRequestCount} pending` : "Manage donations", path: "/my-donations", badge: pendingRequestCount },
     { icon: <FaPaperPlane />,   label: "Item Requests",     sub: "Request unavailable items",    path: "/my-item-requests" },
+    { icon: <FaComments />,     label: "Chat with Admin",   sub: "Get support & assistance",     path: "#chat", primary: false, isChat: true },
   ];
   return (
     <section className="py-5" style={{ background: "#fafafa" }}>
@@ -88,7 +90,7 @@ const QuickActions = ({ navigate, pendingRequestCount }) => {
         <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em" }}>What would you like to do?</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
           {actions.map(a => (
-            <button key={a.label} onClick={() => navigate(a.path)}
+            <button key={a.label} onClick={() => a.isChat ? onChatClick?.() : navigate(a.path)}
               className="btn border-0 text-start position-relative"
               style={{ background: a.primary ? "#111" : "#fff", padding: "2rem 1.75rem", borderRadius: 0, transition: "background 0.2s" }}
               onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#f9fafb"; }}
@@ -180,10 +182,12 @@ const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChang
             <p>No products found</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-            {products.slice(0, 8).map(p => (
-              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
-                onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView} />
+          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+            {products.slice(0, 10).map(p => (
+              <div key={p.id} className="col">
+                <ProductCard product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
+                  onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView} />
+              </div>
             ))}
           </div>
         )}
@@ -423,6 +427,7 @@ const InstituteDashboard = ({ setUser }) => {
   const [loading, setLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState("pending");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showChat, setShowChat] = useState(false);
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -561,7 +566,7 @@ const InstituteDashboard = ({ setUser }) => {
     <SharedLayout activeLink="Home">
       <Hero user={user} navigate={navigate} />
       <StatsRow orders={orders} cartCount={cartCount} pendingRequestCount={pendingRequestCount} />
-      <QuickActions navigate={navigate} pendingRequestCount={pendingRequestCount} />
+      <QuickActions navigate={navigate} pendingRequestCount={pendingRequestCount} onChatClick={() => setShowChat(true)} />
       <FeaturedProducts
         products={products} selected={selectedCategory} onSelect={handleCategorySelect}
         quantities={quantities}
@@ -584,6 +589,22 @@ const InstituteDashboard = ({ setUser }) => {
           onWishlist={toggleWishlist}
           inWishlist={isInWishlist(selectedProduct.id)}
         />
+      )}
+
+      {/* ── Chat with Admin Modal ── */}
+      {showChat && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: "1rem" }}>
+          <div onClick={() => setShowChat(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} />
+          <div style={{ position: "relative", width: "min(680px, 95vw)", height: "min(600px, 85vh)", zIndex: 1, borderRadius: 16, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10 }}>
+              <button onClick={() => setShowChat(false)}
+                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1rem" }}>
+                ×
+              </button>
+            </div>
+            <ChatPage embedded={true} />
+          </div>
+        </div>
       )}
     </SharedLayout>
   );

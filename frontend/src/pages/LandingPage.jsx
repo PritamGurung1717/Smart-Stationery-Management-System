@@ -497,8 +497,12 @@ const LandingPage = ({ setUser }) => {
                 </div>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-                {products.slice(0, 8).map(p => <ProductCard key={p.id} product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} />)}
+              <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+                {products.slice(0, 10).map(p => (
+                  <div key={p.id} className="col">
+                    <ProductCard product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} />
+                  </div>
+                ))}
               </div>
             )}
             <div className="text-center mt-4">

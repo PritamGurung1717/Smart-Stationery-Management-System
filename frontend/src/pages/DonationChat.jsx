@@ -1,11 +1,40 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaChevronLeft, FaPaperPlane, FaComments } from "react-icons/fa";
+import { FaChevronLeft, FaPaperPlane, FaComments, FaPaperclip, FaFileAlt, FaFileCsv } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+/* ─── File Preview Component ──────────────────────────────────── */
+const FilePreview = ({ attachment_url, attachment_type, attachment_name }) => {
+  if (!attachment_url) return null;
+  
+  const url = attachment_url.startsWith("http") ? attachment_url : `http://localhost:5000${attachment_url}`;
+  
+  if (attachment_type === "image") {
+    return (
+      <a href={url} target="_blank" rel="noreferrer">
+        <img src={url} alt={attachment_name || "image"} 
+          style={{ maxWidth: 200, maxHeight: 150, borderRadius: 8, display: "block", marginTop: 6 }} />
+      </a>
+    );
+  }
+  
+  const Icon = attachment_type === "csv" ? FaFileCsv : FaFileAlt;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" download={attachment_name}
+      style={{ 
+        display: "flex", alignItems: "center", gap: 8, color: "inherit", textDecoration: "none",
+        background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 10px", marginTop: 6,
+        fontSize: "0.85rem"
+      }}>
+      <Icon size={16} />
+      <span style={{ wordBreak: "break-all" }}>{attachment_name || "Download file"}</span>
+    </a>
+  );
+};
 
 const DonationChat = () => {
   const { id } = useParams();
@@ -14,10 +43,12 @@ const DonationChat = () => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [donation, setDonation] = useState(null);
   const [error, setError] = useState("");
   const currentUser = JSON.parse(localStorage.getItem("user") || "null");
   const bottomRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchAll();
@@ -57,6 +88,39 @@ const DonationChat = () => {
       fetchMessages();
     } catch (err) { alert(err.response?.data?.message || "Failed to send"); }
     finally { setSending(false); }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File too large. Max 5 MB.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("attachment", file);
+      if (newMessage.trim()) {
+        fd.append("message", newMessage.trim());
+      } else {
+        fd.append("message", "📎 File attachment");
+      }
+
+      await axios.post(`${API}/donations/${id}/chat`, fd, {
+        headers: { ...authH(), "Content-Type": "multipart/form-data" },
+      });
+      
+      setNewMessage("");
+      fetchMessages();
+    } catch (err) {
+      alert(err.response?.data?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (loading) return (
@@ -111,7 +175,14 @@ const DonationChat = () => {
               return (
                 <div key={msg.id} className={`d-flex ${isOwn ? "justify-content-end" : "justify-content-start"}`}>
                   <div className="px-3 py-2 rounded-3 shadow-sm" style={{ maxWidth: "70%", background: isOwn ? "#111" : "#fff", color: isOwn ? "#fff" : "#1f2937" }}>
-                    <p className="mb-1 small" style={{ wordBreak: "break-word" }}>{msg.message}</p>
+                    {msg.message && <p className="mb-1 small" style={{ wordBreak: "break-word" }}>{msg.message}</p>}
+                    {msg.attachment_url && (
+                      <FilePreview 
+                        attachment_url={msg.attachment_url} 
+                        attachment_type={msg.attachment_type} 
+                        attachment_name={msg.attachment_name} 
+                      />
+                    )}
                     <div className={`text-end ${isOwn ? "text-white-50" : "text-muted"}`} style={{ fontSize: "0.7rem" }}>
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </div>
@@ -123,13 +194,27 @@ const DonationChat = () => {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSend} className="d-flex gap-3 p-3 border-top bg-white">
-            <input value={newMessage} onChange={e => setNewMessage(e.target.value)} disabled={sending}
+          <form onSubmit={handleSend} className="d-flex gap-2 p-3 border-top bg-white align-items-end">
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: "none" }}
+              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.csv" />
+            
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center"
+              style={{ width: 40, height: 40, flexShrink: 0 }}
+              title="Attach file (images, PDF, CSV — max 5MB)">
+              {uploading ? <span style={{ fontSize: "0.7rem" }}>...</span> : <FaPaperclip size={16} />}
+            </button>
+            
+            <input value={newMessage} onChange={e => setNewMessage(e.target.value)} 
+              disabled={sending || uploading}
               placeholder="Type your message…"
               className="form-control rounded-pill" />
-            <button type="submit" disabled={sending || !newMessage.trim()}
-              className={`btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2 ${sending ? "opacity-75" : ""}`}>
-              <FaPaperPlane style={{ fontSize: "0.85rem" }} /> {sending ? "…" : "Send"}
+              
+            <button type="submit" disabled={sending || uploading || !newMessage.trim()}
+              className={`btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2 ${(sending || uploading) ? "opacity-75" : ""}`}
+              style={{ flexShrink: 0 }}>
+              <FaPaperPlane style={{ fontSize: "0.85rem" }} /> 
+              {sending ? "Sending..." : uploading ? "Uploading..." : "Send"}
             </button>
           </form>
         </div>

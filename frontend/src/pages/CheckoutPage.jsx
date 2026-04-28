@@ -64,8 +64,16 @@ const CheckoutPage = () => {
       });
       localStorage.setItem("shippingAddress", JSON.stringify(shippingAddress));
       try { await axios.delete("http://localhost:5000/api/users/cart/clear"); } catch {}
-      alert("Order placed successfully!");
-      navigate(`/orders/${res.data.order.id || res.data.order._id}`);
+
+      const orderId = res.data.order.id || res.data.order._id;
+
+      // Redirect to payment page for Khalti, otherwise go to order details
+      if (paymentMethod === "khalti") {
+        navigate(`/payment/${orderId}`);
+      } else {
+        alert("Order placed successfully!");
+        navigate(`/orders/${orderId}`);
+      }
     } catch (err) {
       alert("Error: " + (err.response?.data?.message || err.message || "Failed to place order"));
     } finally { setLoading(false); }
@@ -169,7 +177,11 @@ const CheckoutPage = () => {
               <button onClick={handlePlaceOrder}
                 disabled={loading || cart.items.length === 0 || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
                 className={`btn btn-dark fw-bold w-100 mb-2 ${(loading || cart.items.length === 0) ? "opacity-50" : ""}`}>
-                {loading ? "Placing Order…" : "Place Order"}
+                {loading
+                  ? "Placing Order…"
+                  : paymentMethod === "khalti"
+                  ? "Place Order & Pay with Khalti"
+                  : "Place Order"}
               </button>
               <button onClick={() => navigate("/cart")} className="btn btn-outline-secondary fw-semibold w-100">Back to Cart</button>
               <p className="text-muted text-center mt-3 mb-0" style={{ fontSize: "0.78rem" }}>By placing your order, you agree to our Terms of Service.</p>

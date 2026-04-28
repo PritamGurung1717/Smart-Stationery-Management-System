@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { FaSearch, FaShoppingBag, FaShoppingCart, FaSort, FaChevronLeft, FaChevronRight, FaHeart, FaStar } from "react-icons/fa";
+import { FaSearch, FaShoppingBag, FaShoppingCart, FaSort, FaChevronLeft, FaChevronRight, FaHeart, FaStar, FaFilter } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 
@@ -58,73 +58,102 @@ const ProductCard = ({ product, qty, onQtyChange, onCart, onView, onWishlist, in
 
 const ProductsPage = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const location = useLocation();
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [category, setCategory] = useState("all");
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [inStock, setInStock] = useState("all");
-  const [sortBy, setSortBy] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [quantities, setQuantities] = useState({});
-  const [ratings, setRatings] = useState({});
+  const [showFilters, setShowFilters] = useState(false);
   const wishlistProcessing = useRef(new Set());
-  const productsPerPage = 12;
 
-  // Auth check on mount + load wishlist
+  // Auth check on mount + load data
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("user") || "null");
     if (!stored) { navigate("/"); return; }
-    // Load wishlist
-    axios.get(`${API}/wishlist`, { headers: authH() })
-      .then(r => {
-        if (r.data.success) {
-          setWishlist(r.data.wishlist.map(i => ({ ...i.product, product_id: i.product?.id })));
-        }
-      }).catch(() => {});
-  }, []);
-
-  // Re-fetch whenever any filter/sort/page changes
-  useEffect(() => {
-    doFetch(currentPage);
-  }, [category, inStock, sortBy, sortOrder, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const doFetch = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({ page, limit: productsPerPage, sortBy, sortOrder });
-      if (searchTerm.trim()) params.append("search", searchTerm.trim());
-      if (category !== "all") params.append("category", category);
-      if (minPrice) params.append("minPrice", minPrice);
-      if (maxPrice) params.append("maxPrice", maxPrice);
-      if (inStock !== "all") params.append("inStock", inStock === "inStock");
-      const r = await axios.get(`${API}/products?${params}`);
-      setProducts(r.data.products || []);
-      setTotalPages(r.data.totalPages || 1);
-      setTotalProducts(r.data.total || 0);
-      setCurrentPage(page);
+    
+    // Load all products and wishlist
+    Promise.all([
+      axios.get(`${API}/products?limit=1000`), // Get all products
+      axios.get(`${API}/wishlist`, { headers: authH() }).catch(() => ({ data: { success: false } }))
+    ]).then(([productsRes, wishlistRes]) => {
+      const products = productsRes.data.products || [];
+      setAllProducts(products);
+      
       // Init quantities
       const q = {};
-      (r.data.products || []).forEach(p => { q[p.id] = 1; });
-      setQuantities(prev => ({ ...q, ...prev }));
-      // Fetch ratings
-      const ids = (r.data.products || []).map(p => p.id).join(",");
-      if (ids) {
-        axios.get(`${API}/reviews/batch/averages?ids=${ids}`)
-          .then(rv => setRatings(prev => ({ ...prev, ...(rv.data.averages || {}) })))
-          .catch(() => {});
+      products.forEach(p => { q[p.id] = 1; });
+      setQuantities(q);
+      
+      if (wishlistRes.data.success) {
+        setWishlist(wishlistRes.data.wishlist.map(i => ({ ...i.product, product_id: i.product?.id })));
       }
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  }, [searchTerm, category, minPrice, maxPrice, inStock, sortBy, sortOrder]);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, [navigate]);
 
-  const handleSearch = () => { setCurrentPage(1); doFetch(1); };
+  // Watch for URL search parameter changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const searchQuery = urlParams.get("search");
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+      // Clear URL parameter after reading it
+      window.history.replaceState({}, '', '/products');
+    }
+  }, [location.search]);
+
+  // Get filtered and sorted products
+  const getFilteredProducts = useCallback(() => {
+    let filtered = [...allProducts];
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(term) || 
+        p.description?.toLowerCase().includes(term) ||
+        p.category.toLowerCase().includes(term)
+      );
+    }
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(p => selectedCategories.includes(p.category));
+    }
+
+    // Price filter
+    if (minPrice) {
+      filtered = filtered.filter(p => p.price >= parseFloat(minPrice));
+    }
+    if (maxPrice) {
+      filtered = filtered.filter(p => p.price <= parseFloat(maxPrice));
+    }
+
+    // Sort by name alphabetically
+    filtered.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+    return filtered;
+  }, [allProducts, searchTerm, selectedCategories, minPrice, maxPrice]);
+
+  // Group products by category
+  const getGroupedProducts = useCallback(() => {
+    const filtered = getFilteredProducts();
+    const grouped = {};
+    
+    filtered.forEach(product => {
+      const category = product.category;
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(product);
+    });
+
+    return grouped;
+  }, [getFilteredProducts]);
 
   const addToCart = async (productId, quantity = 1) => {
     try {
@@ -156,139 +185,178 @@ const ProductsPage = () => {
   const isInWishlist = (id) => wishlist.some(i => i.id === id || i.product_id === id);
 
   const clearFilters = () => {
-    setSearchTerm(""); setCategory("all"); setMinPrice(""); setMaxPrice("");
-    setInStock("all"); setSortBy("name"); setSortOrder("asc"); setCurrentPage(1);
+    setSearchTerm(""); setSelectedCategories([]); setMinPrice(""); setMaxPrice("");
   };
 
-  const pageNums = [];
-  for (let i = 1; i <= totalPages; i++) {
-    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) pageNums.push(i);
-  }
+  const toggleCategory = (category) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const availableCategories = [...new Set(allProducts.map(p => p.category))].sort();
+  const groupedProducts = getGroupedProducts();
+  const totalProducts = getFilteredProducts().length;
+
+  // Capitalize category names
+  const formatCategoryName = (category) => {
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
 
   return (
     <>
     <SharedLayout activeLink="Collections">
-      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3 py-5">
-
-        <div className="mb-4">
-          <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATALOGUE</p>
-          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 400 }} className="mb-0">
-            All Products
-          </h1>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-light border rounded-3 p-3 mb-4">
-          <div className="d-flex gap-2 flex-wrap align-items-center mb-2">
-            <div className="input-group flex-grow-1" style={{ minWidth: 200, maxWidth: 360 }}>
-              <span className="input-group-text bg-white border-end-0"><FaSearch className="text-muted" style={{ fontSize: "0.85rem" }} /></span>
-              <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleSearch()}
-                placeholder="Search products…" className="form-control border-start-0 border-end-0" />
-              <button onClick={handleSearch} className="btn btn-dark fw-bold">Search</button>
+      <div style={{ maxWidth: 1400, margin: "0 auto" }} className="px-3 py-5">
+        <div className="row g-5">
+          
+          {/* Main Content */}
+          <div className="col-lg-9">
+            <div className="mb-4">
+              <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATALOGUE</p>
+              <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 400 }} className="mb-0">
+                All Products
+              </h1>
+              {searchTerm && (
+                <p className="text-muted mt-2 mb-0">
+                  Search results for: <span className="fw-semibold">"{searchTerm}"</span>
+                </p>
+              )}
             </div>
 
-            <select value={category} onChange={e => { setCategory(e.target.value); setCurrentPage(1); }} className="form-select" style={{ width: "auto" }}>
-              <option value="all">All Categories</option>
-              <option value="book">Books</option>
-              <option value="stationery">Stationery</option>
-              <option value="sports">Sports</option>
-              <option value="electronics">Electronics</option>
-            </select>
-
-            <select value={inStock} onChange={e => { setInStock(e.target.value); setCurrentPage(1); }} className="form-select" style={{ width: "auto" }}>
-              <option value="all">All Stock</option>
-              <option value="inStock">In Stock</option>
-              <option value="outOfStock">Out of Stock</option>
-            </select>
-
-            <select value={sortBy} onChange={e => { setSortBy(e.target.value); setCurrentPage(1); }} className="form-select" style={{ width: "auto" }}>
-              <option value="name">Sort by Name</option>
-              <option value="price">Sort by Price</option>
-              <option value="created_at">Sort by Newest</option>
-            </select>
-
-            <button onClick={clearFilters} className="btn btn-outline-secondary fw-medium">Clear Filters</button>
-          </div>
-
-          <div className="d-flex gap-2 flex-wrap align-items-center">
-            <input type="number" placeholder="Min Price" value={minPrice}
-              onChange={e => setMinPrice(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSearch()}
-              className="form-control" style={{ width: 120 }} />
-            <input type="number" placeholder="Max Price" value={maxPrice}
-              onChange={e => setMaxPrice(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSearch()}
-              className="form-control" style={{ width: 120 }} />
-            <span className="text-muted small ms-2">Showing {products.length} of {totalProducts} products</span>
-            <button onClick={() => { setSortOrder(o => o === "asc" ? "desc" : "asc"); setCurrentPage(1); }}
-              className="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1 ms-auto">
-              <FaSort style={{ fontSize: "0.75rem" }} />
-              {sortOrder === "asc" ? "Ascending" : "Descending"}
-            </button>
-          </div>
-        </div>
-
-        {/* Grid */}
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
-              <span className="visually-hidden">Loading…</span>
-            </div>
-            <p className="text-muted">Loading products…</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-5">
-            <FaShoppingBag style={{ fontSize: "3rem", color: "#e5e7eb" }} className="mb-3" />
-            <h3 className="fw-bold mb-1">No products found</h3>
-            <p className="text-muted mb-4">Try adjusting your search or filters</p>
-            <button onClick={clearFilters} className="btn btn-dark fw-bold">Clear All Filters</button>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-            {products.map(p => (
-              <ProductCard key={p.id} product={p}
-                qty={quantities[p.id]}
-                onQtyChange={(id, v) => {
-                  const n = parseInt(v) || 1;
-                  const prod = products.find(x => x.id === id);
-                  setQuantities(q => ({ ...q, [id]: prod ? Math.min(n, prod.stock_quantity || 99) : n }));
-                }}
-                onCart={addToCart}
-                onView={setSelectedProduct}
-                onWishlist={toggleWishlist}
-                inWishlist={isInWishlist(p.id)} />
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && !loading && (
-          <div className="d-flex justify-content-center align-items-center gap-1 mt-5">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-              className="btn btn-outline-secondary btn-sm">
-              <FaChevronLeft style={{ fontSize: "0.75rem" }} />
-            </button>
-            {pageNums.map((n, i) => {
-              const prev = pageNums[i - 1];
-              return (
-                <span key={n}>
-                  {prev && n - prev > 1 && <span className="text-muted px-1">…</span>}
-                  <button onClick={() => setCurrentPage(n)}
-                    className={`btn btn-sm ${n === currentPage ? "btn-dark" : "btn-outline-secondary"}`}>
-                    {n}
+            {/* Search Bar */}
+            <div className="d-flex gap-2 mb-5">
+              <div className="input-group flex-grow-1">
+                <span className="input-group-text bg-white border-end-0"><FaSearch className="text-muted" style={{ fontSize: "0.85rem" }} /></span>
+                <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Search products…" className="form-control border-start-0" 
+                  style={{ fontSize: "0.95rem" }} />
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm("")} className="btn btn-link text-muted" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 10, padding: "0.25rem" }}>
+                    ×
                   </button>
-                </span>
-              );
-            })}
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-              className="btn btn-outline-secondary btn-sm">
-              <FaChevronRight style={{ fontSize: "0.75rem" }} />
-            </button>
+                )}
+              </div>
+              <button onClick={() => setShowFilters(!showFilters)} className="btn btn-outline-secondary d-lg-none">
+                <FaFilter /> Filters
+              </button>
+            </div>
+
+            {/* Mobile Filters */}
+            {showFilters && (
+              <div className="d-lg-none mb-4 p-3 border rounded-3 bg-light">
+                <div className="row g-3">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold">Categories</label>
+                    {availableCategories.map(cat => (
+                      <div key={cat} className="form-check">
+                        <input type="checkbox" className="form-check-input" id={`mobile-${cat}`}
+                          checked={selectedCategories.includes(cat)}
+                          onChange={() => toggleCategory(cat)} />
+                        <label className="form-check-label small" htmlFor={`mobile-${cat}`}>
+                          {formatCategoryName(cat)}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold">Price Range</label>
+                    <div className="d-flex gap-2 mb-2">
+                      <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                        className="form-control form-control-sm" />
+                      <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                        className="form-control form-control-sm" />
+                    </div>
+                    <button onClick={clearFilters} className="btn btn-outline-secondary btn-sm w-100 mt-2">Clear All</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Products by Category */}
+            {loading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+                  <span className="visually-hidden">Loading…</span>
+                </div>
+                <p className="text-muted">Loading products…</p>
+              </div>
+            ) : totalProducts === 0 ? (
+              <div className="text-center py-5">
+                <FaShoppingBag style={{ fontSize: "3rem", color: "#e5e7eb" }} className="mb-3" />
+                <h3 className="fw-bold mb-1">No products found</h3>
+                <p className="text-muted mb-4">Try adjusting your search or filters</p>
+                <button onClick={clearFilters} className="btn btn-dark fw-bold">Clear All Filters</button>
+              </div>
+            ) : (
+              Object.entries(groupedProducts).map(([category, products]) => (
+                <div key={category} className="mb-5">
+                  <h2 className="fw-bold mb-3" style={{ fontSize: "1.5rem", letterSpacing: "-0.01em" }}>
+                    {formatCategoryName(category)}
+                  </h2>
+                  
+                  <div className="row g-3">
+                    {products.map(p => (
+                      <div key={p.id} className="col-sm-6 col-md-4 col-lg-3">
+                        <ProductCard product={p}
+                          qty={quantities[p.id]}
+                          onQtyChange={(id, v) => {
+                            const n = parseInt(v) || 1;
+                            const prod = allProducts.find(x => x.id === id);
+                            setQuantities(q => ({ ...q, [id]: prod ? Math.min(n, prod.stock_quantity || 99) : n }));
+                          }}
+                          onCart={addToCart}
+                          onView={setSelectedProduct}
+                          onWishlist={toggleWishlist}
+                          inWishlist={isInWishlist(p.id)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        )}
+
+          {/* Right Sidebar - Filters */}
+          <div className="col-lg-3">
+            <div className="bg-light border rounded-3 p-4">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h5 className="fw-bold mb-0">Filters</h5>
+                <button onClick={clearFilters} className="btn btn-link p-0 text-muted small text-decoration-none">Clear All</button>
+              </div>
+
+              {/* Categories */}
+              <div className="mb-4">
+                <h6 className="fw-semibold mb-2">Categories</h6>
+                {availableCategories.map(cat => (
+                  <div key={cat} className="form-check mb-1">
+                    <input type="checkbox" className="form-check-input" id={cat}
+                      checked={selectedCategories.includes(cat)}
+                      onChange={() => toggleCategory(cat)} />
+                    <label className="form-check-label small" htmlFor={cat}>
+                      {formatCategoryName(cat)}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              {/* Price Range */}
+              <div className="mb-0">
+                <h6 className="fw-semibold mb-2">Price Range</h6>
+                <div className="d-flex gap-2">
+                  <input type="number" placeholder="Min ₹" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                    className="form-control form-control-sm" />
+                  <input type="number" placeholder="Max ₹" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                    className="form-control form-control-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </SharedLayout>
+    
     {selectedProduct && (
       <ProductModal
         product={selectedProduct}

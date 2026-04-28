@@ -481,7 +481,7 @@ class DonationService {
   }
 
   // Send chat message
-  async sendChatMessage(donationId, senderId, message, attachmentUrl = null) {
+  async sendChatMessage(donationId, senderId, message, attachmentUrl = null, attachmentType = null, attachmentName = null) {
     const donation = await Donation.findById(donationId);
 
     if (!donation) {
@@ -506,8 +506,10 @@ class DonationService {
       donation_id: donationId,
       sender_id: senderId,
       receiver_id: receiverId,
-      message: message.trim(),
+      message: message ? message.trim() : null,
       attachment_url: attachmentUrl,
+      attachment_type: attachmentType,
+      attachment_name: attachmentName,
       is_read: false,
     });
 

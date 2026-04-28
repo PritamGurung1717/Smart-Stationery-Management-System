@@ -148,11 +148,13 @@ const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChang
             <p>No products found</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-            {products.slice(0, 8).map(p => (
-              <ProductCard key={p.id} product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
-                onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView}
-                rating={ratings[p.id]} />
+          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+            {products.slice(0, 10).map(p => (
+              <div key={p.id} className="col">
+                <ProductCard product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
+                  onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView}
+                  rating={ratings[p.id]} />
+              </div>
             ))}
           </div>
         )}

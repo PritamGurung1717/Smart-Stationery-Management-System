@@ -21,6 +21,7 @@ const notificationSchema = new mongoose.Schema({
       'verification_approved',
       'verification_rejected',
       'new_message',
+      'chat_message',
       'product_low_stock',
       'product_out_of_stock'
     ]

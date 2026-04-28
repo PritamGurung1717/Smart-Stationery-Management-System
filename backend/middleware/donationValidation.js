@@ -157,12 +157,14 @@ const validateDonationRequest = (req, res, next) => {
 
 // Validate chat message
 const validateChatMessage = (req, res, next) => {
-  const { message } = req.body;
+  const { message, attachment_url } = req.body;
   const errors = [];
 
-  if (!message || message.trim().length === 0) {
-    errors.push("Message cannot be empty");
+  // Either message or attachment must be present
+  if ((!message || message.trim().length === 0) && !attachment_url) {
+    errors.push("Message must contain text or a file attachment");
   }
+  
   if (message && message.length > 1000) {
     errors.push("Message cannot exceed 1000 characters");
   }

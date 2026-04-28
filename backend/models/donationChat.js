@@ -28,7 +28,7 @@ const donationChatSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: [true, "Message is required"],
+      required: false,
       trim: true,
       maxlength: [1000, "Message cannot exceed 1000 characters"],
     },
@@ -36,6 +36,16 @@ const donationChatSchema = new mongoose.Schema(
       type: String,
       default: null,
       maxlength: [500, "Attachment URL too long"],
+    },
+    attachment_type: {
+      type: String,
+      enum: ["image", "pdf", "csv", null],
+      default: null,
+    },
+    attachment_name: {
+      type: String,
+      default: null,
+      maxlength: [255, "Attachment name too long"],
     },
     is_read: {
       type: Boolean,

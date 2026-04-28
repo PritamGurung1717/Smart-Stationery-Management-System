@@ -35,6 +35,8 @@ import DonationChat from "./pages/DonationChat.jsx";
 import MyItemRequests from "./pages/MyItemRequests.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import PaymentPage from "./pages/PaymentPage.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -165,6 +167,17 @@ function App() {
           path="/orders/:id"
           element={
             user ? <OrderDetails /> : <Navigate to="/" replace />
+          }
+        />
+
+        <Route
+          path="/payment/:orderId"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <PaymentPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
 
@@ -361,6 +374,18 @@ function App() {
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* Admin Chat standalone route */}
+        <Route
+          path="/admin/chats"
+          element={
+            user && user.role === "admin" ? (
+              <div style={{ height: "100vh" }}><ChatPage /></div>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
       </Routes>
     </Container>
   );

@@ -8,8 +8,9 @@ import {
   FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
   FaRupeeSign, FaSync, FaSearch,
   FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen,
-  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes
+  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes, FaComments
 } from "react-icons/fa";
+import ChatPage from "../ChatPage.jsx";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { id: "donations",         icon: <FaGift />,          label: "Donations" },
   { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests" },
   { id: "notifications",     icon: <FaBell />,          label: "Notifications" },
+  { id: "institute-chats",   icon: <FaComments />,      label: "Institute Chats" },
 ];
 
 const Sidebar = ({ active, onTab, admin, stats, onLogout, unreadNotifs }) => (
@@ -65,9 +67,11 @@ const Sidebar = ({ active, onTab, admin, stats, onLogout, unreadNotifs }) => (
           item.id === "orders" ? stats.totalOrders :
           item.id === "verifications" ? (stats.pendingVerifications || null) :
           item.id === "notifications" ? (unreadNotifs || null) :
+          item.id === "institute-chats" ? (stats.unreadChats || null) :
           null;
         const badgeDanger = (item.id === "verifications" && stats.pendingVerifications > 0) ||
-                            (item.id === "notifications" && unreadNotifs > 0);
+                            (item.id === "notifications" && unreadNotifs > 0) ||
+                            (item.id === "institute-chats" && stats.unreadChats > 0);
         return (
           <button key={item.id}
             onClick={() => onTab(item.id)}
@@ -437,7 +441,8 @@ const AdminDashboard = ({ setUser }) => {
     fetchDashboard();
     fetchUserNames();
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 15000);
+    fetchUnreadChatCount();
+    const interval = setInterval(() => { fetchUnreadCount(); fetchUnreadChatCount(); }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -570,6 +575,13 @@ const AdminDashboard = ({ setUser }) => {
     try {
       const r = await axios.get(`${API}/notifications/unread-count`, { headers: authH() });
       if (r.data.success) setUnreadNotifs(r.data.count || 0);
+    } catch {}
+  };
+
+  const fetchUnreadChatCount = async () => {
+    try {
+      const r = await axios.get(`${API}/chat/unread-count`, { headers: authH() });
+      if (r.data.success) setStats(prev => ({ ...prev, unreadChats: r.data.count || 0 }));
     } catch {}
   };
 
@@ -1379,6 +1391,21 @@ const AdminDashboard = ({ setUser }) => {
                   ))}
                 </div>
               )}
+            </>
+          )}
+
+          {/* ── INSTITUTE CHATS TAB ── */}
+          {activeTab === "institute-chats" && (
+            <>
+              <div className="mb-4">
+                <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MESSAGING</p>
+                <h2 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
+                  <FaComments style={{ fontSize: "1.2rem" }} /> Institute Chats
+                </h2>
+              </div>
+              <div style={{ height: "calc(100vh - 220px)", minHeight: 500 }}>
+                <ChatPage embedded={true} />
+              </div>
             </>
           )}
 

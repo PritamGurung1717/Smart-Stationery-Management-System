@@ -428,8 +428,7 @@ class DonationController {
     try {
       const donationId = req.params.id;
       const senderId = req.user.id;
-      const { message } = req.body;
-      const attachmentUrl = req.body.attachment_url || null;
+      const { message, attachment_url, attachment_type, attachment_name } = req.body;
 
       console.log("💬 Sending chat message for donation:", donationId);
 
@@ -437,7 +436,9 @@ class DonationController {
         donationId,
         senderId,
         message,
-        attachmentUrl
+        attachment_url,
+        attachment_type,
+        attachment_name
       );
 
       console.log("✅ Chat message sent successfully");

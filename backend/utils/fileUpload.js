@@ -93,8 +93,36 @@ const handleDonationImageUpload = (req, res, next) => {
   });
 };
 
+// File filter for chat attachments - allow images, PDF, CSV
+const chatFileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp|pdf|csv/;
+  const allowedMimes = [
+    "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+    "application/pdf",
+    "text/csv", "application/vnd.ms-excel"
+  ];
+  
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedMimes.includes(file.mimetype);
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb(new Error("Only images (jpg, png, gif, webp), PDF, and CSV files are allowed"));
+  }
+};
+
+// Configure multer for chat attachments
+const chatUpload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: chatFileFilter,
+});
+
 // Middleware for single attachment upload (for chat)
-const uploadChatAttachment = upload.single("attachment");
+const uploadChatAttachment = chatUpload.single("attachment");
 
 const handleChatAttachmentUpload = (req, res, next) => {
   uploadChatAttachment(req, res, function (err) {
@@ -116,9 +144,20 @@ const handleChatAttachmentUpload = (req, res, next) => {
       });
     }
 
-    // If file was uploaded, add URL to request body
+    // If file was uploaded, add URL and type to request body
     if (req.file) {
       req.body.attachment_url = `/uploads/donations/${req.file.filename}`;
+      req.body.attachment_name = req.file.originalname;
+      
+      // Determine file type
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+        req.body.attachment_type = 'image';
+      } else if (ext === '.pdf') {
+        req.body.attachment_type = 'pdf';
+      } else if (ext === '.csv') {
+        req.body.attachment_type = 'csv';
+      }
     }
 
     next();

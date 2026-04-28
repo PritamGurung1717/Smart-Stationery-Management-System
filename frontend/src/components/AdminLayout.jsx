@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   FaTachometerAlt, FaUsers, FaBox, FaShoppingCart, FaUserCheck,
-  FaChartLine, FaGift, FaBoxOpen, FaBell, FaSignOutAlt
+  FaChartLine, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments
 } from "react-icons/fa";
 
 const API = "http://localhost:5000/api";
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { id: "donations",         icon: <FaGift />,          label: "Donations",          path: "/admin-dashboard?tab=donations" },
   { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests",      path: "/admin-dashboard?tab=item-requests" },
   { id: "notifications",     icon: <FaBell />,          label: "Notifications",      path: "/admin-dashboard?tab=notifications" },
+  { id: "institute-chats",   icon: <FaComments />,      label: "Institute Chats",    path: "/admin-dashboard?tab=institute-chats" },
 ];
 
 /**
@@ -34,7 +35,7 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
   const admin = JSON.parse(localStorage.getItem("user") || "null");
 
   const [stats, setStats] = useState({
-    totalUsers: 0, totalProducts: 0, totalOrders: 0, pendingVerifications: 0,
+    totalUsers: 0, totalProducts: 0, totalOrders: 0, pendingVerifications: 0, unreadChats: 0,
   });
   const [unreadNotifs, setUnreadNotifs] = useState(0);
 
@@ -46,19 +47,24 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
         axios.get(`${API}/orders?limit=1`).catch(() => ({ data: {} })),
         axios.get(`${API}/users/admin/verifications/pending`).catch(() => ({ data: {} })),
       ]);
-      setStats({
+      setStats(prev => ({
+        ...prev,
         totalUsers: usersRes.data.total || 0,
         totalProducts: prodsRes.data.total || 0,
         totalOrders: ordersRes.data.total || 0,
         pendingVerifications: (verifRes.data.pendingVerifications || []).length,
-      });
+      }));
     } catch {}
   }, []);
 
   const fetchUnread = useCallback(async () => {
     try {
-      const r = await axios.get(`${API}/notifications/unread-count`, { headers: authH() });
-      if (r.data.success) setUnreadNotifs(r.data.count || 0);
+      const [notifRes, chatRes] = await Promise.all([
+        axios.get(`${API}/notifications/unread-count`, { headers: authH() }).catch(() => ({ data: {} })),
+        axios.get(`${API}/chat/unread-count`, { headers: authH() }).catch(() => ({ data: {} })),
+      ]);
+      if (notifRes.data.success) setUnreadNotifs(notifRes.data.count || 0);
+      if (chatRes.data.success) setStats(prev => ({ ...prev, unreadChats: chatRes.data.count || 0 }));
     } catch {}
   }, []);
 
@@ -118,10 +124,12 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
               item.id === "orders" ? (stats.totalOrders || null) :
               item.id === "verifications" ? (stats.pendingVerifications || null) :
               item.id === "notifications" ? (unreadNotifs || null) :
+              item.id === "institute-chats" ? (stats.unreadChats || null) :
               null;
             const badgeDanger =
               (item.id === "verifications" && stats.pendingVerifications > 0) ||
-              (item.id === "notifications" && unreadNotifs > 0);
+              (item.id === "notifications" && unreadNotifs > 0) ||
+              (item.id === "institute-chats" && stats.unreadChats > 0);
             return (
               <button key={item.id} onClick={() => handleNav(item)}
                 className="btn border-0 w-100 text-start d-flex align-items-center gap-2 mb-1"
