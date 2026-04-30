@@ -4,6 +4,7 @@ const http    = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
@@ -59,6 +60,46 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ============================================
+// RATE LIMITING - DISABLED FOR DEVELOPMENT
+// ============================================
+// TODO: Enable before production deployment!
+
+// Strict rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per windowMs
+  message: {
+    success: false,
+    message: "Too many attempts from this IP, please try again after 15 minutes"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
+// Moderate rate limiter for general API endpoints (increased for development)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // 500 requests per windowMs (increased from 100 for development)
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again later"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// DISABLED FOR DEVELOPMENT - Uncomment before production:
+// app.use("/api/users/login", authLimiter);
+// app.use("/api/users/register", authLimiter);
+// app.use("/api/users/verify-otp", authLimiter);
+// app.use("/api/users/resend-otp", authLimiter);
+// app.use("/api/", apiLimiter);
+
+console.log("⚠️  Rate limiting is DISABLED for development");
+console.log("⚠️  Remember to enable before production!");
 
 // MongoDB connection
 mongoose

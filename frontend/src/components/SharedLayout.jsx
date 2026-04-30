@@ -6,9 +6,9 @@ import {
   FaSignOutAlt, FaEdit, FaKey, FaTimes, FaGift, FaShoppingBag, FaBoxOpen
 } from "react-icons/fa";
 import NotificationBell from "./NotificationBell.jsx";
+import { getAuthHeaders } from "../utils/auth.js";
 
 const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 /* ─── Ticker ────────────────────────────────────────────────── */
 const TICKER_ITEMS = [
@@ -86,13 +86,13 @@ export const Navbar = ({ activeLink = "" }) => {
   useEffect(() => {
     if (!isAuthed) return;
     let mounted = true;
-    axios.get(`${API}/users/cart`, { headers: authH() })
+    axios.get(`${API}/users/cart`, { headers: getAuthHeaders() })
       .then(r => {
         if (!mounted) return;
         const items = r.data.cart?.items || [];
         setCartCount(items.reduce((s, i) => s + i.quantity, 0));
       }).catch(() => {});
-    axios.get(`${API}/wishlist`, { headers: authH() })
+    axios.get(`${API}/wishlist`, { headers: getAuthHeaders() })
       .then(r => {
         if (!mounted) return;
         if (r.data.success) {
@@ -120,14 +120,14 @@ export const Navbar = ({ activeLink = "" }) => {
   }, []);
 
   const removeFromWishlist = async (productId) => {
-    try { await axios.delete(`${API}/wishlist/remove/${productId}`, { headers: authH() }); } catch {}
+    try { await axios.delete(`${API}/wishlist/remove/${productId}`, { headers: getAuthHeaders() }); } catch {}
     setWishlist(w => w.filter(i => i.id !== productId && i.product_id !== productId));
   };
 
   const moveToCart = async (item) => {
     try {
-      await axios.post(`${API}/users/cart/add`, { productId: item.id || item.product_id, quantity: 1 }, { headers: authH() });
-      const r = await axios.get(`${API}/users/cart`, { headers: authH() });
+      await axios.post(`${API}/users/cart/add`, { productId: item.id || item.product_id, quantity: 1 }, { headers: getAuthHeaders() });
+      const r = await axios.get(`${API}/users/cart`, { headers: getAuthHeaders() });
       const items = r.data.cart?.items || [];
       setCartCount(items.reduce((s, i) => s + i.quantity, 0));
     } catch {}
@@ -193,7 +193,7 @@ export const Navbar = ({ activeLink = "" }) => {
             <button onClick={() => {
               // Re-fetch fresh wishlist data when opening drawer
               if (isAuthed) {
-                axios.get(`${API}/wishlist`, { headers: authH() })
+                axios.get(`${API}/wishlist`, { headers: getAuthHeaders() })
                   .then(r => {
                     if (r.data.success) {
                       setWishlist(r.data.wishlist.map(i => ({ ...i.product, wishlistId: i._id, product_id: i.product?.id })));

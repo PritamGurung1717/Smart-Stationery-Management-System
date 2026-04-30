@@ -13,6 +13,7 @@ const notificationSchema = new mongoose.Schema({
     enum: [
       'order_placed',
       'order_status_changed',
+      'order_payment_success',
       'donation_request_received',
       'donation_request_accepted',
       'donation_request_rejected',
@@ -57,6 +58,18 @@ const notificationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index to prevent duplicate notifications for the same order payment
+notificationSchema.index(
+  { user_id: 1, type: 1, link: 1 }, 
+  { 
+    unique: true,
+    partialFilterExpression: { 
+      type: 'order_payment_success',
+      link: { $exists: true }
+    }
+  }
+);
 
 // Index for faster queries
 notificationSchema.index({ user_id: 1, is_read: 1, created_at: -1 });

@@ -87,6 +87,23 @@ const NotificationBell = () => {
     return () => clearInterval(intervalRef.current);
   }, [isAuthed, fetchCount]);
 
+  // Listen for payment success and notification refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log("🔔 Notification refresh event received");
+      fetchCount();
+      if (open) fetchAll();
+    };
+    
+    window.addEventListener("payment:success", handleRefresh);
+    window.addEventListener("notification:refresh", handleRefresh);
+    
+    return () => {
+      window.removeEventListener("payment:success", handleRefresh);
+      window.removeEventListener("notification:refresh", handleRefresh);
+    };
+  }, [open, fetchCount, fetchAll]);
+
   // Fetch full list when panel opens
   useEffect(() => {
     if (open && isAuthed) fetchAll();

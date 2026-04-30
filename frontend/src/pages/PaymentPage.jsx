@@ -2,9 +2,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaCheckCircle, FaTimesCircle, FaChevronLeft, FaReceipt } from "react-icons/fa";
+import { FaCheckCircle, FaTimesCircle, FaChevronLeft, FaReceipt, FaSpinner } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
-import KhaltiButton from "../components/KhaltiButton.jsx";
 
 const PaymentPage = () => {
   const { orderId } = useParams();
@@ -12,9 +11,8 @@ const PaymentPage = () => {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paymentState, setPaymentState] = useState("idle"); // idle | success | error
-  const [paymentMessage, setPaymentMessage] = useState("");
-  const [transactionId, setTransactionId] = useState("");
+  const [initiating, setInitiating] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -29,34 +27,48 @@ const PaymentPage = () => {
       const o = data.order || data;
       setOrder(o);
 
-      // If already paid, skip to success view
+      // If already paid, redirect to order details
       if (o.paymentStatus === "completed") {
-        setPaymentState("success");
-        setTransactionId(o.transactionId || "");
-        setPaymentMessage("This order has already been paid successfully.");
+        navigate(`/orders/${orderId}`);
       }
     } catch (err) {
-      setPaymentMessage(err.response?.data?.message || "Failed to load order.");
-      setPaymentState("error");
+      setError(err.response?.data?.message || "Failed to load order.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSuccess = (data) => {
-    setTransactionId(data.transaction_id || "");
-    setPaymentMessage("Your payment was verified and order confirmed.");
-    setPaymentState("success");
-  };
+  const handlePayNow = async () => {
+    setInitiating(true);
+    setError("");
 
-  const handleError = (msg) => {
-    setPaymentMessage(msg);
-    setPaymentState("error");
-  };
+    try {
+      const token = localStorage.getItem("token");
+      console.log("🔵 Initiating Khalti payment for order:", order.id);
+      
+      const { data } = await axios.post(
+        "http://localhost:5000/api/payment/khalti/initiate",
+        { orderId: order.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  const handleRetry = () => {
-    setPaymentState("idle");
-    setPaymentMessage("");
+      console.log("🔵 Khalti initiate response:", data);
+
+      if (data.success && data.payment_url) {
+        console.log("🔵 Redirecting to Khalti:", data.payment_url);
+        // Redirect to Khalti's payment page
+        window.location.href = data.payment_url;
+      } else {
+        console.error("❌ No payment URL received:", data);
+        setError(data.message || "Failed to initiate payment.");
+        setInitiating(false);
+      }
+    } catch (err) {
+      console.error("❌ Payment initiation error:", err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Failed to start payment.";
+      setError(msg);
+      setInitiating(false);
+    }
   };
 
   if (loading) {
@@ -80,46 +92,7 @@ const PaymentPage = () => {
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Order
         </button>
 
-        {/* ── SUCCESS ── */}
-        {paymentState === "success" && (
-          <div className="text-center py-4">
-            <FaCheckCircle style={{ fontSize: "3.5rem", color: "#16a34a" }} className="mb-3" />
-            <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Payment Successful</h2>
-            <p className="text-muted mb-1">{paymentMessage}</p>
-            {transactionId && (
-              <p className="small text-secondary mb-4">
-                Transaction ID: <span className="fw-semibold text-dark">{transactionId}</span>
-              </p>
-            )}
-            <button
-              onClick={() => navigate(`/orders/${orderId}`)}
-              className="btn btn-dark fw-semibold px-4"
-            >
-              <FaReceipt className="me-2" />
-              View Order
-            </button>
-          </div>
-        )}
-
-        {/* ── ERROR ── */}
-        {paymentState === "error" && (
-          <div className="text-center py-4">
-            <FaTimesCircle style={{ fontSize: "3.5rem", color: "#dc2626" }} className="mb-3" />
-            <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Payment Failed</h2>
-            <p className="text-muted mb-4">{paymentMessage}</p>
-            <div className="d-flex gap-2 justify-content-center">
-              <button onClick={handleRetry} className="btn btn-dark fw-semibold px-4">
-                Try Again
-              </button>
-              <button onClick={() => navigate(`/orders/${orderId}`)} className="btn btn-outline-secondary fw-semibold px-4">
-                View Order
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── IDLE: Payment form ── */}
-        {paymentState === "idle" && order && (
+        {order && (
           <>
             <h1
               style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2rem", fontWeight: 400 }}
@@ -153,17 +126,56 @@ const PaymentPage = () => {
               </div>
             </div>
 
-            {/* Khalti pay button */}
-            <KhaltiButton
-              orderId={order.id}
-              amount={order.totalAmount}
-              onSuccess={handleSuccess}
-              onError={handleError}
-            />
+            {/* Error message */}
+            {error && (
+              <div className="alert alert-danger small mb-3">
+                {error}
+              </div>
+            )}
+
+            {/* Pay button */}
+            <button
+              onClick={handlePayNow}
+              disabled={initiating}
+              className="btn fw-bold w-100 d-flex align-items-center justify-content-center gap-2"
+              style={{
+                background: initiating ? "#c4a8d4" : "#5C2D91",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "0.75rem 1rem",
+                fontSize: "0.95rem",
+                cursor: initiating ? "not-allowed" : "pointer",
+              }}
+            >
+              {initiating ? (
+                <>
+                  <FaSpinner className="fa-spin" />
+                  Redirecting to Khalti...
+                </>
+              ) : (
+                <>
+                  <img
+                    src="https://khalti.s3.ap-south-1.amazonaws.com/KPG/dist/2020.12.17.0.0.0/img/khalti-logo.png"
+                    alt="Khalti"
+                    style={{ height: 20, objectFit: "contain" }}
+                    onError={e => { e.target.style.display = "none"; }}
+                  />
+                  Pay ₹{order.totalAmount} with Khalti
+                </>
+              )}
+            </button>
 
             <p className="text-muted text-center mt-3 mb-0" style={{ fontSize: "0.75rem" }}>
-              Secured by Khalti. Your payment info is never stored on our servers.
+              You will be redirected to Khalti's secure payment page.
             </p>
+
+            {/* Test credentials info */}
+            <div className="alert alert-info small mt-4 mb-0">
+              <strong>Test Payment Credentials:</strong><br />
+              Mobile: 9800000000 to 9800000005<br />
+              MPIN: 1111 | OTP: 987654
+            </div>
           </>
         )}
       </div>

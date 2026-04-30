@@ -104,7 +104,7 @@ router.post("/", auth, async (req, res) => {
       totalAmount,
       shippingAddress,
       paymentMethod: paymentMethod || "cod",
-      paymentStatus: paymentMethod === "cod" ? "pending" : "completed",
+      paymentStatus: "pending", // Always start as pending - will be updated after payment verification
       orderStatus: "pending",
       orderType: orderType || "regular",
       orderDate: new Date(),

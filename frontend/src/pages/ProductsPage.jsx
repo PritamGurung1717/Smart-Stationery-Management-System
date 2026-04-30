@@ -4,9 +4,9 @@ import axios from "axios";
 import { FaSearch, FaShoppingBag, FaShoppingCart, FaSort, FaChevronLeft, FaChevronRight, FaHeart, FaStar, FaFilter } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
+import { getAuthHeaders, isAuthenticated } from "../utils/auth.js";
 
 const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const ProductCard = ({ product, qty, onQtyChange, onCart, onView, onWishlist, inWishlist, rating }) => {
   const inStock = (product.stock_quantity || product.stock || 0) > 0;
@@ -73,13 +73,34 @@ const ProductsPage = () => {
 
   // Auth check on mount + load data
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("user") || "null");
-    if (!stored) { navigate("/"); return; }
+    console.log("🔍 ProductsPage - Checking authentication");
+    
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    
+    console.log("🔍 Token:", token?.substring(0, 30));
+    console.log("🔍 User:", user?.substring(0, 50));
+    
+    if (!isAuthenticated()) {
+      console.log("❌ Not authenticated, redirecting to home");
+      console.log("❌ Token exists:", !!token);
+      console.log("❌ Token value:", token);
+      console.log("❌ User exists:", !!user);
+      console.log("❌ User value:", user);
+      navigate("/");
+      return;
+    }
+    
+    console.log("✅ Authenticated, loading data");
     
     // Load all products and wishlist
     Promise.all([
       axios.get(`${API}/products?limit=1000`), // Get all products
-      axios.get(`${API}/wishlist`, { headers: authH() }).catch(() => ({ data: { success: false } }))
+      axios.get(`${API}/wishlist`, { headers: getAuthHeaders() })
+        .catch(err => {
+          console.error("⚠️ Wishlist fetch failed:", err.response?.status, err.response?.data);
+          return { data: { success: false } };
+        })
     ]).then(([productsRes, wishlistRes]) => {
       const products = productsRes.data.products || [];
       setAllProducts(products);
@@ -90,9 +111,14 @@ const ProductsPage = () => {
       setQuantities(q);
       
       if (wishlistRes.data.success) {
+        console.log("✅ Wishlist loaded:", wishlistRes.data.wishlist.length, "items");
         setWishlist(wishlistRes.data.wishlist.map(i => ({ ...i.product, product_id: i.product?.id })));
+      } else {
+        console.log("⚠️ Wishlist not loaded");
       }
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(err => {
+      console.error("❌ Error loading data:", err);
+    }).finally(() => setLoading(false));
   }, [navigate]);
 
   // Watch for URL search parameter changes
@@ -157,7 +183,7 @@ const ProductsPage = () => {
 
   const addToCart = async (productId, quantity = 1) => {
     try {
-      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: authH() });
+      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: getAuthHeaders() });
       alert("Added to cart!");
     } catch (err) { alert(err.response?.data?.message || "Failed to add to cart"); }
   };
@@ -170,13 +196,13 @@ const ProductsPage = () => {
       const next = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() }); }
+      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: getAuthHeaders() }); }
       catch { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     } else {
       const next = [...wishlist, { ...product, product_id: product.id }];
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() }); }
+      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: getAuthHeaders() }); }
       catch { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     }
     wishlistProcessing.current.delete(product.id);

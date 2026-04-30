@@ -36,6 +36,7 @@ import MyItemRequests from "./pages/MyItemRequests.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import PaymentPage from "./pages/PaymentPage.jsx";
+import PaymentVerifyPage from "./pages/PaymentVerifyPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 
 function App() {
@@ -61,18 +62,19 @@ function App() {
 
   // Listen for logout events dispatched by SharedLayout
   useEffect(() => {
-    const onLogout = () => setUser(null);
+    const onLogout = () => {
+      setUser(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    };
     window.addEventListener("app:logout", onLogout);
     return () => window.removeEventListener("app:logout", onLogout);
   }, []);
 
-  // Sync user state to localStorage
+  // Sync user updates to localStorage (but don't remove on null - that's handled by logout)
   useEffect(() => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
     }
   }, [user]);
 
@@ -175,6 +177,17 @@ function App() {
           element={
             user && (user.role === "personal" || user.role === "institute") ? (
               <PaymentPage />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/payment/verify/:orderId"
+          element={
+            user && (user.role === "personal" || user.role === "institute") ? (
+              <PaymentVerifyPage />
             ) : (
               <Navigate to="/" replace />
             )

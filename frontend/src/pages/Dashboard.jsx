@@ -8,9 +8,9 @@ import {
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
+import { getAuthHeaders } from "../utils/auth.js";
 
 const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 const Hero = ({ navigate }) => (
@@ -194,7 +194,7 @@ const BookSetsSection = ({ navigate }) => {
     const params = new URLSearchParams();
     if (grade) params.append("grade", grade);
     if (school) params.append("school", school);
-    axios.get(`${API}/book-sets?${params}`, { headers: authH() })
+    axios.get(`${API}/book-sets?${params}`, { headers: getAuthHeaders() })
       .then(r => setSets((r.data.bookSets || []).slice(0, 4))).catch(() => {});
   };
 
@@ -268,7 +268,7 @@ const RequestSection = () => {
     if (!itemName.trim()) return;
     try {
       setSubmitting(true);
-      await axios.post(`${API}/requests`, { item_name: itemName, category, quantity_requested: quantity, description: details }, { headers: authH() });
+      await axios.post(`${API}/requests`, { item_name: itemName, category, quantity_requested: quantity, description: details }, { headers: getAuthHeaders() });
       setDone(true);
       setItemName(""); setCategory(""); setQuantity(1); setDetails("");
       setTimeout(() => setDone(false), 3000);
@@ -434,8 +434,8 @@ const Dashboard = ({ setUser }) => {
     (async () => {
       try {
         const [prodRes, wlRes] = await Promise.all([
-          axios.get(`${API}/products`, { headers: authH() }).catch(() => ({ data: { products: [] } })),
-          axios.get(`${API}/wishlist`, { headers: authH() }).catch(() => ({ data: { success: false } })),
+          axios.get(`${API}/products`, { headers: getAuthHeaders() }).catch(() => ({ data: { products: [] } })),
+          axios.get(`${API}/wishlist`, { headers: getAuthHeaders() }).catch(() => ({ data: { success: false } })),
         ]);
         if (!mounted) return;
         const prods = prodRes.data.products || [];
@@ -461,7 +461,7 @@ const Dashboard = ({ setUser }) => {
     try {
       const product = allProducts.find(p => p.id === productId);
       if (product && quantity > product.stock_quantity) { alert(`Only ${product.stock_quantity} in stock`); return; }
-      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: authH() });
+      await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: getAuthHeaders() });
       alert("Added to cart!");
     } catch (e) { alert(e.response?.data?.message || "Failed to add to cart"); }
   };
@@ -476,13 +476,13 @@ const Dashboard = ({ setUser }) => {
       const next = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id);
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: authH() }); }
+      try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: getAuthHeaders() }); }
       catch { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     } else {
       const next = [...wishlist, { ...product, product_id: product.id }];
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
-      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: authH() }); }
+      try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: getAuthHeaders() }); }
       catch { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
     }
     wishlistProcessing.current.delete(product.id);
