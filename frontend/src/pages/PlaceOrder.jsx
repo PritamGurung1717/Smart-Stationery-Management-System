@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const PlaceOrder = () => {
   const navigate = useNavigate();
@@ -40,8 +41,8 @@ const PlaceOrder = () => {
   const total = cart.reduce((t, i) => t + i.price * i.quantity, 0);
 
   const handlePlaceOrder = async () => {
-    if (cart.length === 0) { alert("Your cart is empty!"); return; }
-    if (!shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode) { alert("Please fill in all shipping details"); return; }
+    if (cart.length === 0) { toast.warning("Your cart is empty!"); return; }
+    if (!shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode) { toast.warning("Please fill in all shipping details"); return; }
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -50,9 +51,9 @@ const PlaceOrder = () => {
         shippingAddress, paymentMethod, notes: ""
       }, { headers: { Authorization: `Bearer ${token}` } });
       localStorage.removeItem("cart");
-      alert("Order placed successfully!");
+      toast.success("Order placed successfully!");
       navigate("/my-orders");
-    } catch (err) { alert("Error: " + (err.response?.data?.message || err.message)); }
+    } catch (err) { toast.error("Error: " + (err.response?.data?.message || err.message)); }
     finally { setLoading(false); }
   };
 

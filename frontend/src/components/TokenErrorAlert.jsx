@@ -1,13 +1,14 @@
 import React from 'react';
 import { Alert, Button } from 'react-bootstrap';
 import { FaExclamationTriangle } from 'react-icons/fa';
+import toast from "../utils/toast.js";
 
 const TokenErrorAlert = ({ show, onClose }) => {
   const handleFixToken = () => {
     if (window.confirm('This will clear your cache and log you out. You will need to login again. Continue?')) {
       localStorage.clear();
       sessionStorage.clear();
-      alert('Cache cleared! Redirecting to login...');
+      toast.success('Cache cleared! Redirecting to login...');
       window.location.href = '/login';
     }
   };

@@ -15,12 +15,17 @@ import UserOrders from "./pages/UserOrders.jsx";
 import OrderDetails from "./pages/OrderDetails.jsx";
 import InstituteVerification from "./pages/InstituteVerification.jsx";
 import InstituteBookSetRequest from "./pages/InstituteBookSetRequest.jsx";
+import InstituteBookSetRequestExcel from "./pages/InstituteBookSetRequestExcel.jsx";
 import AddProduct from "./pages/admin/AddProduct.jsx";
 import EditProduct from "./pages/admin/EditProduct.jsx";
 import AdminOrderDetails from "./pages/admin/AdminOrderDetails.jsx";
 import AdminBookSetRequestDetails from "./pages/admin/AdminBookSetRequestDetails.jsx";
+import EditBookSetRequest from "./pages/admin/EditBookSetRequest.jsx";
 import AdminDonationDetails from "./pages/admin/AdminDonationDetails.jsx";
 import AdminBookSetDetails from "./pages/admin/AdminBookSetDetails.jsx";
+import AddBookSet from "./pages/admin/AddBookSet.jsx";
+import EditBookSet from "./pages/admin/EditBookSet.jsx";
+import AdminBookSetExcelUpload from "./pages/admin/AdminBookSetExcelUpload.jsx";
 import UserProfile from "./pages/UserProfile.jsx";
 import BookSetBrowser from "./components/BookSetBrowser.jsx";
 import BookSetDetails from "./pages/BookSetDetails.jsx";
@@ -249,6 +254,17 @@ function App() {
           }
         />
 
+        <Route
+          path="/institute/book-set-request/excel"
+          element={
+            user && user.role === "institute" ? (
+              <InstituteBookSetRequestExcel />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
         {/* Donation Routes - Available to both personal and institute users */}
         <Route
           path="/donations"
@@ -377,8 +393,24 @@ function App() {
           element={user && user.role === "admin" ? <AdminBookSetRequestDetails /> : <Navigate to="/" replace />}
         />
         <Route
+          path="/admin/book-set-requests/:id/edit"
+          element={user && user.role === "admin" ? <EditBookSetRequest /> : <Navigate to="/" replace />}
+        />
+        <Route
           path="/admin/book-sets/:id"
           element={user && user.role === "admin" ? <AdminBookSetDetails /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/book-sets/:id/edit"
+          element={user && user.role === "admin" ? <EditBookSet /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/book-sets/create"
+          element={user && user.role === "admin" ? <AddBookSet /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/admin/book-sets/upload-excel"
+          element={user && user.role === "admin" ? <AdminBookSetExcelUpload /> : <Navigate to="/" replace />}
         />
         <Route
           path="/admin/donations/:id"

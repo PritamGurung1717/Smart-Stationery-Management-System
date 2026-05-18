@@ -4,11 +4,12 @@ import axios from "axios";
 import {
   FaChevronRight, FaShoppingCart, FaBook, FaClipboardList,
   FaBoxOpen, FaGift, FaPaperPlane, FaHistory,
-  FaHeart, FaShoppingBag, FaComments,
+  FaHeart, FaShoppingBag, FaComments, FaFileExcel,
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 import ChatPage from "./ChatPage.jsx";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -76,6 +77,7 @@ const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
 const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
   const actions = [
     { icon: <FaBook />,         label: "Book Set Request",  sub: "Submit new request",          path: "/institute/book-set-request", primary: true },
+    { icon: <FaFileExcel />,    label: "Excel Upload",      sub: "Bulk upload via Excel",       path: "/institute/book-set-request/excel", primary: false },
     { icon: <FaClipboardList />, label: "Browse Book Sets", sub: "View approved sets",           path: "/book-sets" },
     { icon: <FaBoxOpen />,      label: "Bulk Order",        sub: "10% institute discount",       path: "/cart" },
     { icon: <FaHistory />,      label: "My Orders",         sub: "Track all orders",             path: "/my-orders" },
@@ -239,15 +241,15 @@ const BookSetsSection = ({ navigate }) => {
               Browse approved book sets by school and grade. Submit a request if your school's set isn't listed yet.
             </p>
             <div className="d-flex gap-2 flex-wrap mb-3">
-              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select" style={{ width: "auto" }}>
+              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select" style={{ flex: "1", minWidth: "150px" }}>
                 <option value="">Select Grade</option>
-                {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                {grades.map(g => <option key={g} value={g}>Grade {g}</option>)}
               </select>
-              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select" style={{ width: "auto" }}>
+              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select" style={{ flex: "1", minWidth: "150px" }}>
                 <option value="">Select School</option>
                 {schools.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <button onClick={handleSearch} className="btn btn-dark fw-bold">Search Sets</button>
+              <button onClick={handleSearch} className="btn btn-dark fw-bold px-4">Search</button>
             </div>
             <button onClick={() => navigate("/institute/book-set-request")}
               className="btn btn-outline-dark fw-semibold d-inline-flex align-items-center gap-1">
@@ -482,8 +484,8 @@ const InstituteDashboard = ({ setUser }) => {
   const addToCart = async (productId, quantity = 1) => {
     try {
       await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: authH() });
-      alert("Added to cart!");
-    } catch (e) { alert(e.response?.data?.message || "Failed to add to cart"); }
+      toast.success("Added to cart!");
+    } catch (e) { toast.error(e.response?.data?.message || "Failed to add to cart"); }
   };
 
   const toggleWishlist = async (product) => {

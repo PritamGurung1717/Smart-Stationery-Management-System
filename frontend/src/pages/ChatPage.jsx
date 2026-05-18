@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { FaPaperPlane, FaPaperclip, FaSearch, FaTimes, FaFileAlt, FaFileCsv, FaCircle, FaPlus } from "react-icons/fa";
 import { connectSocket } from "../services/socketService";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -332,7 +333,7 @@ export default function ChatPage({ embedded = false }) {
     if (!file || !activeConv) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("File too large. Max 5 MB.");
+      toast.warning("File too large. Max 5 MB.");
       return;
     }
 
@@ -355,7 +356,7 @@ export default function ChatPage({ embedded = false }) {
         setMessages(prev => prev.find(m => m.id === msgRes.data.message.id) ? prev : [...prev, msgRes.data.message]);
       }
     } catch (err) {
-      alert(err.response?.data?.message || err.message || "Upload failed");
+      toast.error(err.response?.data?.message || err.message || "Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -381,7 +382,7 @@ export default function ChatPage({ embedded = false }) {
         if (newConv) setActiveConv(newConv);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to start conversation");
+      toast.error(err.response?.data?.message || "Failed to start conversation");
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "../utils/toast.js";
 
 const InstituteVerification = ({ setUser }) => {
   const navigate = useNavigate();
@@ -54,10 +55,10 @@ const InstituteVerification = ({ setUser }) => {
       const updatedUser = { ...user, instituteVerification: res.data.verification, instituteInfo: res.data.instituteInfo };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setLocalUser(updatedUser);
-      alert("Verification request submitted! Please wait for admin approval.");
+      toast.success("Verification request submitted! Please wait for admin approval.");
       navigate("/institute-dashboard");
     } catch (err) {
-      alert("Failed to submit: " + (err.response?.data?.message || err.message));
+      toast.error("Failed to submit: " + (err.response?.data?.message || err.message));
     } finally { setLoading(false); }
   };
 

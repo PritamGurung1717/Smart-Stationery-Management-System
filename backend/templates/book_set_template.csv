@@ -1,0 +1,6 @@
+School Name,Grade,Subject,Book Title,Author,Publisher,Year,ISBN,Price
+ABC School,1,Math,Mathematics Grade 1,John Doe,ABC Publishers,2024,978-1234567890,250.00
+ABC School,1,English,English Grade 1,Jane Smith,XYZ Publishers,2024,978-0987654321,200.00
+ABC School,1,Science,Science Grade 1,Bob Johnson,Science Press,2024,,180.00
+XYZ School,2,Math,Mathematics Grade 2,John Doe,ABC Publishers,2024,978-1234567891,280.00
+XYZ School,2,English,English Grade 2,Jane Smith,XYZ Publishers,2024,978-0987654322,220.00

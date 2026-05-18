@@ -1,60 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaChevronLeft, FaCheck, FaTimes, FaTrash, FaBook } from "react-icons/fa";
+import { FaChevronLeft, FaCheck, FaTimes, FaTrash, FaBook, FaEdit } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import Toast from "../../components/admin/shared/Toast";
+import ConfirmModal from "../../components/admin/shared/ConfirmModal";
+import StatusPill from "../../components/admin/shared/StatusPill";
+import LoadingSpinner from "../../components/admin/shared/LoadingSpinner";
+import ErrorMessage from "../../components/admin/shared/ErrorMessage";
+import { useToast } from "../../hooks/useToast";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
-
-const Toast = ({ msg, type, onClose }) => {
-  if (!msg) return null;
-  const bg = type === "error" ? "#fee2e2" : "#d1fae5";
-  const color = type === "error" ? "#991b1b" : "#065f46";
-  return (
-    <div className="position-fixed d-flex align-items-center gap-2 px-4 py-3 rounded-3 shadow"
-      style={{ bottom: 24, right: 24, background: bg, color, zIndex: 9999, fontSize: "0.875rem", fontWeight: 500 }}>
-      {type === "error" ? "✕" : "✓"} {msg}
-      <button className="btn btn-link p-0 ms-2" style={{ color, fontSize: "1rem" }} onClick={onClose}>×</button>
-    </div>
-  );
-};
-
-const ConfirmModal = ({ show, title, message, onConfirm, onCancel, loading, danger }) => {
-  if (!show) return null;
-  return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-      style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-      <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 420, width: "90%" }}>
-        <h5 className="fw-bold mb-2">{title}</h5>
-        <p className="text-muted mb-4" style={{ fontSize: "0.9rem" }}>{message}</p>
-        <div className="d-flex gap-2 justify-content-end">
-          <button className="btn btn-outline-dark rounded-0" onClick={onCancel} disabled={loading}>Cancel</button>
-          <button className={`btn rounded-0 fw-semibold ${danger ? "btn-danger" : "btn-dark"}`}
-            onClick={onConfirm} disabled={loading}>
-            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : null}
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StatusPill = ({ status }) => {
-  const map = {
-    pending:  { bg: "#fef3c7", color: "#92400e" },
-    approved: { bg: "#d1fae5", color: "#065f46" },
-    rejected: { bg: "#fee2e2", color: "#991b1b" },
-  };
-  const s = map[status] || { bg: "#f3f4f6", color: "#374151" };
-  return (
-    <span className="fw-semibold text-capitalize"
-      style={{ background: s.bg, color: s.color, padding: "0.25rem 0.75rem", borderRadius: 20, fontSize: "0.78rem" }}>
-      {status}
-    </span>
-  );
-};
 
 function AdminBookSetRequestDetails() {
   const { id } = useParams();
@@ -63,15 +20,10 @@ function AdminBookSetRequestDetails() {
   const [bookSet, setBookSet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState({ msg: "", type: "success" });
+  const { toast, showToast, clearToast } = useToast();
   const [modal, setModal] = useState({ show: false, type: "" });
   const [rejectRemark, setRejectRemark] = useState("");
   const [acting, setActing] = useState(false);
-
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast({ msg: "", type: "success" }), 3500);
-  };
 
   useEffect(() => { fetchRequest(); }, [id]);
 
@@ -125,7 +77,7 @@ function AdminBookSetRequestDetails() {
     try {
       await axios.delete(`${API}/admin/book-set-requests/${id}`, { headers: authH() });
       showToast("Request deleted");
-      setTimeout(() => navigate("/admin-dashboard", { state: { tab: "book-set-requests" } }), 1200);
+      setTimeout(() => navigate("/admin-dashboard", { state: { tab: "book-sets" } }), 1200);
     } catch (e) {
       showToast(e.response?.data?.message || "Failed to delete", "error");
       setModal({ show: false, type: "" });
@@ -135,26 +87,20 @@ function AdminBookSetRequestDetails() {
   const card = { border: "1px solid #e5e7eb", background: "#fff", marginBottom: "1rem" };
 
   if (loading) return (
-    <AdminLayout activeTab="book-set-requests">
-      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
-        <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status" />
-      </div>
+    <AdminLayout activeTab="book-sets">
+      <LoadingSpinner />
     </AdminLayout>
   );
 
   if (error || !request) return (
-    <AdminLayout activeTab="book-set-requests">
-      <div className="text-center py-5">
-        <p className="text-danger fw-semibold mb-3">{error || "Not found"}</p>
-        <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-set-requests" } })}
-          className="btn btn-dark rounded-0 px-4">Back</button>
-      </div>
+    <AdminLayout activeTab="book-sets">
+      <ErrorMessage error={error || "Not found"} />
     </AdminLayout>
   );
 
   return (
-    <AdminLayout activeTab="book-set-requests" topBar={<StatusPill status={request.status} />}>
-      <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
+    <AdminLayout activeTab="book-sets" topBar={<StatusPill status={request.status} />}>
+      <Toast msg={toast.msg} type={toast.type} onClose={clearToast} />
 
       {/* Approve confirm */}
       <ConfirmModal show={modal.type === "approve"} title="Approve Request"
@@ -189,9 +135,9 @@ function AdminBookSetRequestDetails() {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
-          <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-set-requests" } })}
+          <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-sets" } })}
             style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.5rem" }}>
-            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Book Set Requests
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Book Sets
           </button>
           <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>BOOK SET REQUESTS</p>
           <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
@@ -204,10 +150,16 @@ function AdminBookSetRequestDetails() {
         {/* Action buttons */}
         <div className="d-flex gap-2 flex-wrap">
           {bookSet && (
-            <button onClick={() => navigate(`/admin/book-sets/${bookSet._id}`)}
-              className="btn btn-dark rounded-0 fw-semibold d-flex align-items-center gap-1">
-              <FaBook style={{ fontSize: "0.75rem" }} /> View Book Set
-            </button>
+            <>
+              <button onClick={() => navigate(`/admin/book-sets/${bookSet._id}`)}
+                className="btn btn-dark rounded-0 fw-semibold d-flex align-items-center gap-1">
+                <FaBook style={{ fontSize: "0.75rem" }} /> View Book Set
+              </button>
+              <button onClick={() => navigate(`/admin/book-sets/${bookSet._id}/edit`)}
+                className="btn btn-outline-primary rounded-0 fw-semibold d-flex align-items-center gap-1">
+                <FaEdit style={{ fontSize: "0.75rem" }} /> Edit Book Set
+              </button>
+            </>
           )}
           {request.status === "pending" && (
             <>
@@ -221,6 +173,10 @@ function AdminBookSetRequestDetails() {
               </button>
             </>
           )}
+          <button onClick={() => navigate(`/admin/book-set-requests/${id}/edit`)}
+            className="btn btn-outline-primary rounded-0 d-flex align-items-center gap-1">
+            <FaEdit style={{ fontSize: "0.75rem" }} /> Edit
+          </button>
           <button onClick={() => setModal({ show: true, type: "delete" })}
             className="btn btn-outline-danger rounded-0 d-flex align-items-center gap-1">
             <FaTrash style={{ fontSize: "0.75rem" }} /> Delete

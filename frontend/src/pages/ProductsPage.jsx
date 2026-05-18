@@ -5,6 +5,7 @@ import { FaSearch, FaShoppingBag, FaShoppingCart, FaSort, FaChevronLeft, FaChevr
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 import { getAuthHeaders, isAuthenticated } from "../utils/auth.js";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 
@@ -184,8 +185,8 @@ const ProductsPage = () => {
   const addToCart = async (productId, quantity = 1) => {
     try {
       await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: getAuthHeaders() });
-      alert("Added to cart!");
-    } catch (err) { alert(err.response?.data?.message || "Failed to add to cart"); }
+      toast.success("Added to cart!");
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to add to cart"); }
   };
 
   const toggleWishlist = async (product) => {

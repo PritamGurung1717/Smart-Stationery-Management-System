@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -51,20 +53,25 @@ const CartPage = () => {
     try {
       await axios.put("http://localhost:5000/api/users/cart/update", { productId, quantity });
       fetchCart();
-    } catch { alert("Failed to update quantity"); }
+    } catch { toast.error("Failed to update quantity"); }
   };
 
   const removeFromCart = async (productId) => {
     try {
       await axios.delete(`http://localhost:5000/api/users/cart/remove/${productId}`);
       fetchCart();
-    } catch { alert("Failed to remove item"); }
+    } catch { toast.error("Failed to remove item"); }
   };
 
   const clearCart = async () => {
-    if (!window.confirm("Clear your cart?")) return;
+    const confirmed = await confirm("Are you sure you want to clear your cart? This action cannot be undone.", {
+      title: "Clear Cart",
+      confirmText: "Clear Cart",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try { await axios.delete("http://localhost:5000/api/users/cart/clear"); setCart({ items: [] }); }
-    catch { alert("Failed to clear cart"); }
+    catch { toast.error("Failed to clear cart"); }
   };
 
   const subtotal = cart.items.reduce((t, i) => t + i.price * i.quantity, 0);
@@ -73,9 +80,9 @@ const CartPage = () => {
   const fmt = (n) => Number(n).toLocaleString("en-IN");
 
   const proceedToCheckout = () => {
-    if (cart.items.length === 0) { alert("Your cart is empty!"); return; }
+    if (cart.items.length === 0) { toast.warning("Your cart is empty!"); return; }
     if (!shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode) {
-      alert("Please fill in all shipping details"); return;
+      toast.warning("Please fill in all shipping details"); return;
     }
     localStorage.setItem("cart", JSON.stringify(cart.items));
     localStorage.setItem("shippingAddress", JSON.stringify(shippingAddress));

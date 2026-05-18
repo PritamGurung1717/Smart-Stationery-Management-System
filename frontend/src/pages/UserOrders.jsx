@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FaBox, FaSearch, FaEye, FaFileInvoice, FaTimes, FaCheckCircle, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const API = "http://localhost:5000/api";
 
@@ -56,21 +58,31 @@ const UserOrders = () => {
   };
 
   const handleCancel = async (orderId) => {
-    if (!window.confirm("Cancel this order?")) return;
+    const confirmed = await confirm("Are you sure you want to cancel this order?", {
+      title: "Cancel Order",
+      confirmText: "Yes, Cancel",
+      cancelText: "No, Keep It"
+    });
+    if (!confirmed) return;
     try {
       const token = localStorage.getItem("token");
       await axios.put(`${API}/orders/${orderId}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrders();
-    } catch (err) { alert(err.response?.data?.message || "Failed to cancel"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to cancel"); }
   };
 
   const handleConfirmDelivery = async (orderId) => {
-    if (!window.confirm("Confirm that you received this order?")) return;
+    const confirmed = await confirm("Confirm that you have received this order?", {
+      title: "Confirm Delivery",
+      confirmText: "Yes, Received",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       const token = localStorage.getItem("token");
       await axios.put(`${API}/orders/${orderId}/confirm-delivery`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrders();
-    } catch (err) { alert(err.response?.data?.message || "Failed to confirm"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to confirm"); }
   };
 
   const handleInvoice = (orderId) => {

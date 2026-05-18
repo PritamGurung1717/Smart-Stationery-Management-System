@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -29,7 +30,34 @@ const CheckoutPage = () => {
   const fetchCart = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/users/cart");
-      setCart(res.data.cart?.items ? res.data.cart : { items: [] });
+      const cartData = res.data.cart?.items ? res.data.cart : { items: [] };
+      
+      // Enrich cart items with product details
+      if (cartData.items?.length) {
+        const enrichedItems = await Promise.all(cartData.items.map(async (item) => {
+          // If product is already an object with name, use it
+          if (item.product && typeof item.product === "object" && item.product.name) {
+            return item;
+          }
+          // Otherwise fetch product details by ID
+          try {
+            const productId = typeof item.product === "object" ? item.product.id : item.product;
+            const productRes = await axios.get(`http://localhost:5000/api/products/${productId}`);
+            return { 
+              ...item, 
+              productDetails: productRes.data.product || { name: `Product #${productId}`, id: productId }
+            };
+          } catch {
+            return { 
+              ...item, 
+              productDetails: { name: `Product #${item.product}`, id: item.product }
+            };
+          }
+        }));
+        setCart({ ...cartData, items: enrichedItems });
+      } else {
+        setCart(cartData);
+      }
     } catch { setCart({ items: [] }); }
     finally { setLoadingCart(false); }
   };
@@ -50,14 +78,14 @@ const CheckoutPage = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (cart.items.length === 0) { alert("Your cart is empty!"); return; }
+    if (cart.items.length === 0) { toast.warning("Your cart is empty!"); return; }
     if (!shippingAddress.address.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim() || !shippingAddress.zipCode.trim()) {
-      alert("Please fill in all required shipping address fields!"); return;
+      toast.warning("Please fill in all required shipping address fields!"); return;
     }
     setLoading(true);
     try {
       const stock = await validateStock();
-      if (!stock.valid) { alert(stock.message); return; }
+      if (!stock.valid) { toast.error(stock.message); return; }
       const res = await axios.post("http://localhost:5000/api/orders", {
         products: cart.items.map(i => ({ productId: i.product, quantity: i.quantity })),
         shippingAddress, paymentMethod, orderType, notes: ""
@@ -71,11 +99,11 @@ const CheckoutPage = () => {
       if (paymentMethod === "khalti") {
         navigate(`/payment/${orderId}`);
       } else {
-        alert("Order placed successfully!");
+        toast.success("Order placed successfully!");
         navigate(`/orders/${orderId}`);
       }
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || err.message || "Failed to place order"));
+      toast.error("Error: " + (err.response?.data?.message || err.message || "Failed to place order"));
     } finally { setLoading(false); }
   };
 
@@ -107,15 +135,20 @@ const CheckoutPage = () => {
                 <p className="text-muted small">Your cart is empty. <button onClick={() => navigate("/products")} className="btn btn-link p-0 small fw-semibold text-dark">Shop now</button></p>
               ) : (
                 <>
-                  {cart.items.map((item, idx) => (
-                    <div key={item._id || idx} className="d-flex justify-content-between align-items-center py-2 border-bottom small">
-                      <div>
-                        <div className="fw-semibold">Product #{item.product}</div>
-                        <div className="text-muted">Qty: {item.quantity} × ₹{item.price}</div>
+                  {cart.items.map((item, idx) => {
+                    const productName = item.productDetails?.name || 
+                                       (typeof item.product === "object" ? item.product.name : null) || 
+                                       `Product #${item.product}`;
+                    return (
+                      <div key={item._id || idx} className="d-flex justify-content-between align-items-center py-2 border-bottom small">
+                        <div>
+                          <div className="fw-semibold">{productName}</div>
+                          <div className="text-muted">Qty: {item.quantity} × ₹{item.price}</div>
+                        </div>
+                        <div className="fw-bold">₹{item.price * item.quantity}</div>
                       </div>
-                      <div className="fw-bold">₹{item.price * item.quantity}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="mt-3">
                     <div className="d-flex justify-content-between text-muted mb-1 small"><span>Subtotal</span><span>₹{subtotal}</span></div>
                     {discount > 0 && <div className="d-flex justify-content-between text-success mb-1 small"><span>Institute Discount (10%)</span><span>-₹{discount.toFixed(2)}</span></div>}

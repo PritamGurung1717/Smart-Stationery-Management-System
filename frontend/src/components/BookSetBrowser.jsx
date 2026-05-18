@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaBook, FaShoppingCart, FaInfoCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "./SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const GRADES = ["Nursery","LKG","UKG","1","2","3","4","5","6","7","8","9","10","11","12"];
 
@@ -44,7 +45,7 @@ const BookSetBrowser = () => {
 
   const handleAddSetToCart = async (bookSet) => {
     const token = localStorage.getItem("token");
-    if (!token) { alert("Please login to add items to cart"); return; }
+    if (!token) { toast.warning("Please login to add items to cart"); return; }
     let added = 0, skipped = 0;
     for (const item of bookSet.items) {
       if (item.product_id) {
@@ -54,8 +55,8 @@ const BookSetBrowser = () => {
         } catch { skipped++; }
       } else { skipped++; }
     }
-    if (added > 0) alert(`Added ${added} book(s) to cart!${skipped > 0 ? ` (${skipped} not available as products yet)` : ""}`);
-    else alert("These books are not available as individual products yet. Contact admin.");
+    if (added > 0) toast.success(`Added ${added} book(s) to cart!${skipped > 0 ? ` (${skipped} not available as products yet)` : ""}`);
+    else toast.info("These books are not available as individual products yet. Contact admin.");
   };
 
   const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.9rem", outline: "none", background: "#fff", fontFamily: "inherit" };

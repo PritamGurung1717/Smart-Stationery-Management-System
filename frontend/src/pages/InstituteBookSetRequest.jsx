@@ -6,14 +6,26 @@ import SharedLayout from "../components/SharedLayout.jsx";
 
 const emptyBook = () => ({
   subject_name: "", book_title: "", author: "", publisher: "",
-  publication_year: new Date().getFullYear(), isbn: "", estimated_price: "",
+  publication_year: new Date().getFullYear(), isbn: "",
 });
 
 const StatusBadge = ({ status }) => {
-  const map = { pending: ["#fef3c7","#92400e"], approved: ["#d1fae5","#065f46"], rejected: ["#fee2e2","#991b1b"] };
-  const [bg, color] = map[status] || ["#f3f4f6","#374151"];
-  return <span style={{ background: bg, color, borderRadius: 20, padding: "0.2rem 0.65rem", fontSize: "0.78rem", fontWeight: 600 }}>{status}</span>;
+  const map = {
+    pending:  "text-warning-emphasis bg-warning-subtle",
+    approved: "text-success-emphasis bg-success-subtle",
+    rejected: "text-danger-emphasis bg-danger-subtle",
+  };
+  return <span className={`badge ${map[status] || "text-secondary bg-light"} text-capitalize`} style={{ fontSize: "0.78rem" }}>{status}</span>;
 };
+
+const BOOK_FIELDS = [
+  ["subject_name", "Math, Science…", null],
+  ["book_title",   "Book title",     null],
+  ["author",       "Author name",    null],
+  ["publisher",    "Publisher",      null],
+  ["publication_year", "Year",       "number"],
+  ["isbn",         "ISBN (optional)", null],
+];
 
 const InstituteBookSetRequest = () => {
   const navigate = useNavigate();
@@ -58,7 +70,6 @@ const InstituteBookSetRequest = () => {
       if (!b.book_title.trim()) { setError(`Book ${i+1}: Title required`); return false; }
       if (!b.author.trim()) { setError(`Book ${i+1}: Author required`); return false; }
       if (!b.publisher.trim()) { setError(`Book ${i+1}: Publisher required`); return false; }
-      if (!b.estimated_price || parseFloat(b.estimated_price) <= 0) { setError(`Book ${i+1}: Valid price required`); return false; }
     }
     return true;
   };
@@ -77,7 +88,7 @@ const InstituteBookSetRequest = () => {
           subject_name: b.subject_name.trim(), book_title: b.book_title.trim(),
           author: b.author.trim(), publisher: b.publisher.trim(),
           publication_year: parseInt(b.publication_year), isbn: b.isbn.trim(),
-          estimated_price: parseFloat(b.estimated_price),
+          estimated_price: 0, // Price set to 0, admin will update later
         })),
       }, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess("Book set request submitted successfully! Waiting for admin approval.");
@@ -92,105 +103,107 @@ const InstituteBookSetRequest = () => {
 
   const totalEstimated = books.reduce((t, b) => t + (parseFloat(b.estimated_price) || 0), 0);
 
-  const inp = { border: "1px solid #e5e7eb", borderRadius: 8, padding: "0.5rem 0.65rem", fontSize: "0.85rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
-  const label = { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "0.3rem" };
-  const card = { border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: "1.5rem", marginBottom: "1.5rem" };
-
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
-        <div style={{ marginBottom: "2rem" }}>
-          <button onClick={() => navigate("/institute-dashboard")}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.75rem" }}>
-            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-          </button>
-          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400, margin: 0 }}>
-            <FaBook style={{ marginRight: "0.5rem", fontSize: "1.5rem" }} />Book Set Request
-          </h1>
-        </div>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+
+        <button onClick={() => navigate("/institute-dashboard")}
+          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
+          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
+        </button>
+
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
+          className="mb-4 d-flex align-items-center gap-2">
+          <FaBook style={{ fontSize: "1.5rem" }} /> Book Set Request
+        </h1>
 
         {error && (
-          <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1.25rem", color: "#991b1b", fontSize: "0.9rem", display: "flex", justifyContent: "space-between" }}>
-            {error}
-            <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b", fontWeight: 700 }}>×</button>
+          <div className="alert alert-danger d-flex justify-content-between align-items-center py-2 mb-3">
+            <span className="small">{error}</span>
+            <button onClick={() => setError("")} className="btn-close" style={{ fontSize: "0.7rem" }} />
           </div>
         )}
         {success && (
-          <div style={{ background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 10, padding: "0.85rem 1rem", marginBottom: "1.25rem", color: "#065f46", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <FaCheckCircle />{success}
+          <div className="alert alert-success d-flex align-items-center gap-2 py-2 mb-3 small">
+            <FaCheckCircle /> {success}
           </div>
         )}
 
-        {/* Form */}
-        <div style={card}>
-          <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>Submit New Book Set Request</h4>
+        {/* Submit Form */}
+        <div className="border rounded-3 bg-white p-4 mb-4">
+          <h5 className="fw-bold mb-4">Submit New Book Set Request</h5>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
-              <div>
-                <label style={label}>School Name *</label>
-                <input type="text" value={formData.school_name} onChange={e => setFormData({ ...formData, school_name: e.target.value })} placeholder="Enter school name" style={inp} required />
+            <div className="row g-3 mb-4">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">School Name *</label>
+                <input type="text" value={formData.school_name}
+                  onChange={e => setFormData({ ...formData, school_name: e.target.value })}
+                  placeholder="Enter school name" className="form-control" required />
               </div>
-              <div>
-                <label style={label}>Grade *</label>
-                <input type="text" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} placeholder="e.g., 5, 10, 12" style={inp} required />
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Grade *</label>
+                <input type="text" value={formData.grade}
+                  onChange={e => setFormData({ ...formData, grade: e.target.value })}
+                  placeholder="e.g., 5, 10, 12" className="form-control" required />
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderTop: "1px solid #f3f4f6", paddingTop: "1.25rem" }}>
-              <h5 style={{ fontWeight: 700, margin: 0 }}>Books in Set</h5>
-              <button type="button" onClick={addBook} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <FaPlus />Add Book
+            <div className="d-flex justify-content-between align-items-center mb-3 border-top pt-4">
+              <h6 className="fw-bold mb-0">Books in Set</h6>
+              <button type="button" onClick={addBook}
+                className="btn btn-dark btn-sm fw-semibold d-flex align-items-center gap-1">
+                <FaPlus /> Add Book
               </button>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-                <thead>
-                  <tr style={{ background: "#f9fafb" }}>
-                    {["#","Subject *","Book Title *","Author *","Publisher *","Year *","ISBN","Price (₹) *",""].map(h => (
-                      <th key={h} style={{ padding: "0.65rem 0.75rem", textAlign: "left", fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+            <div className="table-responsive">
+              <table className="table table-bordered align-middle" style={{ fontSize: "0.82rem" }}>
+                <thead className="table-light">
+                  <tr>
+                    {["#","Subject *","Book Title *","Author *","Publisher *","Year *","ISBN","Price (Rs.) *",""].map(h => (
+                      <th key={h} className="fw-bold text-dark text-nowrap py-2">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {books.map((book, index) => (
-                    <tr key={index} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "0.5rem 0.75rem", color: "#6b7280" }}>{index + 1}</td>
-                      {[
-                        ["subject_name","Math, Science…",null],
-                        ["book_title","Book title",null],
-                        ["author","Author name",null],
-                        ["publisher","Publisher",null],
-                        ["publication_year","Year","number"],
-                        ["isbn","ISBN (optional)",null],
-                        ["estimated_price","0.00","number"],
-                      ].map(([field, ph, type]) => (
-                        <td key={field} style={{ padding: "0.5rem 0.5rem" }}>
-                          <input type={type || "text"} value={book[field]} onChange={e => handleBookChange(index, field, e.target.value)}
-                            placeholder={ph} style={{ ...inp, minWidth: field === "publication_year" ? 80 : field === "estimated_price" ? 80 : 100 }}
-                            min={type === "number" ? 0 : undefined} step={field === "estimated_price" ? "0.01" : undefined} />
+                    <tr key={index}>
+                      <td className="text-muted text-center">{index + 1}</td>
+                      {BOOK_FIELDS.map(([field, ph, type]) => (
+                        <td key={field} style={{ minWidth: ["subject_name","book_title"].includes(field) ? 120 : 80 }}>
+                          <input
+                            type={type || "text"}
+                            value={book[field]}
+                            onChange={e => handleBookChange(index, field, e.target.value)}
+                            placeholder={ph}
+                            className="form-control form-control-sm"
+                            min={type === "number" ? 0 : undefined}
+                            step={field === "estimated_price" ? "0.01" : undefined}
+                          />
                         </td>
                       ))}
-                      <td style={{ padding: "0.5rem 0.5rem" }}>
+                      <td className="text-center">
                         <button type="button" onClick={() => removeBook(index)} disabled={books.length === 1}
-                          style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "0.4rem 0.6rem", cursor: "pointer", color: "#ef4444", opacity: books.length === 1 ? 0.4 : 1 }}>
+                          className="btn btn-outline-danger btn-sm"
+                          style={{ opacity: books.length === 1 ? 0.4 : 1 }}>
                           <FaTrash />
                         </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr style={{ background: "#f9fafb" }}>
-                    <td colSpan={7} style={{ padding: "0.75rem", textAlign: "right", fontWeight: 700, fontSize: "0.88rem" }}>Total Estimated Price:</td>
-                    <td colSpan={2} style={{ padding: "0.75rem", fontWeight: 800 }}>₹{totalEstimated.toFixed(2)}</td>
+                <tfoot className="table-light">
+                  <tr>
+                    <td colSpan={7} className="text-end fw-bold py-2">Total Estimated Price:</td>
+                    <td colSpan={2} className="fw-bold py-2">Rs.{totalEstimated.toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
-            <div style={{ textAlign: "right", marginTop: "1.5rem" }}>
-              <button type="submit" disabled={loading} style={{ background: "#111", color: "#fff", border: "none", borderRadius: 10, padding: "0.75rem 2rem", fontWeight: 700, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            <div className="text-end mt-3">
+              <button type="submit" disabled={loading}
+                className={`btn btn-dark fw-bold px-4 ${loading ? "opacity-75" : ""}`}>
                 {loading ? "Submitting…" : "Submit Request"}
               </button>
             </div>
@@ -198,40 +211,43 @@ const InstituteBookSetRequest = () => {
         </div>
 
         {/* My Requests */}
-        <div style={card}>
-          <h4 style={{ fontWeight: 700, marginBottom: "1.25rem", marginTop: 0 }}>My Book Set Requests</h4>
+        <div className="border rounded-3 bg-white p-4">
+          <h5 className="fw-bold mb-4">My Book Set Requests</h5>
           {loadingRequests ? (
-            <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>Loading requests…</div>
+            <div className="text-center py-4 text-muted small">
+              <span className="spinner-border spinner-border-sm text-dark me-2" role="status" />
+              Loading requests…
+            </div>
           ) : myRequests.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>No requests submitted yet.</div>
+            <div className="text-center py-4 text-muted small">No requests submitted yet.</div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-                <thead>
-                  <tr style={{ background: "#f9fafb" }}>
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.85rem" }}>
+                <thead className="table-light">
+                  <tr>
                     {["ID","School","Grade","Books","Total Price","Status","Submitted","Remark","Actions"].map(h => (
-                      <th key={h} style={{ padding: "0.65rem 0.85rem", textAlign: "left", fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                      <th key={h} className="fw-bold small text-dark text-nowrap py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {myRequests.map(req => (
-                    <tr key={req.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.id}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.school_name}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.grade}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>{req.item_count}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>₹{req.total_estimated_price?.toFixed(2)}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}><StatusBadge status={req.status} /></td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>{new Date(req.created_at).toLocaleDateString()}</td>
-                      <td style={{ padding: "0.75rem 0.85rem", color: "#ef4444", fontSize: "0.8rem" }}>{req.admin_remark || "—"}</td>
-                      <td style={{ padding: "0.75rem 0.85rem" }}>
-                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <tr key={req.id}>
+                      <td className="text-muted small">{req.id}</td>
+                      <td className="fw-semibold small">{req.school_name}</td>
+                      <td className="small">{req.grade}</td>
+                      <td className="small">{req.item_count}</td>
+                      <td className="fw-semibold small">Rs.{req.total_estimated_price?.toFixed(2)}</td>
+                      <td><StatusBadge status={req.status} /></td>
+                      <td className="text-muted small">{new Date(req.created_at).toLocaleDateString()}</td>
+                      <td className="text-danger small">{req.admin_remark || "—"}</td>
+                      <td>
+                        <div className="d-flex gap-1">
                           <button onClick={() => navigate(`/institute/book-set-request/${req.id}`)}
-                            style={{ background: "#f3f4f6", border: "none", borderRadius: 6, padding: "0.35rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}>View</button>
+                            className="btn btn-light border btn-sm fw-semibold">View</button>
                           {req.status === "rejected" && (
                             <button onClick={() => navigate(`/institute/book-set-request/${req.id}/edit`)}
-                              style={{ background: "#fef3c7", border: "none", borderRadius: 6, padding: "0.35rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", color: "#92400e" }}>Edit</button>
+                              className="btn btn-warning btn-sm fw-semibold">Edit</button>
                           )}
                         </div>
                       </td>

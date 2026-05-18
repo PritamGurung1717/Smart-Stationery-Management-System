@@ -8,7 +8,7 @@ import {
   FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
   FaRupeeSign, FaSync, FaSearch,
   FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen,
-  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes, FaComments
+  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes, FaComments, FaBook, FaFileExcel
 } from "react-icons/fa";
 import ChatPage from "../ChatPage.jsx";
 import {
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { id: "products",          icon: <FaBox />,           label: "Products" },
   { id: "orders",            icon: <FaShoppingCart />,  label: "Orders" },
   { id: "verifications",     icon: <FaUserCheck />,     label: "Verifications" },
-  { id: "book-set-requests", icon: <FaChartLine />,     label: "Book Set Requests" },
+  { id: "book-sets",         icon: <FaBook />,          label: "Book Sets" },
   { id: "donations",         icon: <FaGift />,          label: "Donations" },
   { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests" },
   { id: "notifications",     icon: <FaBell />,          label: "Notifications" },
@@ -399,7 +399,8 @@ const AdminDashboard = ({ setUser }) => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
-  const [bookSetRequests, setBookSetRequests] = useState([]);
+  const [bookSets, setBookSets] = useState([]); // Actual book sets from booksets collection
+  const [bookSetRequests, setBookSetRequests] = useState([]); // Institute requests from booksetrequests collection
   const [donations, setDonations] = useState([]);
   const [itemRequests, setItemRequests] = useState([]);
   const [userNames, setUserNames] = useState({});
@@ -421,6 +422,11 @@ const AdminDashboard = ({ setUser }) => {
   const [orderPaymentFilter, setOrderPaymentFilter] = useState("all");
   const [verificationSearch, setVerificationSearch] = useState("");
   const [itemRequestFilter, setItemRequestFilter] = useState("all");
+  const [bookSetSchoolFilter, setBookSetSchoolFilter] = useState("");
+  const [bookSetGradeFilter, setBookSetGradeFilter] = useState("");
+  const [bookSetRequestSearch, setBookSetRequestSearch] = useState("");
+  const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("all");
+  const [bookSetSubTab, setBookSetSubTab] = useState("sets"); // "sets" or "requests"
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -548,8 +554,23 @@ const AdminDashboard = ({ setUser }) => {
     paginated(q, d => setPendingVerifications(d.pendingVerifications || []), 1);
   };
 
-  const fetchBookSetRequests = (page = 1) =>
-    paginated(`${API}/admin/book-set-requests?`, d => setBookSetRequests(d.requests || []), page);
+  const fetchBookSetRequests = (page = 1, searchOverride, statusOverride) => {
+    const search = searchOverride !== undefined ? searchOverride : bookSetRequestSearch;
+    const status = statusOverride !== undefined ? statusOverride : bookSetRequestStatusFilter;
+    let q = `${API}/admin/book-set-requests?`;
+    if (search) q += `search=${encodeURIComponent(search)}&`;
+    if (status !== "all") q += `status=${status}&`;
+    paginated(q, d => setBookSetRequests(d.requests || []), page);
+  };
+
+  const fetchBookSets = (page = 1, schoolOverride, gradeOverride) => {
+    const school = schoolOverride !== undefined ? schoolOverride : bookSetSchoolFilter;
+    const grade = gradeOverride !== undefined ? gradeOverride : bookSetGradeFilter;
+    let q = `${API}/admin/book-sets?`;
+    if (school) q += `search=${encodeURIComponent(school)}&`;
+    if (grade) q += `grade=${encodeURIComponent(grade)}&`;
+    paginated(q, d => setBookSets(d.bookSets || []), page);
+  };
 
   const fetchDonations = (page = 1) =>
     paginated(`${API}/donations/admin/all?`, d => setDonations(d.donations || []), page);
@@ -588,7 +609,8 @@ const AdminDashboard = ({ setUser }) => {
   const handleTabChange = (tab) => {
     setActiveTab(tab); setCurrentPage(1);
     const map = { users: fetchUsers, products: fetchProducts, orders: fetchOrders,
-      verifications: fetchVerifications, "book-set-requests": fetchBookSetRequests,
+      verifications: fetchVerifications,
+      "book-sets": fetchBookSets,
       donations: fetchDonations, "item-requests": fetchItemRequests,
       notifications: fetchNotifications };
     if (map[tab]) map[tab](1); else fetchDashboard();
@@ -1141,59 +1163,170 @@ const AdminDashboard = ({ setUser }) => {
             </>
           )}
 
-          {/* ── BOOK SET REQUESTS TAB ── */}
-          {activeTab === "book-set-requests" && (
+          {/* ── BOOK SETS TAB ── */}
+          {activeTab === "book-sets" && (
             <>
               <div className="d-flex justify-content-between align-items-end mb-4">
                 <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>BOOK SETS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Book Set Requests</h2>
+                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MANAGE</p>
+                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Book Sets</h2>
                 </div>
-                <span className="text-muted small">Total: {totalItems}</span>
+                <div className="d-flex gap-2 align-items-center">
+                  <span className="text-muted small">Total: {totalItems}</span>
+                  <button onClick={() => navigate("/admin/book-sets/upload-excel")}
+                    className="btn btn-success btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                    <FaFileExcel style={{ fontSize: "0.7rem" }} /> Excel Upload
+                  </button>
+                  <button onClick={() => navigate("/admin/book-sets/create")}
+                    className="btn btn-dark btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                    <FaPlus style={{ fontSize: "0.7rem" }} /> Create Book Set
+                  </button>
+                </div>
               </div>
-              <TableShell loading={fetchingData} heads={["ID","Institute","School","Grade","Books","Total Price","Status","Date","Actions"]}>
-                {bookSetRequests.map(r => (
-                  <tr key={r.id}>
-                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>#{r.id}</td>
-                    <td className="px-3">
-                      <div className="fw-semibold">{r.institute_name}</div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>{r.institute_email}</div>
-                    </td>
-                    <td className="px-3">{r.school_name}</td>
-                    <td className="px-3">{r.grade}</td>
-                    <td className="px-3">{r.item_count}</td>
-                    <td className="px-3 fw-semibold">₹{r.total_estimated_price?.toFixed(2)}</td>
-                    <td className="px-3"><StatusPill status={r.status} /></td>
-                    <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>
-                      {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                    </td>
-                    <td className="px-3">
-                      <div className="d-flex gap-1">
-                        <button onClick={() => navigate(`/admin/book-set-requests/${r._id}`)}
-                          className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
-                          <FaEye />
-                        </button>
-                        {r.status === "pending" && (
-                          <>
-                            <button onClick={() => handleApproveBookSetRequest(r._id)}
-                              className="btn btn-sm btn-outline-success" style={{ fontSize: "0.75rem" }}>
-                              <FaCheckCircle />
+
+              {/* Sub-tabs */}
+              <div className="d-flex gap-3 mb-4 border-bottom pb-2" style={{ borderColor: "#e5e7eb" }}>
+                <button
+                  onClick={() => { setBookSetSubTab("sets"); fetchBookSets(1); }}
+                  className={`btn border-0 rounded-0 fw-semibold px-0 ${bookSetSubTab === "sets" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
+                  style={{ paddingBottom: "0.5rem", background: "transparent" }}>
+                  All Book Sets
+                </button>
+                <button
+                  onClick={() => { setBookSetSubTab("requests"); fetchBookSetRequests(1); }}
+                  className={`btn border-0 rounded-0 fw-semibold px-0 ${bookSetSubTab === "requests" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
+                  style={{ paddingBottom: "0.5rem", background: "transparent" }}>
+                  Institute Requests
+                </button>
+              </div>
+
+              {/* Show Book Sets or Requests based on sub-tab */}
+              {bookSetSubTab === "sets" ? (
+                <>
+                  {/* Search Filters for Book Sets */}
+                  <div className="d-flex gap-2 mb-3 flex-wrap">
+                    <input type="text" placeholder="Search by school name..." value={bookSetSchoolFilter}
+                      onChange={e => setBookSetSchoolFilter(e.target.value)}
+                      className="form-control form-control-sm" style={{ maxWidth: 250 }} />
+                    <input type="text" placeholder="Search by grade..." value={bookSetGradeFilter}
+                      onChange={e => setBookSetGradeFilter(e.target.value)}
+                      className="form-control form-control-sm" style={{ maxWidth: 150 }} />
+                    <button onClick={() => fetchBookSets(1)} className="btn btn-dark btn-sm">
+                      <FaSearch /> Search
+                    </button>
+                    <button onClick={() => { setBookSetSchoolFilter(""); setBookSetGradeFilter(""); fetchBookSets(1, "", ""); }}
+                      className="btn btn-outline-secondary btn-sm">
+                      Clear
+                    </button>
+                  </div>
+
+                  <TableShell loading={fetchingData} heads={["ID","School","Grade","Books","Total Price","Status","Created","Actions"]}>
+                    {bookSets.map(bs => (
+                      <tr key={bs._id}>
+                        <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>#{bs.id}</td>
+                        <td className="px-3 fw-semibold">{bs.school_name}</td>
+                        <td className="px-3">{bs.grade}</td>
+                        <td className="px-3">{bs.item_count || bs.items?.length || 0}</td>
+                        <td className="px-3 fw-semibold">₹{bs.total_price?.toFixed(2)}</td>
+                        <td className="px-3">
+                          <span className={`badge ${bs.is_active ? "bg-success" : "bg-secondary"}`}>
+                            {bs.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>
+                          {new Date(bs.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </td>
+                        <td className="px-3">
+                          <div className="d-flex gap-1">
+                            <button onClick={() => navigate(`/admin/book-sets/${bs._id}`)}
+                              className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                              <FaEye />
                             </button>
-                            <button onClick={() => handleRejectBookSetRequest(r._id)}
-                              className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
-                              ✕
+                            <button onClick={() => navigate(`/admin/book-sets/${bs._id}/edit`)}
+                              className="btn btn-sm btn-outline-primary" style={{ fontSize: "0.75rem" }}>
+                              <FaEdit />
                             </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </TableShell>
-              {bookSetRequests.length === 0 && !fetchingData && (
-                <div className="text-center text-muted py-5">No book set requests found</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </TableShell>
+                  {bookSets.length === 0 && !fetchingData && (
+                    <div className="text-center text-muted py-5">
+                      No book sets found. <button onClick={() => navigate("/admin/book-sets/create")} className="btn btn-link p-0">Create one</button>
+                    </div>
+                  )}
+                  <Pager current={currentPage} total={totalPages} onPage={fetchBookSets} />
+                </>
+              ) : (
+                <>
+                  {/* Search Filters for Requests */}
+                  <div className="d-flex gap-2 mb-3 flex-wrap">
+                    <input type="text" placeholder="Search by school or institute..." value={bookSetRequestSearch}
+                      onChange={e => setBookSetRequestSearch(e.target.value)}
+                      className="form-control form-control-sm" style={{ maxWidth: 300 }} />
+                    <select value={bookSetRequestStatusFilter}
+                      onChange={e => setBookSetRequestStatusFilter(e.target.value)}
+                      className="form-select form-control-sm" style={{ maxWidth: 150 }}>
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    <button onClick={() => fetchBookSetRequests(1)} className="btn btn-dark btn-sm">
+                      <FaSearch /> Search
+                    </button>
+                    <button onClick={() => { setBookSetRequestSearch(""); setBookSetRequestStatusFilter("all"); fetchBookSetRequests(1, "", "all"); }}
+                      className="btn btn-outline-secondary btn-sm">
+                      Clear
+                    </button>
+                  </div>
+
+                  <TableShell loading={fetchingData} heads={["ID","Institute","School","Grade","Books","Total Price","Status","Date","Actions"]}>
+                    {bookSetRequests.map(r => (
+                      <tr key={r.id}>
+                        <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>#{r.id}</td>
+                        <td className="px-3">
+                          <div className="fw-semibold">{r.institute_name}</div>
+                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>{r.institute_email}</div>
+                        </td>
+                        <td className="px-3">{r.school_name}</td>
+                        <td className="px-3">{r.grade}</td>
+                        <td className="px-3">{r.item_count}</td>
+                        <td className="px-3 fw-semibold">₹{r.total_estimated_price?.toFixed(2)}</td>
+                        <td className="px-3"><StatusPill status={r.status} /></td>
+                        <td className="text-muted px-3" style={{ fontSize: "0.8rem" }}>
+                          {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </td>
+                        <td className="px-3">
+                          <div className="d-flex gap-1">
+                            <button onClick={() => navigate(`/admin/book-set-requests/${r._id}`)}
+                              className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                              <FaEye />
+                            </button>
+                            {r.status === "pending" && (
+                              <>
+                                <button onClick={() => handleApproveBookSetRequest(r._id)}
+                                  className="btn btn-sm btn-outline-success" style={{ fontSize: "0.75rem" }}>
+                                  <FaCheckCircle />
+                                </button>
+                                <button onClick={() => handleRejectBookSetRequest(r._id)}
+                                  className="btn btn-sm btn-outline-danger" style={{ fontSize: "0.75rem" }}>
+                                  ✕
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </TableShell>
+                  {bookSetRequests.length === 0 && !fetchingData && (
+                    <div className="text-center text-muted py-5">No book set requests found</div>
+                  )}
+                  <Pager current={currentPage} total={totalPages} onPage={fetchBookSetRequests} />
+                </>
               )}
-              <Pager current={currentPage} total={totalPages} onPage={fetchBookSetRequests} />
             </>
           )}
 

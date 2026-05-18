@@ -9,6 +9,7 @@ import {
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 import { getAuthHeaders } from "../utils/auth.js";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 
@@ -272,7 +273,7 @@ const RequestSection = () => {
       setDone(true);
       setItemName(""); setCategory(""); setQuantity(1); setDetails("");
       setTimeout(() => setDone(false), 3000);
-    } catch (err) { alert(err.response?.data?.message || "Failed to submit request"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to submit request"); }
     finally { setSubmitting(false); }
   };
 
@@ -460,10 +461,10 @@ const Dashboard = ({ setUser }) => {
   const addToCart = async (productId, quantity = 1) => {
     try {
       const product = allProducts.find(p => p.id === productId);
-      if (product && quantity > product.stock_quantity) { alert(`Only ${product.stock_quantity} in stock`); return; }
+      if (product && quantity > product.stock_quantity) { toast.warning(`Only ${product.stock_quantity} in stock`); return; }
       await axios.post(`${API}/users/cart/add`, { productId, quantity }, { headers: getAuthHeaders() });
-      alert("Added to cart!");
-    } catch (e) { alert(e.response?.data?.message || "Failed to add to cart"); }
+      toast.success("Added to cart!");
+    } catch (e) { toast.error(e.response?.data?.message || "Failed to add to cart"); }
   };
 
   const wishlistProcessing = useRef(new Set());

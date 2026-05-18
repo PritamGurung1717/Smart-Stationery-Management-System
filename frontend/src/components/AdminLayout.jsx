@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   FaTachometerAlt, FaUsers, FaBox, FaShoppingCart, FaUserCheck,
-  FaChartLine, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments
+  FaBook, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments
 } from "react-icons/fa";
 
 const API = "http://localhost:5000/api";
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { id: "products",          icon: <FaBox />,           label: "Products",           path: "/admin-dashboard?tab=products" },
   { id: "orders",            icon: <FaShoppingCart />,  label: "Orders",             path: "/admin-dashboard?tab=orders" },
   { id: "verifications",     icon: <FaUserCheck />,     label: "Verifications",      path: "/admin-dashboard?tab=verifications" },
-  { id: "book-set-requests", icon: <FaChartLine />,     label: "Book Set Requests",  path: "/admin-dashboard?tab=book-set-requests" },
+  { id: "book-sets",         icon: <FaBook />,          label: "Book Sets",          path: "/admin-dashboard?tab=book-sets" },
   { id: "donations",         icon: <FaGift />,          label: "Donations",          path: "/admin-dashboard?tab=donations" },
   { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests",      path: "/admin-dashboard?tab=item-requests" },
   { id: "notifications",     icon: <FaBell />,          label: "Notifications",      path: "/admin-dashboard?tab=notifications" },

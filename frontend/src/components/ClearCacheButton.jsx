@@ -1,5 +1,6 @@
 import { Button } from 'react-bootstrap';
 import { FaSync } from 'react-icons/fa';
+import toast from "../utils/toast.js";
 
 const ClearCacheButton = () => {
   const handleClearCache = () => {
@@ -16,7 +17,7 @@ const ClearCacheButton = () => {
       });
       
       // Show success message
-      alert('Cache cleared successfully! Please login again.');
+      toast.success('Cache cleared successfully! Please login again.');
       
       // Redirect to login
       window.location.href = '/login';

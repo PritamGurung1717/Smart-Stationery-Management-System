@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaShoppingCart, FaBook, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -36,10 +37,10 @@ const BookSetDetails = () => {
       } else { skipped++; }
     }
     if (added > 0) {
-      alert(`Added ${added} book(s) to cart!${skipped > 0 ? `\n${skipped} not available yet.` : ""}`);
+      toast.success(`Added ${added} book(s) to cart!${skipped > 0 ? ` (${skipped} not available yet)` : ""}`);
       navigate("/cart");
     } else {
-      alert("These books are not available as products yet.");
+      toast.info("These books are not available as products yet.");
     }
   };
 

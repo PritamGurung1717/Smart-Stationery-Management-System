@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, Form, Badge, Spinner, Alert } from "react-bootstrap";
 import { FaShoppingCart } from "react-icons/fa";
 import axios from "axios";
+import toast from "../utils/toast.js";
 
 const BookSetSection = () => {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ const BookSetSection = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Please login to add items to cart");
+        toast.warning("Please login to add items to cart");
         return;
       }
 
@@ -98,13 +99,13 @@ const BookSetSection = () => {
       }
 
       if (addedCount > 0) {
-        alert(`Successfully added ${addedCount} book(s) to cart!${skippedCount > 0 ? `\n${skippedCount} book(s) are not available as products yet.` : ''}`);
+        toast.success(`Successfully added ${addedCount} book(s) to cart!${skippedCount > 0 ? ` ${skippedCount} book(s) are not available as products yet.` : ''}`);
       } else {
-        alert("These books are not available as individual products yet. They are part of a book set catalog.\n\nPlease contact the institute or admin to make these books available for purchase.");
+        toast.info("These books are not available as individual products yet. They are part of a book set catalog. Please contact the institute or admin to make these books available for purchase.");
       }
     } catch (error) {
       console.error("Error adding book set to cart:", error);
-      alert("Failed to add items to cart. Please try again.");
+      toast.error("Failed to add items to cart. Please try again.");
     }
   };
 

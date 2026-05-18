@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const UserProfile = ({ setUser }) => {
   const navigate = useNavigate();
@@ -29,23 +30,23 @@ const UserProfile = ({ setUser }) => {
       localStorage.setItem("user", JSON.stringify(updated));
       setLocalUser(updated);
       if (setUser) setUser(updated);
-      alert("Profile updated successfully!");
-    } catch { alert("Failed to update profile"); }
+      toast.success("Profile updated successfully!");
+    } catch { toast.error("Failed to update profile"); }
     finally { setLoading(false); }
   };
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) { alert("New passwords don't match!"); return; }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) { toast.error("New passwords don't match!"); return; }
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       await axios.put("http://localhost:5000/api/users/change-password", { currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }, { headers: { Authorization: `Bearer ${token}` } });
-      alert("Password changed successfully! Please login again.");
+      toast.success("Password changed successfully! Please login again.");
       localStorage.removeItem("user"); localStorage.removeItem("token");
       if (setUser) setUser(null);
       navigate("/");
-    } catch (err) { alert("Failed: " + (err.response?.data?.message || err.message)); }
+    } catch (err) { toast.error("Failed: " + (err.response?.data?.message || err.message)); }
     finally { setLoading(false); }
   };
 

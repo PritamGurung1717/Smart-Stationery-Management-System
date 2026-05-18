@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaChevronLeft, FaMapMarkerAlt, FaClock, FaUser, FaEnvelope, FaPhone, FaEdit, FaTrash, FaComments, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -43,22 +45,27 @@ const DonationDetails = () => {
   };
 
   const handleRequest = async () => {
-    if (!requestMsg.trim() || requestMsg.trim().length < 10) { alert("Please write at least 10 characters"); return; }
+    if (!requestMsg.trim() || requestMsg.trim().length < 10) { toast.warning("Please write at least 10 characters"); return; }
     try {
       setSubmitting(true);
       await axios.post(`${API}/donations/${id}/request`, { message: requestMsg }, { headers: authH() });
-      alert("Request sent! The donor will review your request.");
+      toast.success("Request sent! The donor will review your request.");
       setShowModal(false); setRequestMsg(""); fetchDonation();
-    } catch (err) { alert(err.response?.data?.message || "Failed to send request"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to send request"); }
     finally { setSubmitting(false); }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this donation?")) return;
+    const confirmed = await confirm("Are you sure you want to delete this donation? This action cannot be undone.", {
+      title: "Delete Donation",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       await axios.delete(`${API}/donations/${id}`, { headers: authH() });
-      alert("Deleted successfully"); navigate("/donations");
-    } catch (err) { alert(err.response?.data?.message || "Failed to delete"); }
+      toast.success("Deleted successfully"); navigate("/donations");
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to delete"); }
   };
 
   if (loading) return (

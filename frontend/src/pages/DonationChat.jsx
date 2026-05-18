@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaChevronLeft, FaPaperPlane, FaComments, FaPaperclip, FaFileAlt, FaFileCsv } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -86,7 +87,7 @@ const DonationChat = () => {
       await axios.post(`${API}/donations/${id}/chat`, { message: newMessage }, { headers: authH() });
       setNewMessage("");
       fetchMessages();
-    } catch (err) { alert(err.response?.data?.message || "Failed to send"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to send"); }
     finally { setSending(false); }
   };
 
@@ -95,7 +96,7 @@ const DonationChat = () => {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("File too large. Max 5 MB.");
+      toast.warning("File too large. Max 5 MB.");
       return;
     }
 
@@ -116,7 +117,7 @@ const DonationChat = () => {
       setNewMessage("");
       fetchMessages();
     } catch (err) {
-      alert(err.response?.data?.message || "Upload failed");
+      toast.error(err.response?.data?.message || "Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

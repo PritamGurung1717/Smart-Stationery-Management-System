@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FaGift, FaEye, FaTrash, FaCheck, FaComments, FaBell, FaUser, FaClock, FaTimes, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -46,42 +48,62 @@ const MyDonations = () => {
     try {
       const r = await axios.get(`${API}/donations/${donation.id}/requests`, { headers: authH() });
       setModal(m => ({ ...m, requests: r.data.requests || [] }));
-    } catch { alert("Failed to load requests"); }
+    } catch { toast.error("Failed to load requests"); }
     finally { setLoadingReqs(false); }
   };
 
   const acceptRequest = async (reqId) => {
-    if (!window.confirm("Accept this request?")) return;
+    const confirmed = await confirm("Accept this donation request?", {
+      title: "Accept Request",
+      confirmText: "Accept",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       await axios.put(`${API}/donations/requests/${reqId}/accept`, {}, { headers: authH() });
-      alert("Request accepted! You can now chat with the requester.");
+      toast.success("Request accepted! You can now chat with the requester.");
       setModal(null); fetchDonations();
-    } catch (err) { alert(err.response?.data?.message || "Failed to accept"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to accept"); }
   };
 
   const rejectRequest = async (reqId) => {
-    if (!window.confirm("Reject this request?")) return;
+    const confirmed = await confirm("Reject this donation request?", {
+      title: "Reject Request",
+      confirmText: "Reject",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       await axios.put(`${API}/donations/requests/${reqId}/reject`, {}, { headers: authH() });
       const r = await axios.get(`${API}/donations/${modal.donation.id}/requests`, { headers: authH() });
       setModal(m => ({ ...m, requests: r.data.requests || [] }));
-    } catch (err) { alert(err.response?.data?.message || "Failed to reject"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to reject"); }
   };
 
   const deleteDonation = async (id) => {
-    if (!window.confirm("Delete this donation?")) return;
+    const confirmed = await confirm("Are you sure you want to delete this donation? This action cannot be undone.", {
+      title: "Delete Donation",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       await axios.delete(`${API}/donations/${id}`, { headers: authH() });
       fetchDonations();
-    } catch (err) { alert(err.response?.data?.message || "Failed to delete"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to delete"); }
   };
 
   const markCompleted = async (id) => {
-    if (!window.confirm("Mark as completed?")) return;
+    const confirmed = await confirm("Mark this donation as completed?", {
+      title: "Mark as Completed",
+      confirmText: "Mark Completed",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       await axios.put(`${API}/donations/${id}/mark-completed`, {}, { headers: authH() });
       fetchDonations();
-    } catch (err) { alert(err.response?.data?.message || "Failed to update"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to update"); }
   };
 
   return (

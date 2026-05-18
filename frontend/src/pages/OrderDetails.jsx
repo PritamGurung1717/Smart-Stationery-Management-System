@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaFileInvoice, FaTimes, FaCheckCircle, FaBox, FaCheck, FaTruck, FaMapMarkerAlt, FaClock, FaBan, FaChevronLeft, FaCreditCard } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const STATUS_CONFIG = {
   pending:          { cls: "text-warning-emphasis bg-warning-subtle",  dot: "#f59e0b", label: "Pending" },
@@ -120,24 +122,34 @@ const OrderDetails = () => {
   };
 
   const handleCancel = async () => {
-    if (!window.confirm("Cancel this order?")) return;
+    const confirmed = await confirm("Are you sure you want to cancel this order?", {
+      title: "Cancel Order",
+      confirmText: "Yes, Cancel",
+      cancelText: "No, Keep It"
+    });
+    if (!confirmed) return;
     try {
       setActionLoading("cancel");
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:5000/api/orders/${order.id}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrder();
-    } catch (err) { alert(err.response?.data?.message || "Failed to cancel"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to cancel"); }
     finally { setActionLoading(""); }
   };
 
   const handleConfirmDelivery = async () => {
-    if (!window.confirm("Confirm that you received this order?")) return;
+    const confirmed = await confirm("Confirm that you have received this order?", {
+      title: "Confirm Delivery",
+      confirmText: "Yes, Received",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
     try {
       setActionLoading("confirm");
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:5000/api/orders/${order.id}/confirm-delivery`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrder();
-    } catch (err) { alert(err.response?.data?.message || "Failed to confirm"); }
+    } catch (err) { toast.error(err.response?.data?.message || "Failed to confirm"); }
     finally { setActionLoading(""); }
   };
 

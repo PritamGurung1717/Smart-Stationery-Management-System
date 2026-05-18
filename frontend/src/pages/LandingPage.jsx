@@ -7,6 +7,7 @@ import {
   FaStar, FaChevronRight, FaSearch, FaTimes
 } from "react-icons/fa";
 import ProductModal from "../components/ProductModal.jsx";
+import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
 
@@ -63,7 +64,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
 
   // Google button — UI only, shows coming soon
   const GoogleBtn = ({ label }) => (
-    <button type="button" onClick={() => alert("Google sign-in coming soon!")}
+    <button type="button" onClick={() => toast.info("Google sign-in coming soon!")}
       className="btn w-100 fw-semibold d-flex align-items-center justify-content-center gap-2"
       style={{ border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "0.6rem", fontSize: "0.9rem", background: "#fff", color: "#374151" }}>
       <svg width="18" height="18" viewBox="0 0 48 48">
