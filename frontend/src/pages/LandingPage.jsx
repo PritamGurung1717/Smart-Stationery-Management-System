@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -7,9 +7,68 @@ import {
   FaStar, FaChevronRight, FaSearch, FaTimes
 } from "react-icons/fa";
 import ProductModal from "../components/ProductModal.jsx";
+import ProductCard from "../components/ProductCard.jsx";
 import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
+
+/* ─── Google Button (stable — defined outside AuthModal to prevent re-creation) ── */
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+// Global flag so initialize() is only called once across all instances
+let gsiInitialized = false;
+let gsiCallback = null;
+
+const initGSI = (callback) => {
+  if (callback) gsiCallback = callback;
+  if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return;
+  if (!gsiInitialized) {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => gsiCallback?.(response),
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    gsiInitialized = true;
+  }
+};
+
+const GoogleBtnStable = () => {
+  const divRef = useRef(null);
+
+  useEffect(() => {
+    const el = divRef.current;
+    if (!el) return;
+
+    const render = () => {
+      if (!window.google?.accounts?.id) return;
+      // Ensure initialized before rendering
+      if (!gsiInitialized) {
+        initGSI(null); // init with null — callback ref will be set by AuthModal
+      }
+      el.innerHTML = "";
+      window.google.accounts.id.renderButton(el, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: 360,
+      });
+    };
+
+    // Poll until GSI script is loaded
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        clearInterval(interval);
+        render();
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div ref={divRef} style={{ minHeight: 44, display: "flex", justifyContent: "center" }} />;
+};
 
 /* ─── Auth Modal ────────────────────────────────────────────── */
 const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
@@ -20,10 +79,111 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
+  // Forgot password state
+  const [forgotStep, setForgotStep] = useState("email"); // "email" | "otp"
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPw, setForgotNewPw] = useState("");
+  const [forgotConfirmPw, setForgotConfirmPw] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Google role picker state
+  const [googlePending, setGooglePending] = useState(null); // { credential, name, email, picture }
+  const [googleRole, setGoogleRole] = useState("personal");
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  // Initialize Google Sign-In callback ONCE on mount
+  const googleCallbackRef = useRef(null);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    const tryInit = () => {
+      if (window.google?.accounts?.id) {
+        initGSI((response) => googleCallbackRef.current?.(response));
+      }
+    };
+    if (window.google?.accounts?.id) { tryInit(); }
+    else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) { clearInterval(interval); tryInit(); }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const handleGoogleCallback = async (response) => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const res = await axios.post(`${API}/users/google-auth`, { credential: response.credential });
+      if (res.data.needsRole) {
+        // New user — show role picker
+        setGooglePending({ credential: response.credential, name: res.data.name, email: res.data.email, picture: res.data.picture });
+        switchMode("google-role");
+        setGoogleLoading(false);
+        return;
+      }
+      // Existing user or new personal user — log in
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+      onClose();
+      if (res.data.needsVerification || res.data.user.role === "institute") {
+        navigate("/institute-verification");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Google sign-in failed");
+    }
+    setGoogleLoading(false);
+  };
+
+  // Keep the ref always pointing to the latest version of the callback
+  googleCallbackRef.current = handleGoogleCallback;
+
+  const handleGoogleRoleSubmit = async () => {
+    if (!googlePending) return;
+    setGoogleLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API}/users/google-auth`, { credential: googlePending.credential, role: googleRole });
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+      onClose();
+      if (googleRole === "institute") {
+        navigate("/institute-verification");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Google sign-in failed");
+    }
+    setGoogleLoading(false);
+  };
+
   const CARD_H = 560;
   const inp = { borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.9rem" };
 
-  const handleSwitchMode = (m) => { switchMode(m); setError(""); setRegStep(1); setShowPw(false); };
+  const handleSwitchMode = (m) => {
+    switchMode(m);
+    setError("");
+    setRegStep(1);
+    setShowPw(false);
+    setForgotStep("email");
+    setForgotEmail("");
+    setForgotOtp("");
+    setForgotNewPw("");
+    setForgotConfirmPw("");
+    setGooglePending(null);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError(""); setLoading(true);
@@ -40,6 +200,8 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
       if (err.response?.data?.needsVerification) {
         localStorage.setItem("user", JSON.stringify({ email: loginForm.email, role: "institute", needsVerification: true }));
         navigate("/institute-verification");
+      } else if (err.response?.data?.isGoogleAccount) {
+        setError("This account uses Google sign-in. Please click 'Continue with Google' below.");
       } else setError(err?.response?.data?.message || "Login failed");
     } finally { setLoading(false); }
   };
@@ -62,20 +224,53 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
     finally { setLoading(false); }
   };
 
-  // Google button — UI only, shows coming soon
-  const GoogleBtn = ({ label }) => (
-    <button type="button" onClick={() => toast.info("Google sign-in coming soon!")}
-      className="btn w-100 fw-semibold d-flex align-items-center justify-content-center gap-2"
-      style={{ border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "0.6rem", fontSize: "0.9rem", background: "#fff", color: "#374151" }}>
-      <svg width="18" height="18" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        <path fill="none" d="M0 0h48v48H0z"/>
-      </svg>
-      {label}
-    </button>
+  // Forgot password — step 1: send OTP
+  const handleForgotSendOtp = async (e) => {
+    e.preventDefault(); setError(""); setLoading(true);
+    try {
+      await axios.post(`${API}/users/forgot-password`, { email: forgotEmail });
+      setForgotStep("otp");
+      setResendCooldown(60);
+    } catch (err) { setError(err?.response?.data?.message || "Failed to send OTP"); }
+    finally { setLoading(false); }
+  };
+
+  // Forgot password — step 2: verify OTP + set new password
+  const handleForgotReset = async (e) => {
+    e.preventDefault(); setError("");
+    if (forgotNewPw !== forgotConfirmPw) { setError("Passwords don't match"); return; }
+    if (forgotNewPw.length < 8) { setError("Password must be at least 8 characters"); return; }
+    setLoading(true);
+    try {
+      await axios.post(`${API}/users/reset-password`, { email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPw });
+      handleSwitchMode("login");
+      toast.success("Password reset! Please sign in with your new password.");
+    } catch (err) { setError(err?.response?.data?.message || "Invalid or expired OTP"); }
+    finally { setLoading(false); }
+  };
+
+  // Forgot password — resend OTP
+  const handleForgotResend = async () => {
+    setLoading(true);
+    try {
+      await axios.post(`${API}/users/forgot-password`, { email: forgotEmail });
+      setResendCooldown(60);
+      toast.success("New OTP sent!");
+    } catch { toast.error("Failed to resend OTP"); }
+    finally { setLoading(false); }
+  };
+
+  // Google button — uses GoogleBtnStable which renders the real GSI button via ref
+  const GoogleBtn = ({ instanceId = "default" }) => (
+    <div style={{ display: "flex", justifyContent: "center", minHeight: 44 }}>
+      {googleLoading ? (
+        <div className="d-flex align-items-center gap-2 text-muted small">
+          <span className="spinner-border spinner-border-sm" /> Signing in with Google…
+        </div>
+      ) : (
+        <GoogleBtnStable instanceId={instanceId} />
+      )}
+    </div>
   );
 
   const Divider = () => (
@@ -109,7 +304,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
               smartstationery.
             </div>
             <p className="text-muted mb-0" style={{ fontSize: "0.8rem" }}>
-              {mode === "login" ? "Welcome back" : regStep === 1 ? "Create your account" : "Set up your credentials"}
+              {mode === "login" ? "Welcome back" : mode === "forgot" ? "Reset your password" : mode === "google-role" ? "One last step" : regStep === 1 ? "Create your account" : "Set up your credentials"}
             </p>
           </div>
           <button onClick={onClose} className="btn btn-link p-0 text-secondary mt-1" style={{ fontSize: "1rem" }}>
@@ -123,7 +318,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
             {["login","register"].map(m => (
               <button key={m} onClick={() => handleSwitchMode(m)}
                 className="btn flex-fill fw-semibold rounded-0"
-                style={{ background: mode === m ? "#111" : "transparent", color: mode === m ? "#fff" : "#6b7280", border: "none", fontSize: "0.88rem", padding: "0.5rem", transition: "all 0.15s" }}>
+                style={{ background: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#111" : "transparent", color: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#fff" : "#6b7280", border: "none", fontSize: "0.88rem", padding: "0.5rem", transition: "all 0.15s" }}>
                 {m === "login" ? "Sign In" : "Sign Up"}
               </button>
             ))}
@@ -157,19 +352,152 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                   </div>
                 </div>
                 <button type="submit" disabled={loading}
-                  className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                  className={`btn btn-dark w-100 fw-bold mt-3 ${loading ? "opacity-75" : ""}`}
                   style={{ borderRadius: 8, padding: "0.6rem" }}>
                   {loading ? "Signing in…" : "Sign In"}
                 </button>
-                <p className="text-center mt-3 mb-0 small text-muted">
+                <p className="text-center mt-2 mb-0 small">
+                  <button type="button" onClick={() => handleSwitchMode("forgot")}
+                    className="btn btn-link p-0 small text-muted text-decoration-none fw-semibold">
+                    Forgot password?
+                  </button>
+                </p>
+                <p className="text-center mt-2 mb-0 small text-muted">
                   No account?{" "}
                   <button type="button" onClick={() => handleSwitchMode("register")}
                     className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Create one</button>
                 </p>
               </form>
               <Divider />
-              <GoogleBtn label="Continue with Google" />
+              <GoogleBtn />
             </>
+          )}
+
+          {/* ── FORGOT PASSWORD ── */}
+          {mode === "forgot" && (            <>
+              {forgotStep === "email" && (
+                <form onSubmit={handleForgotSendOtp}>
+                  <p className="text-muted small mb-3">
+                    Enter your registered email and we'll send you a one-time password to reset your account password.
+                  </p>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small text-dark mb-1">Email Address</label>
+                    <input type="email" className="form-control" value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      required placeholder="you@example.com" style={inp} autoFocus />
+                  </div>
+                  <button type="submit" disabled={loading}
+                    className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                    style={{ borderRadius: 8, padding: "0.6rem" }}>
+                    {loading ? "Sending OTP…" : "Send OTP"}
+                  </button>
+                  <p className="text-center mt-3 mb-0 small text-muted">
+                    Remember your password?{" "}
+                    <button type="button" onClick={() => handleSwitchMode("login")}
+                      className="btn btn-link p-0 small fw-semibold text-dark text-decoration-underline">Sign in</button>
+                  </p>
+                </form>
+              )}
+
+              {forgotStep === "otp" && (
+                <form onSubmit={handleForgotReset}>
+                  <div className="alert alert-success small py-2 mb-3">
+                    OTP sent to <strong>{forgotEmail}</strong>. Check your inbox.
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small text-dark mb-1">Enter OTP</label>
+                    <input type="text" className="form-control text-center fw-bold"
+                      value={forgotOtp}
+                      onChange={e => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      required maxLength={6} placeholder="6-digit OTP"
+                      style={{ ...inp, letterSpacing: "0.3em", fontSize: "1.1rem", maxWidth: 200, margin: "0 auto", display: "block" }} />
+                    <div className="text-center mt-1">
+                      {resendCooldown > 0
+                        ? <span className="text-muted" style={{ fontSize: "0.78rem" }}>Resend in {resendCooldown}s</span>
+                        : <button type="button" onClick={handleForgotResend} disabled={loading}
+                            className="btn btn-link p-0 text-muted text-decoration-none fw-semibold" style={{ fontSize: "0.78rem" }}>
+                            Resend OTP
+                          </button>
+                      }
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small text-dark mb-1">New Password</label>
+                    <input type="password" className="form-control" value={forgotNewPw}
+                      onChange={e => setForgotNewPw(e.target.value)}
+                      required minLength={8} placeholder="Min 8 characters" style={inp} />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small text-dark mb-1">Confirm New Password</label>
+                    <input type="password" className="form-control" value={forgotConfirmPw}
+                      onChange={e => setForgotConfirmPw(e.target.value)}
+                      required minLength={8} placeholder="Repeat new password" style={inp} />
+                    {forgotConfirmPw && forgotNewPw !== forgotConfirmPw && (
+                      <div className="text-danger small mt-1">Passwords don't match</div>
+                    )}
+                  </div>
+                  <div className="d-flex gap-2">
+                    <button type="button" onClick={() => { setForgotStep("email"); setForgotOtp(""); setForgotNewPw(""); setForgotConfirmPw(""); setError(""); }}
+                      className="btn btn-outline-secondary fw-semibold flex-fill" style={{ borderRadius: 8 }}>
+                      Back
+                    </button>
+                    <button type="submit" disabled={loading || forgotOtp.length < 6 || !forgotNewPw || forgotNewPw !== forgotConfirmPw}
+                      className={`btn btn-dark fw-bold flex-fill ${loading ? "opacity-75" : ""}`}
+                      style={{ borderRadius: 8 }}>
+                      {loading ? "Resetting…" : "Reset Password"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
+
+          {/* ── GOOGLE ROLE PICKER ── */}
+          {mode === "google-role" && googlePending && (
+            <div>
+              {/* Google account info */}
+              <div className="d-flex align-items-center gap-3 p-3 rounded-3 mb-4" style={{ background: "#f9fafb", border: "1px solid #e5e7eb" }}>
+                {googlePending.picture && (
+                  <img src={googlePending.picture} alt={googlePending.name} className="rounded-circle" style={{ width: 44, height: 44 }} />
+                )}
+                <div>
+                  <div className="fw-semibold small">{googlePending.name}</div>
+                  <div className="text-muted" style={{ fontSize: "0.78rem" }}>{googlePending.email}</div>
+                </div>
+              </div>
+
+              <p className="fw-semibold small text-dark mb-2">I am signing up as…</p>
+              <div className="d-flex gap-2 mb-4">
+                {[["personal","Personal","Students & parents"],["institute","Institute","Schools & colleges"]].map(([r, label, sub]) => (
+                  <div key={r} onClick={() => setGoogleRole(r)}
+                    className="flex-fill text-center p-3 rounded-3"
+                    style={{ border: `2px solid ${googleRole === r ? "#111" : "#e5e7eb"}`, cursor: "pointer", background: googleRole === r ? "#f9fafb" : "#fff", transition: "all 0.15s" }}>
+                    <div className="fw-semibold small">{label}</div>
+                    <div className="text-muted" style={{ fontSize: "0.7rem" }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {googleRole === "institute" && (
+                <div className="alert alert-info small py-2 mb-3">
+                  Institute accounts require admin verification before you can access the dashboard.
+                </div>
+              )}
+
+              <button onClick={handleGoogleRoleSubmit} disabled={googleLoading}
+                className={`btn btn-dark w-100 fw-bold ${googleLoading ? "opacity-75" : ""}`}
+                style={{ borderRadius: 8, padding: "0.6rem" }}>
+                {googleLoading ? (
+                  <><span className="spinner-border spinner-border-sm me-2" />Creating account…</>
+                ) : googleRole === "institute" ? "Continue as Institute →" : "Continue to Dashboard →"}
+              </button>
+              <p className="text-center mt-3 mb-0 small text-muted">
+                <button type="button" onClick={() => handleSwitchMode("login")}
+                  className="btn btn-link p-0 small text-muted text-decoration-none">
+                  ← Back to sign in
+                </button>
+              </p>
+            </div>
           )}
 
           {/* ── SIGN UP STEP 1 ── */}
@@ -205,7 +533,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                 </p>
               </form>
               <Divider />
-              <GoogleBtn label="Sign up with Google" />
+              <GoogleBtn />
             </>
           )}
 
@@ -315,35 +643,8 @@ const GuestToast = ({ onClose, onSignUp }) => (
   </div>
 );
 
-/* ─── Product Card (guest) ──────────────────────────────────── */
-const ProductCard = ({ product, onGuestAction, onView }) => {
-  const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
-  return (
-    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb", cursor: "pointer" }}
-      onClick={() => onView?.(product)}>
-      {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
-      <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
-        {product.image_url
-          ? <img src={product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
-          : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
-      </div>
-      <div className="p-3 flex-grow-1 d-flex flex-column gap-1">
-        <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>{product.category}</span>
-        <div className="fw-semibold small lh-sm" style={{ minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
-        <div className="d-flex align-items-center gap-1">
-          {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= 4 ? "#fbbf24" : "#e5e7eb" }} />)}
-        </div>
-        <div className="d-flex align-items-center gap-2 mt-auto">
-          <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>
-          {product.original_price && <span className="text-muted text-decoration-line-through small">₹{product.original_price}</span>}
-        </div>
-        <button onClick={e => { e.stopPropagation(); onGuestAction(); }} className="btn btn-dark btn-sm fw-semibold d-flex align-items-center justify-content-center gap-1 mt-1">
-          <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add to Cart
-        </button>
-      </div>
-    </div>
-  );
-};
+/* ─── Product Card (guest) — uses shared ProductCard ────────── */
+// (removed inline definition — using shared component below)
 
 const CATS = [
   { id: "book",        icon: <FaBook />,         label: "Books",        count: "5,000+" },
@@ -357,11 +658,12 @@ const CATS = [
 const Footer = ({ onLogin }) => (
   <footer className="bg-white border-top" style={{ padding: "4rem 0 2rem" }}>
     <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-      <div className="row g-4 mb-5">
+      <div className="row g-4 mb-4">
         <div className="col-md-4">
           <h6 className="fw-bold mb-3">Contact</h6>
           <p className="text-muted small lh-lg mb-0">
-            123 Education Street<br />Knowledge Park, Lamjung<br /><br />+91 98765 43210<br />hello@smartstationery.com
+            Kathmandu, Nepal<br /><br />
+            +977 9815127051<br />stationerymanagementsystem25@gmail.com
           </p>
         </div>
         <div className="col-md-2 col-6">
@@ -378,14 +680,22 @@ const Footer = ({ onLogin }) => (
         </div>
         <div className="col-md-3 col-6">
           <h6 className="fw-bold mb-3">About</h6>
-          {["About Us","Careers","Privacy Policy","Terms of Service","Help Center"].map(l => (
+          {["About Us","Privacy Policy","Terms of Service","Help Center"].map(l => (
             <button key={l} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
           ))}
         </div>
       </div>
-      <div className="border-top pt-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "3.5rem", fontWeight: 400, color: "#f0f0f0", margin: 0, letterSpacing: "-0.02em", lineHeight: 1 }}>smartstationery.</p>
-        <span className="text-muted small">© 2024 SmartStationery. All rights reserved.</span>
+      <div className="border-top pt-4">
+        <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem,10vw,7rem)", fontWeight: 400, color: "#f0f0f0", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1 }}>
+          smartstationery.
+        </p>
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span className="text-muted small">© 2025 SmartStationery. All rights reserved.</span>
+          <div className="d-flex gap-3">
+            <button className="btn btn-link p-0 text-muted small text-decoration-none">Privacy</button>
+            <button className="btn btn-link p-0 text-muted small text-decoration-none">Terms</button>
+          </div>
+        </div>
       </div>
     </div>
   </footer>
@@ -501,7 +811,7 @@ const LandingPage = ({ setUser }) => {
               <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
                 {products.slice(0, 10).map(p => (
                   <div key={p.id} className="col">
-                    <ProductCard product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} />
+                    <ProductCard product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} isGuest={true} />
                   </div>
                 ))}
               </div>

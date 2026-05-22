@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaChevronLeft, FaCheck, FaTimes, FaTrash, FaBook, FaEdit } from "react-icons/fa";
+import { FaChevronLeft, FaCheck, FaTimes, FaTrash, FaBook, FaEdit, FaSave } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
 import Toast from "../../components/admin/shared/Toast";
 import ConfirmModal from "../../components/admin/shared/ConfirmModal";
@@ -24,6 +24,9 @@ function AdminBookSetRequestDetails() {
   const [modal, setModal] = useState({ show: false, type: "" });
   const [rejectRemark, setRejectRemark] = useState("");
   const [acting, setActing] = useState(false);
+  const [editingPrices, setEditingPrices] = useState(false);
+  const [itemPrices, setItemPrices] = useState([]);
+  const [savingPrices, setSavingPrices] = useState(false);
 
   useEffect(() => { fetchRequest(); }, [id]);
 
@@ -32,6 +35,7 @@ function AdminBookSetRequestDetails() {
       setLoading(true);
       const r = await axios.get(`${API}/admin/book-set-requests/${id}`, { headers: authH() });
       setRequest(r.data.request);
+      setItemPrices((r.data.request.items || []).map(item => item.estimated_price || 0));
       // If approved, fetch the linked BookSet
       if (r.data.request?.status === "approved") {
         try {
@@ -44,6 +48,22 @@ function AdminBookSetRequestDetails() {
     } catch (e) {
       setError(e.response?.data?.message || "Failed to load request");
     } finally { setLoading(false); }
+  };
+
+  const handleSavePrices = async () => {
+    setSavingPrices(true);
+    try {
+      const updatedItems = request.items.map((item, idx) => ({
+        ...item,
+        estimated_price: parseFloat(itemPrices[idx]) || 0,
+      }));
+      await axios.put(`${API}/admin/book-set-requests/${id}`, { items: updatedItems }, { headers: authH() });
+      showToast("Prices saved successfully");
+      setEditingPrices(false);
+      fetchRequest();
+    } catch (e) {
+      showToast(e.response?.data?.message || "Failed to save prices", "error");
+    } finally { setSavingPrices(false); }
   };
 
   const handleApprove = async () => {
@@ -104,7 +124,7 @@ function AdminBookSetRequestDetails() {
 
       {/* Approve confirm */}
       <ConfirmModal show={modal.type === "approve"} title="Approve Request"
-        message={`Approve book set request for ${request.school_name} — Grade ${request.grade}? This will auto-create products for all ${request.items?.length} books.`}
+        message={`Approve book set request for ${request.school_name} — Grade ${request.grade}? This will auto-create products for all ${request.items?.length} books.${request.items?.some(i => !i.estimated_price || i.estimated_price === 0) ? "\n\n⚠️ Warning: Some books have no price set (₹0). Set prices first using the 'Set Prices' button." : ""}`}
         onConfirm={handleApprove} onCancel={() => setModal({ show: false, type: "" })} loading={acting} />
 
       {/* Delete confirm */}
@@ -188,11 +208,36 @@ function AdminBookSetRequestDetails() {
         {/* Left — book items */}
         <div>
           <div style={card}>
-            <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
+            <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: "#e5e7eb" }}>
               <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
                 <FaBook className="me-1" />BOOK LIST ({request.items?.length || 0} items)
               </p>
+              {request.status === "pending" && (
+                editingPrices ? (
+                  <div className="d-flex gap-2">
+                    <button onClick={() => { setEditingPrices(false); setItemPrices(request.items.map(i => i.estimated_price || 0)); }}
+                      className="btn btn-outline-secondary btn-sm rounded-0">Cancel</button>
+                    <button onClick={handleSavePrices} disabled={savingPrices}
+                      className="btn btn-dark btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                      {savingPrices ? <span className="spinner-border spinner-border-sm" /> : <FaSave style={{ fontSize: "0.75rem" }} />}
+                      Save Prices
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingPrices(true)}
+                    className="btn btn-outline-primary btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                    <FaEdit style={{ fontSize: "0.75rem" }} /> Set Prices
+                  </button>
+                )
+              )}
             </div>
+            {editingPrices && (
+              <div className="px-4 py-2" style={{ background: "#fffbeb", borderBottom: "1px solid #fde68a" }}>
+                <p className="mb-0 small" style={{ color: "#92400e" }}>
+                  ⚠️ Set prices for each book before approving. These prices will be used when creating products.
+                </p>
+              </div>
+            )}
             <div className="p-0">
               {(request.items || []).map((item, idx) => (
                 <div key={idx} className="px-4 py-3 d-flex gap-3 align-items-start"
@@ -211,14 +256,38 @@ function AdminBookSetRequestDetails() {
                       {item.isbn && <span>ISBN: <strong className="text-dark">{item.isbn}</strong></span>}
                     </div>
                   </div>
-                  <div className="fw-bold flex-shrink-0">₹{item.estimated_price}</div>
+                  <div className="flex-shrink-0">
+                    {editingPrices ? (
+                      <div className="input-group input-group-sm" style={{ width: 110 }}>
+                        <span className="input-group-text rounded-0" style={{ fontSize: "0.8rem" }}>₹</span>
+                        <input type="number" min="0" step="0.01"
+                          value={itemPrices[idx] ?? 0}
+                          onChange={e => {
+                            const updated = [...itemPrices];
+                            updated[idx] = e.target.value;
+                            setItemPrices(updated);
+                          }}
+                          className="form-control rounded-0 text-end fw-semibold"
+                          style={{ fontSize: "0.85rem" }} />
+                      </div>
+                    ) : (
+                      <span className={`fw-bold ${item.estimated_price === 0 ? "text-danger" : ""}`}>
+                        ₹{item.estimated_price}
+                        {item.estimated_price === 0 && <span className="ms-1 badge bg-warning text-dark" style={{ fontSize: "0.65rem" }}>No price</span>}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
             <div className="px-4 py-3 d-flex justify-content-between align-items-center"
               style={{ borderTop: "2px solid #e5e7eb", background: "#f9fafb" }}>
               <span className="fw-semibold">Total Estimated Price</span>
-              <span className="fw-bold" style={{ fontSize: "1.1rem" }}>₹{request.total_estimated_price?.toFixed(2)}</span>
+              <span className="fw-bold" style={{ fontSize: "1.1rem" }}>
+                {editingPrices
+                  ? `₹${itemPrices.reduce((s, p) => s + (parseFloat(p) || 0), 0).toFixed(2)}`
+                  : `₹${request.total_estimated_price?.toFixed(2)}`}
+              </span>
             </div>
           </div>
 

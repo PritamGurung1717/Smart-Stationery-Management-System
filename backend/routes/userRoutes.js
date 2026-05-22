@@ -4,7 +4,10 @@ const User = require("../models/user");
 const Product = require("../models/product");
 const router = express.Router();
 const nodemailer = require("nodemailer");
+const { OAuth2Client } = require("google-auth-library");
 const { auth, adminAuth, instituteAuth } = require("../middleware/auth");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Gmail transporter for sending OTP and notifications
 const transporter = nodemailer.createTransport({
@@ -116,6 +119,178 @@ router.post("/resend-otp", async (req, res) => {
   }
 });
 
+// ---------------- GOOGLE AUTH ----------------
+router.post("/google-auth", async (req, res) => {
+  try {
+    const { credential, role } = req.body;
+    if (!credential) return res.status(400).json({ success: false, message: "Google credential is required" });
+
+    // Verify the Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+
+    if (!email) return res.status(400).json({ success: false, message: "Could not get email from Google" });
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Existing user — log them in directly (ignore role param)
+      if (user.status === "suspended") {
+        return res.status(403).json({ success: false, message: "Your account has been suspended. Please contact admin." });
+      }
+
+      // Mark as verified if not already (Google accounts are pre-verified)
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+      }
+
+      // Institute users need to check verification status
+      if (user.role === "institute") {
+        if (!user.instituteVerification || user.instituteVerification.status !== "approved") {
+          const token = await user.generateAuthToken();
+          return res.json({
+            success: true,
+            needsVerification: true,
+            message: "Institute account pending verification",
+            user: { id: user.id, name: user.name, email: user.email, role: user.role, instituteVerification: user.instituteVerification },
+            token,
+          });
+        }
+      }
+
+      const token = await user.generateAuthToken();
+      return res.json({
+        success: true,
+        isNewUser: false,
+        user: {
+          id: user.id, name: user.name, email: user.email, role: user.role,
+          isVerified: user.isVerified, status: user.status,
+          instituteVerification: user.instituteVerification,
+          instituteInfo: user.instituteInfo,
+          phone: user.phone, address: user.address, createdAt: user.createdAt,
+        },
+        token,
+      });
+    }
+
+    // New user — role is required
+    if (!role || !["personal", "institute"].includes(role)) {
+      return res.json({ success: true, isNewUser: true, needsRole: true, email, name, picture });
+    }
+
+    // Create new user (Google users are pre-verified, no password needed)
+    const newUser = new User({
+      name,
+      email,
+      password: `google_${googleId}_${Date.now()}`, // Random password they'll never use
+      role,
+      isVerified: true, // Google accounts are pre-verified
+      googleId,
+      avatar: picture,
+    });
+    await newUser.save();
+
+    const token = await newUser.generateAuthToken();
+
+    // Institute users need to go through verification
+    if (role === "institute") {
+      return res.json({
+        success: true,
+        isNewUser: true,
+        needsVerification: true,
+        user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, instituteVerification: newUser.instituteVerification },
+        token,
+      });
+    }
+
+    res.json({
+      success: true,
+      isNewUser: true,
+      user: {
+        id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role,
+        isVerified: newUser.isVerified, status: newUser.status,
+        phone: newUser.phone, address: newUser.address, createdAt: newUser.createdAt,
+      },
+      token,
+    });
+
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res.status(400).json({ success: false, message: "Google authentication failed. Please try again." });
+  }
+});
+
+// ---------------- FORGOT PASSWORD — SEND OTP ----------------
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    // Always respond success to prevent email enumeration
+    if (!user) return res.json({ success: true, message: "If that email exists, an OTP has been sent." });
+
+    const otp = user.generateOTP();
+    await user.save();
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Reset Your Password - Smart Stationery",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2c3e50;">Smart Stationery - Password Reset</h2>
+          <p>Hello ${user.name},</p>
+          <p>We received a request to reset your password. Use the OTP below:</p>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+            <h1 style="color: #e74c3c; margin: 0; letter-spacing: 10px;">${otp}</h1>
+          </div>
+          <p>This OTP will expire in <strong>10 minutes</strong>.</p>
+          <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+          <hr>
+          <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+        </div>
+      `,
+    });
+
+    res.json({ success: true, message: "If that email exists, an OTP has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ success: false, message: "Failed to send OTP. Please try again." });
+  }
+});
+
+// ---------------- FORGOT PASSWORD — RESET WITH OTP ----------------
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword)
+      return res.status(400).json({ success: false, message: "Email, OTP, and new password are required." });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
+    if (!user.otp || user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    user.password = newPassword;
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
+
+    res.json({ success: true, message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // ---------------- VERIFY OTP ----------------
 router.post("/verify-otp", async (req, res) => {
   try {
@@ -204,6 +379,14 @@ router.post("/login", async (req, res) => {
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
+      // Check if this is a Google account
+      if (user.googleId || (user.password && user.password.startsWith("google_"))) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "This account was created with Google. Please use the 'Continue with Google' button to sign in.",
+          isGoogleAccount: true
+        });
+      }
       return res.status(400).json({ 
         success: false, 
         message: "Invalid email or password" 
@@ -308,6 +491,64 @@ router.put("/change-password", auth, async (req, res) => {
     await req.user.save();
     res.json({ success: true, message: "Password changed successfully. Please login again." });
   } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ---------------- SEND CHANGE-PASSWORD OTP ----------------
+router.post("/send-change-password-otp", auth, async (req, res) => {
+  try {
+    const user = req.user;
+    const otp = user.generateOTP();
+    await user.save();
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Password Change OTP - Smart Stationery",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2c3e50;">Smart Stationery - Password Change Request</h2>
+          <p>Hello ${user.name},</p>
+          <p>You requested to change your password. Use the OTP below to proceed:</p>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+            <h1 style="color: #3498db; margin: 0; letter-spacing: 10px;">${otp}</h1>
+          </div>
+          <p>This OTP will expire in <strong>10 minutes</strong>.</p>
+          <p>If you did not request this, please ignore this email. Your password will remain unchanged.</p>
+          <hr>
+          <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+        </div>
+      `,
+    });
+
+    res.json({ success: true, message: `OTP sent to ${user.email}` });
+  } catch (err) {
+    console.error("Send change-password OTP error:", err);
+    res.status(500).json({ success: false, message: "Failed to send OTP. Please try again." });
+  }
+});
+
+// ---------------- VERIFY OTP & SET NEW PASSWORD ----------------
+router.post("/verify-change-password-otp", auth, async (req, res) => {
+  try {
+    const { otp, newPassword } = req.body;
+    if (!otp || !newPassword)
+      return res.status(400).json({ success: false, message: "OTP and new password are required." });
+
+    const user = req.user;
+
+    if (!user.otp || user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    user.password = newPassword;
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
+
+    res.json({ success: true, message: "Password changed successfully. Please login again." });
+  } catch (err) {
+    console.error("Verify change-password OTP error:", err);
     res.status(400).json({ success: false, message: err.message });
   }
 });

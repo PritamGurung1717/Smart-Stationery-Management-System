@@ -88,7 +88,7 @@ const InstituteBookSetRequest = () => {
           subject_name: b.subject_name.trim(), book_title: b.book_title.trim(),
           author: b.author.trim(), publisher: b.publisher.trim(),
           publication_year: parseInt(b.publication_year), isbn: b.isbn.trim(),
-          estimated_price: 0, // Price set to 0, admin will update later
+          estimated_price: 0, // Price will be set by admin after approval
         })),
       }, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess("Book set request submitted successfully! Waiting for admin approval.");
@@ -100,8 +100,6 @@ const InstituteBookSetRequest = () => {
       setError(err.response?.data?.message || "Failed to submit request");
     } finally { setLoading(false); }
   };
-
-  const totalEstimated = books.reduce((t, b) => t + (parseFloat(b.estimated_price) || 0), 0);
 
   return (
     <SharedLayout>
@@ -160,7 +158,7 @@ const InstituteBookSetRequest = () => {
               <table className="table table-bordered align-middle" style={{ fontSize: "0.82rem" }}>
                 <thead className="table-light">
                   <tr>
-                    {["#","Subject *","Book Title *","Author *","Publisher *","Year *","ISBN","Price (Rs.) *",""].map(h => (
+                    {["#","Subject *","Book Title *","Author *","Publisher *","Year *","ISBN",""].map(h => (
                       <th key={h} className="fw-bold text-dark text-nowrap py-2">{h}</th>
                     ))}
                   </tr>
@@ -177,8 +175,7 @@ const InstituteBookSetRequest = () => {
                             onChange={e => handleBookChange(index, field, e.target.value)}
                             placeholder={ph}
                             className="form-control form-control-sm"
-                            min={type === "number" ? 0 : undefined}
-                            step={field === "estimated_price" ? "0.01" : undefined}
+                            min={type === "number" ? 1900 : undefined}
                           />
                         </td>
                       ))}
@@ -194,8 +191,9 @@ const InstituteBookSetRequest = () => {
                 </tbody>
                 <tfoot className="table-light">
                   <tr>
-                    <td colSpan={7} className="text-end fw-bold py-2">Total Estimated Price:</td>
-                    <td colSpan={2} className="fw-bold py-2">Rs.{totalEstimated.toFixed(2)}</td>
+                    <td colSpan={8} className="text-muted small py-2">
+                      💡 Price will be set by admin after approval.
+                    </td>
                   </tr>
                 </tfoot>
               </table>

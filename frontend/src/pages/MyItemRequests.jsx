@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaPlus, FaBoxOpen, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import confirm from "../utils/confirm.js";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -63,7 +64,12 @@ const MyItemRequests = () => {
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this request?")) return;
+    const ok = await confirm("Are you sure you want to cancel this request?", {
+      title: "Cancel Request",
+      confirmText: "Yes, Cancel",
+      confirmColor: "#dc2626",
+    });
+    if (!ok) return;
     try {
       setCancelling(id);
       await axios.put(`${API}/requests/${id}/cancel`, {}, { headers: authH() });

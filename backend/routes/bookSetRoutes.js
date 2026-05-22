@@ -273,11 +273,11 @@ router.post("/institute/book-set-request", instituteAuth, async (req, res) => {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (!item.subject_name || !item.book_title || !item.author || 
-          !item.publisher || !item.publication_year || !item.estimated_price) {
+          !item.publisher || !item.publication_year) {
         console.log(`❌ Item ${i + 1} validation failed:`, item);
         return res.status(400).json({
           success: false,
-          message: `Item ${i + 1}: All fields are required (subject, title, author, publisher, year, price)`,
+          message: `Item ${i + 1}: All fields are required (subject, title, author, publisher, year)`,
         });
       }
 
@@ -303,13 +303,16 @@ router.post("/institute/book-set-request", instituteAuth, async (req, res) => {
         }
       }
 
-      // Validate price
-      if (item.estimated_price <= 0 || item.estimated_price > 999999.99) {
-        console.log(`❌ Item ${i + 1} invalid price:`, item.estimated_price);
-        return res.status(400).json({
-          success: false,
-          message: `Item ${i + 1}: Invalid price`,
-        });
+      // Price is optional for institute — admin sets it on approval
+      // If provided, validate it
+      if (item.estimated_price !== undefined && item.estimated_price !== null && item.estimated_price !== "") {
+        const price = parseFloat(item.estimated_price);
+        if (!isNaN(price) && price < 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Item ${i + 1}: Price cannot be negative`,
+          });
+        }
       }
     }
 
@@ -347,7 +350,7 @@ router.post("/institute/book-set-request", instituteAuth, async (req, res) => {
         publisher: item.publisher.trim(),
         publication_year: parseInt(item.publication_year),
         isbn: item.isbn ? item.isbn.trim() : "",
-        estimated_price: parseFloat(item.estimated_price),
+        estimated_price: item.estimated_price ? parseFloat(item.estimated_price) : 0,
       })),
       status: "pending",
     });
@@ -777,8 +780,8 @@ router.put("/admin/book-set-requests/:id", adminAuth, async (req, res) => {
           });
         }
 
-        // Validate price
-        if (item.estimated_price <= 0 || item.estimated_price > 999999.99) {
+        // Validate price — allow 0 (admin may set price later)
+        if (item.estimated_price < 0 || item.estimated_price > 999999.99) {
           return res.status(400).json({
             success: false,
             message: `Item ${i + 1}: Invalid price`,
@@ -880,15 +883,21 @@ router.put("/admin/book-set-requests/:id/approve", adminAuth, async (req, res) =
           id: counter.sequence_value,
           name: item.book_title,
           description: `${item.subject_name || 'Book'} by ${item.author}. Published by ${item.publisher} (${item.publication_year})${item.isbn ? `. ISBN: ${item.isbn}` : ''}`,
-          price: item.estimated_price,
+          price: item.estimated_price || 0,
           category: "book",
-          stock_quantity: 100, // Set default stock
-          image_url: "", // Can be updated later
+          stock_quantity: 100,
+          image_url: "",
         });
         
         productsCreated++;
         console.log(`✅ Created product: ${product.name} (ID: ${product.id})`);
       } else {
+        // If existing product has price 0 and this item has a real price, update it
+        if ((product.price === 0 || !product.price) && item.estimated_price > 0) {
+          product.price = item.estimated_price;
+          await product.save();
+          console.log(`💰 Updated price for: ${product.name} → ₹${item.estimated_price}`);
+        }
         productsLinked++;
         console.log(`🔗 Linked existing product: ${product.name} (ID: ${product.id})`);
       }
@@ -1581,8 +1590,8 @@ router.put("/admin/book-sets/:id", adminAuth, async (req, res) => {
           });
         }
 
-        // Validate price
-        if (item.price <= 0 || item.price > 999999.99) {
+        // Validate price — allow 0
+        if (item.price < 0 || item.price > 999999.99) {
           return res.status(400).json({
             success: false,
             message: `Item ${i + 1}: Invalid price`,
@@ -1609,6 +1618,28 @@ router.put("/admin/book-sets/:id", adminAuth, async (req, res) => {
     if (is_active !== undefined) bookSet.is_active = is_active;
 
     await bookSet.save();
+
+    // ── Sync linked products ──────────────────────────────────────
+    // When book set items are updated, sync name and price to the linked Product
+    if (items && Array.isArray(items)) {
+      const Product = require("../models/product");
+      for (const item of bookSet.items) {
+        if (item.product_id) {
+          try {
+            const product = await Product.findOne({ id: item.product_id });
+            if (product) {
+              let changed = false;
+              if (product.name !== item.title) { product.name = item.title; changed = true; }
+              if (product.price !== item.price) { product.price = item.price; changed = true; }
+              if (changed) await product.save();
+            }
+          } catch (syncErr) {
+            console.error(`Failed to sync product ${item.product_id}:`, syncErr.message);
+          }
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────
 
     res.json({
       success: true,

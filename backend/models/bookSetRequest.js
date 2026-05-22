@@ -49,7 +49,8 @@ const bookSetRequestItemSchema = new mongoose.Schema({
   },
   estimated_price: {
     type: Number,
-    required: [true, "Estimated price is required"],
+    required: false,
+    default: 0,
     min: 0,
     max: 999999.99,
   },

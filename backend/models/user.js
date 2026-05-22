@@ -143,6 +143,8 @@ const userSchema = new mongoose.Schema(
       minlength: [8, "Password min 8 chars"],
       validate: {
         validator: function (v) {
+          // Skip validation for Google OAuth accounts (they use a system-generated password)
+          if (v && v.startsWith("google_")) return true;
           if (this.isNew || this.isModified("password")) {
             return strongPasswordRegex.test(v);
           }

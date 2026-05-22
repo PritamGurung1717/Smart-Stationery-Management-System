@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
+import ProductCard from "../components/ProductCard.jsx";
 import { getAuthHeaders } from "../utils/auth.js";
 import toast from "../utils/toast.js";
 
@@ -75,56 +76,6 @@ const Categories = ({ selected, onSelect, navigate }) => (
   </section>
 );
 
-/* ─── Product Card ──────────────────────────────────────────── */
-const ProductCard = ({ product, qty, onQtyChange, onCart, onWishlist, inWishlist, onView, rating }) => {
-  const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
-  return (
-    <div className="bg-white d-flex flex-column position-relative" style={{ border: "1px solid #e5e7eb", cursor: "pointer" }}
-      onClick={() => onView?.(product)}>
-      {discount && <span className="position-absolute badge text-bg-dark" style={{ top: 10, right: 10, fontSize: "0.7rem" }}>-{discount}%</span>}
-      <button onClick={e => { e.stopPropagation(); onWishlist(product); }} className="btn btn-link position-absolute p-0"
-        style={{ top: 10, left: 10, color: inWishlist ? "#ef4444" : "#ccc", fontSize: "1rem" }}>
-        <FaHeart />
-      </button>
-      <div className="d-flex align-items-center justify-content-center bg-light overflow-hidden" style={{ height: 200 }}>
-        {product.image_url
-          ? <img src={product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              onError={e => e.target.src = "https://via.placeholder.com/300x300?text=No+Image"} />
-          : <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />}
-      </div>
-      <div className="p-3 flex-grow-1 d-flex flex-column gap-1">
-        <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>{product.category}</span>
-        <div className="fw-semibold small lh-sm" style={{ minHeight: "2.4rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</div>
-        <div className="d-flex align-items-center gap-1">
-          {rating?.average > 0 && (
-            <>
-              {[1,2,3,4,5].map(s => <FaStar key={s} style={{ fontSize: "0.7rem", color: s <= Math.round(rating.average) ? "#fbbf24" : "#e5e7eb" }} />)}
-              <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>({rating.average})</span>
-            </>
-          )}
-        </div>
-        <div className="d-flex align-items-center gap-2 mt-auto">
-          <span className="fw-bold" style={{ fontSize: "1.05rem" }}>₹{product.price}</span>
-          {product.original_price && <span className="text-muted text-decoration-line-through small">₹{product.original_price}</span>}
-        </div>
-        {product.stock_quantity > 0 ? (
-          <div className="d-flex align-items-center justify-content-between mt-1">
-            <input type="number" min={1} max={product.stock_quantity} value={qty || 1}
-              onChange={e => onQtyChange(product.id, e.target.value)}
-              className="form-control text-center" style={{ width: 52, fontSize: "0.85rem", padding: "0.3rem 0.4rem" }} />
-            <button onClick={e => { e.stopPropagation(); onCart(product.id, qty || 1); }}
-              className="btn btn-dark btn-sm d-flex align-items-center gap-1">
-              <FaShoppingCart style={{ fontSize: "0.75rem" }} /> Add
-            </button>
-          </div>
-        ) : (
-          <div className="text-danger fw-semibold mt-1" style={{ fontSize: "0.8rem" }}>Out of Stock</div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 /* ─── Featured Products ─────────────────────────────────────── */
 const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate, onView, ratings = {} }) => {
   const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
@@ -152,9 +103,8 @@ const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChang
           <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
             {products.slice(0, 10).map(p => (
               <div key={p.id} className="col">
-                <ProductCard product={p} qty={quantities[p.id]} onQtyChange={onQtyChange}
-                  onCart={onCart} onWishlist={onWishlist} inWishlist={isInWishlist(p.id)} onView={onView}
-                  rating={ratings[p.id]} />
+                <ProductCard product={p} onCart={onCart} onWishlist={onWishlist}
+                  inWishlist={isInWishlist(p.id)} onView={onView} rating={ratings[p.id]} />
               </div>
             ))}
           </div>
@@ -455,7 +405,18 @@ const Dashboard = ({ setUser }) => {
       } catch {}
       finally { if (mounted) setLoading(false); }
     })();
-    return () => { mounted = false; };
+
+    // Sync wishlist when item is removed from the wishlist panel (SharedLayout)
+    const handleWishlistRemoved = (e) => {
+      const { productId } = e.detail;
+      setWishlist(w => w.filter(i => i.id !== productId && i.product_id !== productId));
+    };
+    window.addEventListener("wishlist:removed", handleWishlistRemoved);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("wishlist:removed", handleWishlistRemoved);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addToCart = async (productId, quantity = 1) => {
@@ -478,13 +439,13 @@ const Dashboard = ({ setUser }) => {
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
       try { await axios.delete(`${API}/wishlist/remove/${product.id}`, { headers: getAuthHeaders() }); }
-      catch { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
+      catch (err) { if (err.response?.status !== 404) { const r = [...wishlist]; setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); } }
     } else {
       const next = [...wishlist, { ...product, product_id: product.id }];
       setWishlist(next);
       window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
       try { await axios.post(`${API}/wishlist/add`, { productId: product.id }, { headers: getAuthHeaders() }); }
-      catch { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); }
+      catch (err) { if (err.response?.status !== 400) { const r = wishlist.filter(i => i.id !== product.id && i.product_id !== product.id); setWishlist(r); window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: r.length } })); } }
     }
     wishlistProcessing.current.delete(product.id);
   };
@@ -521,8 +482,7 @@ const Dashboard = ({ setUser }) => {
         }}
         onCart={addToCart} onWishlist={toggleWishlist} isInWishlist={isInWishlist} navigate={navigate}
         onView={setSelectedProduct} ratings={ratings}
-      />
-      <BookSetsSection navigate={navigate} />
+      />      <BookSetsSection navigate={navigate} />
       <RequestSection />
       <DonationSectionNew navigate={navigate} />
       {selectedProduct && (

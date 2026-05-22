@@ -2,15 +2,20 @@ import React from 'react';
 import { Alert, Button } from 'react-bootstrap';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import toast from "../utils/toast.js";
+import confirm from "../utils/confirm.js";
 
 const TokenErrorAlert = ({ show, onClose }) => {
-  const handleFixToken = () => {
-    if (window.confirm('This will clear your cache and log you out. You will need to login again. Continue?')) {
-      localStorage.clear();
-      sessionStorage.clear();
-      toast.success('Cache cleared! Redirecting to login...');
-      window.location.href = '/login';
-    }
+  const handleFixToken = async () => {
+    const ok = await confirm(
+      'This will clear your cache and log you out. You will need to login again. Continue?',
+      { title: 'Fix Authentication', confirmText: 'Clear & Logout', confirmColor: '#dc2626' }
+    );
+    if (!ok) return;
+
+    localStorage.clear();
+    sessionStorage.clear();
+    toast.success('Cache cleared! Redirecting to login...');
+    window.location.href = '/login';
   };
 
   if (!show) return null;

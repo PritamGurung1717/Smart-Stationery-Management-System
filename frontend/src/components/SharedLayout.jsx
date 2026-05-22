@@ -121,7 +121,13 @@ export const Navbar = ({ activeLink = "" }) => {
 
   const removeFromWishlist = async (productId) => {
     try { await axios.delete(`${API}/wishlist/remove/${productId}`, { headers: getAuthHeaders() }); } catch {}
-    setWishlist(w => w.filter(i => i.id !== productId && i.product_id !== productId));
+    setWishlist(w => {
+      const next = w.filter(i => i.id !== productId && i.product_id !== productId);
+      // Notify other pages (ProductsPage, Dashboard) to unmark the heart icon
+      window.dispatchEvent(new CustomEvent("wishlist:removed", { detail: { productId } }));
+      window.dispatchEvent(new CustomEvent("wishlist:change", { detail: { count: next.length } }));
+      return next;
+    });
   };
 
   const moveToCart = async (item) => {
@@ -268,8 +274,8 @@ export const Footer = () => {
           <div>
             <h4 style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "1rem" }}>Contact</h4>
             <p style={{ color: "#6b7280", fontSize: "0.9rem", lineHeight: 1.8, margin: 0 }}>
-              123 Education Street<br />Knowledge Park, New Delhi<br /><br />
-              +91 98765 43210<br />hello@smartstationery.com
+              Kathmandu, Nepal<br /><br />
+              +977 9815127051<br />stationerymanagementsystem25@gmail.com
             </p>
           </div>
           <div>
@@ -286,17 +292,21 @@ export const Footer = () => {
           </div>
           <div>
             <h4 style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "1rem" }}>About</h4>
-            {[["About Us","#"],["Careers","#"],["Privacy Policy","#"],["Terms of Service","#"],["Help Center","#"]].map(([l,p]) => (
+            {[["About Us","#"],["Privacy Policy","#"],["Terms of Service","#"],["Help Center","#"]].map(([l,p]) => (
               <button key={l} onClick={() => navigate(p)} style={{ display: "block", background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", padding: "0.25rem 0", textAlign: "left" }}>{l}</button>
             ))}
           </div>
         </div>
-        <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-          <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "3.5rem", fontWeight: 400, color: "#f0f0f0", margin: 0, letterSpacing: "-0.02em", lineHeight: 1 }}>smartstationery.</p>
-          <div style={{ display: "flex", gap: "1.5rem" }}>
-            <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>© 2024 SmartStationery. All rights reserved.</span>
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Privacy</button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Terms</button>
+        <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "2rem" }}>
+          <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem,10vw,7rem)", fontWeight: 400, color: "#f0f0f0", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1 }}>
+            smartstationery.
+          </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>© 2025 SmartStationery. All rights reserved.</span>
+            <div style={{ display: "flex", gap: "1.5rem" }}>
+              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Privacy</button>
+              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Terms</button>
+            </div>
           </div>
         </div>
       </div>
