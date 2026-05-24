@@ -96,20 +96,31 @@ class NotificationService {
   
   // Order notifications
   static async createOrderNotification(userId, orderId, status, amount) {
+    const normalized = status === 'processing' ? 'preparing' : status;
     const statusMessages = {
       placed: {
         title: 'Order Placed Successfully',
         message: `Your order #${orderId} for ₹${amount} has been placed successfully.`,
         icon: '🛒'
       },
-      processing: {
-        title: 'Order Being Processed',
-        message: `Your order #${orderId} is being processed.`,
+      confirmed: {
+        title: 'Order Confirmed',
+        message: `Your order #${orderId} has been confirmed.`,
+        icon: '✅'
+      },
+      preparing: {
+        title: 'Order Being Prepared',
+        message: `Your order #${orderId} is being prepared.`,
         icon: '⚙️'
       },
       shipped: {
         title: 'Order Shipped',
         message: `Your order #${orderId} has been shipped!`,
+        icon: '🚚'
+      },
+      out_for_delivery: {
+        title: 'Out for Delivery',
+        message: `Your order #${orderId} is out for delivery.`,
         icon: '🚚'
       },
       delivered: {
@@ -124,7 +135,7 @@ class NotificationService {
       }
     };
 
-    const config = statusMessages[status] || statusMessages.placed;
+    const config = statusMessages[normalized] || statusMessages.placed;
 
     return this.createNotification({
       user_id: userId,
@@ -215,6 +226,187 @@ class NotificationService {
         icon: '❌'
       });
     }
+  }
+
+  // ── Admin notification helpers ────────────────────────────────
+
+  // Get admin user IDs (all admins)
+  static async getAdminIds() {
+    try {
+      const User = require('../models/user');
+      const admins = await User.find({ role: 'admin' }).select('id');
+      return admins.map(a => a.id);
+    } catch { return []; }
+  }
+
+  // Notify all admins
+  static async notifyAdmins(data) {
+    try {
+      const adminIds = await this.getAdminIds();
+      await Promise.all(adminIds.map(adminId =>
+        this.createNotification({ ...data, user_id: adminId }).catch(() => {})
+      ));
+    } catch (err) {
+      console.error('❌ Error notifying admins:', err.message);
+    }
+  }
+
+  // New order placed
+  static async notifyAdminNewOrder(orderId, userName, amount, paymentMethod) {
+    const method = (paymentMethod || 'cod').toUpperCase();
+    return this.notifyAdmins({
+      type: 'admin_new_order',
+      title: '🛒 New Order Received',
+      message: `Order #${orderId} placed by ${userName} for ₹${amount} (${method}).`,
+      link: `/admin-dashboard`,
+      icon: '🛒',
+      metadata: { orderId, amount, paymentMethod, tab: 'orders' }
+    });
+  }
+
+  // Khalti payment verified
+  static async notifyAdminPayment(orderId, userName, amount, transactionId) {
+    return this.notifyAdmins({
+      type: 'admin_new_payment',
+      title: '💳 Khalti Payment Received',
+      message: `Payment of ₹${amount} confirmed for Order #${orderId} by ${userName}. TXN: ${transactionId}`,
+      link: `/admin-dashboard`,
+      icon: '💳',
+      metadata: { orderId, amount, transactionId, tab: 'orders' }
+    });
+  }
+
+  // New institute verification submitted
+  static async notifyAdminNewVerification(instituteName, userId) {
+    return this.notifyAdmins({
+      type: 'admin_new_verification',
+      title: '🏫 New Verification Request',
+      message: `${instituteName} has submitted an institute verification request for review.`,
+      link: `/admin-dashboard`,
+      icon: '🏫',
+      metadata: { userId, tab: 'verifications' }
+    });
+  }
+
+  // Low stock alert (1–5 units remaining)
+  static async notifyAdminLowStock(productName, productId, stock) {
+    return this.notifyAdmins({
+      type: 'admin_low_stock',
+      title: '⚠️ Low Stock Alert',
+      message: `"${productName}" is running low — only ${stock} unit${stock === 1 ? '' : 's'} left.`,
+      link: `/admin-dashboard`,
+      icon: '⚠️',
+      metadata: { productId, stock, tab: 'products' }
+    });
+  }
+
+  // Out of stock alert
+  static async notifyAdminOutOfStock(productName, productId) {
+    return this.notifyAdmins({
+      type: 'admin_out_of_stock',
+      title: '🚫 Out of Stock',
+      message: `"${productName}" is now out of stock. Restock soon.`,
+      link: `/admin-dashboard`,
+      icon: '🚫',
+      metadata: { productId, stock: 0, tab: 'products' }
+    });
+  }
+
+  // After order or stock update — notify admins if thresholds crossed
+  static async checkProductStockAlerts(product) {
+    if (!product) return;
+    const remaining = product.stock_quantity ?? product.stock ?? 0;
+    if (remaining <= 0) {
+      return this.notifyAdminOutOfStock(product.name, product.id);
+    }
+    if (remaining <= 5) {
+      return this.notifyAdminLowStock(product.name, product.id, remaining);
+    }
+  }
+
+  // Order delivered/confirmed by customer
+  static async notifyAdminOrderDelivered(orderId, userName) {
+    return this.notifyAdmins({
+      type: 'admin_order_delivered',
+      title: '✅ Order Delivery Confirmed',
+      message: `${userName} confirmed receipt of Order #${orderId}.`,
+      link: `/admin-dashboard`,
+      icon: '✅',
+      metadata: { orderId, tab: 'orders' }
+    });
+  }
+
+  // Order cancelled by customer
+  static async notifyAdminOrderCancelled(orderId, userName, amount) {
+    return this.notifyAdmins({
+      type: 'admin_order_cancelled',
+      title: '❌ Order Cancelled',
+      message: `${userName} cancelled Order #${orderId} (₹${amount}).`,
+      link: `/admin-dashboard`,
+      icon: '❌',
+      metadata: { orderId, tab: 'orders' }
+    });
+  }
+
+  // New item request submitted
+  static async notifyAdminItemRequest(itemName, userName, requestId) {
+    return this.notifyAdmins({
+      type: 'admin_new_item_request',
+      title: '📋 New Item Request',
+      message: `${userName} requested "${itemName}" — not currently in catalog.`,
+      link: `/admin-dashboard`,
+      icon: '📋',
+      metadata: { itemName, requestId, tab: 'item-requests' }
+    });
+  }
+
+  // New book set request from institute
+  static async notifyAdminNewBookSetRequest(requestId, instituteName, schoolName, grade, bookCount) {
+    return this.notifyAdmins({
+      type: 'admin_new_book_set_request',
+      title: '📚 New Book Set Request',
+      message: `${instituteName} submitted a request for ${schoolName} — Grade ${grade} (${bookCount} book${bookCount === 1 ? '' : 's'}).`,
+      link: `/admin-dashboard`,
+      icon: '📚',
+      metadata: { requestId, schoolName, grade, tab: 'book-sets' }
+    });
+  }
+
+  // Bulk Excel book set upload summary
+  static async notifyAdminBulkBookSetRequests(count, instituteName) {
+    return this.notifyAdmins({
+      type: 'admin_new_book_set_request',
+      title: `📚 ${count} Book Set Request${count === 1 ? '' : 's'} Uploaded`,
+      message: `${instituteName} submitted ${count} book set request(s) via Excel. Review pending requests.`,
+      link: `/admin-dashboard`,
+      icon: '📚',
+      metadata: { count, tab: 'book-sets' }
+    });
+  }
+
+  // New donation listed
+  static async notifyAdminNewDonation(donationId, title, donorName) {
+    return this.notifyAdmins({
+      type: 'admin_new_donation',
+      title: '🎁 New Donation Listed',
+      message: `${donorName} listed "${title}" on the donation board.`,
+      link: `/admin-dashboard`,
+      icon: '🎁',
+      metadata: { donationId, tab: 'donations' }
+    });
+  }
+
+  // Institute sent a chat message
+  static async notifyAdminChatMessage(instituteName, preview, conversationId) {
+    const text = preview && preview.length > 80 ? `${preview.slice(0, 80)}…` : preview;
+    return this.notifyAdmins({
+      type: 'admin_chat_message',
+      title: '💬 New Institute Message',
+      message: `${instituteName}: ${text || 'Sent a message'}`,
+      link: `/admin-dashboard`,
+      icon: '💬',
+      metadata: { conversationId, tab: 'institute-chats' }
+    });
   }
 }
 

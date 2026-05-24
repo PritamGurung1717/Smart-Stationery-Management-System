@@ -1,5 +1,6 @@
 // backend/controllers/chatController.js
 const chatService = require("../services/chatService");
+const NotificationService = require("../services/notificationService");
 const path = require("path");
 const fs   = require("fs");
 
@@ -82,6 +83,16 @@ class ChatController {
       const io = req.app.get("io");
       if (io) {
         io.to(`conv_${convId}`).emit("receive_message", msg);
+      }
+
+      // Notify admins when institute sends via REST (socket may be offline)
+      if (req.user.role === "institute") {
+        const preview = text || (file_name ? `📎 ${file_name}` : "New message");
+        NotificationService.notifyAdminChatMessage(
+          req.user.name,
+          preview,
+          convId
+        ).catch(() => {});
       }
 
       res.status(201).json({ success: true, message: msg });

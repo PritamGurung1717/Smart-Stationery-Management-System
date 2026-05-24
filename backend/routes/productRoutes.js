@@ -7,6 +7,7 @@ const { auth, adminAuth } = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const NotificationService = require("../services/notificationService");
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
@@ -245,6 +246,8 @@ router.post(
       await product.save();
       console.log("✅ Product saved successfully. ID:", product.id);
 
+      NotificationService.checkProductStockAlerts(product).catch(() => {});
+
       res.status(201).json({
         success: true,
         message: "Product created successfully",
@@ -356,6 +359,10 @@ router.put(
 
       product.updated_at = new Date();
       await product.save();
+
+      if (stock_quantity !== undefined) {
+        NotificationService.checkProductStockAlerts(product).catch(() => {});
+      }
 
       res.json({
         success: true,

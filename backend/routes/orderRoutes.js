@@ -5,6 +5,7 @@ const Product = require("../models/product");
 const User = require("../models/user");
 const router = express.Router();
 const { auth, adminAuth, instituteAuth } = require("../middleware/auth");
+const NotificationService = require("../services/notificationService");
 
 // ----------------- ORDER ROUTES -----------------
 
@@ -112,6 +113,22 @@ router.post("/", auth, async (req, res) => {
     });
 
     await order.save();
+
+    // Notify admin of new order (fire-and-forget)
+    NotificationService.notifyAdminNewOrder(
+      order.id,
+      req.user.name || `User #${req.user.id}`,
+      totalAmount,
+      paymentMethod || "cod"
+    ).catch(() => {});
+
+    // Check stock levels after order and notify admin
+    for (const item of orderItems) {
+      const prod = await Product.findOne({ id: item.productId });
+      if (prod) {
+        NotificationService.checkProductStockAlerts(prod).catch(() => {});
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -347,8 +364,9 @@ router.get('/my-orders', auth, async (req, res) => {
       const statusColors = {
         pending: 'warning',
         confirmed: 'info',
-        processing: 'primary',
+        preparing: 'primary',
         shipped: 'success',
+        out_for_delivery: 'success',
         delivered: 'success',
         cancelled: 'danger'
       };
@@ -492,7 +510,10 @@ router.put("/:id", auth, async (req, res) => {
       });
     }
 
-    const { orderStatus } = req.body;
+    let { orderStatus } = req.body;
+
+    // Legacy alias used by some admin UI versions
+    if (orderStatus === "processing") orderStatus = "preparing";
     
     if (!orderStatus) {
       return res.status(400).json({
@@ -501,7 +522,9 @@ router.put("/:id", auth, async (req, res) => {
       });
     }
 
-    const validStatuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+    const validStatuses = [
+      "pending", "confirmed", "preparing", "shipped", "out_for_delivery", "delivered", "cancelled",
+    ];
     if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({
         success: false,
@@ -726,9 +749,14 @@ router.put("/:id/cancel", auth, async (req, res) => {
 
     // Notify user
     try {
-      const NotificationService = require('../services/notificationService');
       await NotificationService.createOrderNotification(order.user, order.id, 'cancelled', order.totalAmount);
     } catch (e) { /* non-blocking */ }
+
+    NotificationService.notifyAdminOrderCancelled(
+      order.id,
+      req.user.name || `User #${req.user.id}`,
+      order.totalAmount
+    ).catch(() => {});
 
     res.json({ success: true, message: "Order cancelled successfully", order });
   } catch (err) {
@@ -753,9 +781,14 @@ router.put("/:id/confirm-delivery", auth, async (req, res) => {
 
     // Notify user
     try {
-      const NotificationService = require('../services/notificationService');
       await NotificationService.createOrderNotification(order.user, order.id, 'delivered', order.totalAmount);
     } catch (e) { /* non-blocking */ }
+
+    // Notify admin that customer confirmed delivery
+    NotificationService.notifyAdminOrderDelivered(
+      order.id,
+      req.user.name || `User #${req.user.id}`
+    ).catch(() => {});
 
     res.json({ success: true, message: "Delivery confirmed successfully", order });
   } catch (err) {

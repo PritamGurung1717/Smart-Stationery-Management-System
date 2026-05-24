@@ -401,6 +401,24 @@ router.post("/login", async (req, res) => {
 
     if (user.role === "institute") {
       if (!user.instituteVerification || user.instituteVerification.status !== "approved") {
+        // Check if verification was submitted (has a submission date)
+        const submittedAt = user.instituteVerification?.submittedAt || user.updatedAt;
+        const hoursSinceSubmission = submittedAt
+          ? (Date.now() - new Date(submittedAt).getTime()) / (1000 * 60 * 60)
+          : 0;
+
+        const status = user.instituteVerification?.status || "not_submitted";
+
+        if (status === "pending") {
+          return res.status(403).json({
+            success: false,
+            isPending: true,
+            message: "Your document is being processed. You will be notified by email once your account is approved or rejected. Please try again after 24 hours.",
+            submittedAt: submittedAt,
+            hoursSinceSubmission: Math.floor(hoursSinceSubmission),
+          });
+        }
+
         return res.status(403).json({
           success: false,
           message: "Institute account pending verification. Please wait for admin approval.",
@@ -780,18 +798,59 @@ router.put("/admin/verifications/:id/status", adminAuth, async (req, res) => {
 
     // Email notification
     if (user.email) {
+      const isApproved = status === "approved";
       await transporter.sendMail({
         to: user.email,
-        subject: `Institute Verification ${status}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2c3e50;">Institute Verification Update</h2>
-            <p>Hello ${user.name},</p>
-            <p>Your institute verification has been <strong>${status}</strong>.</p>
-            ${comments ? `<p><strong>Comments:</strong> ${comments}</p>` : ""}
-            <p>If you have any questions, please contact our support team.</p>
-            <hr>
-            <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+        subject: isApproved
+          ? "🎉 Your Institute Account is Approved — Smart Stationery"
+          : `Institute Verification ${status.charAt(0).toUpperCase() + status.slice(1)} — Smart Stationery`,
+        html: isApproved ? `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <div style="background: #111; padding: 24px 32px;">
+              <h1 style="color: #fff; margin: 0; font-size: 1.5rem; font-family: Georgia, serif;">smartstationery.</h1>
+            </div>
+            <div style="padding: 32px;">
+              <h2 style="color: #111; margin-top: 0;">🎉 Your Account & Documents are Approved!</h2>
+              <p style="color: #374151;">Hello <strong>${user.name}</strong>,</p>
+              <p style="color: #374151; line-height: 1.6;">
+                Great news! Your institute account and submitted documents have been <strong style="color: #16a34a;">approved</strong> by our team.
+                You can now log in and start shopping with us.
+              </p>
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0;">
+                <p style="margin: 0; color: #15803d; font-weight: 600;">✓ Account verified and activated</p>
+                <p style="margin: 4px 0 0; color: #15803d; font-weight: 600;">✓ 10% institute discount applied on all orders</p>
+                <p style="margin: 4px 0 0; color: #15803d; font-weight: 600;">✓ Access to bulk ordering and book set requests</p>
+              </div>
+              <p style="color: #374151; line-height: 1.6;">
+                Continue shopping with us and enjoy exclusive institute benefits. If you have any questions, feel free to reach out to our support team.
+              </p>
+              <a href="http://localhost:5173" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px;">
+                Start Shopping →
+              </a>
+            </div>
+            <div style="background: #f9fafb; padding: 16px 32px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">Smart Stationery © 2025 · stationerymanagementsystem25@gmail.com</p>
+            </div>
+          </div>
+        ` : `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <div style="background: #111; padding: 24px 32px;">
+              <h1 style="color: #fff; margin: 0; font-size: 1.5rem; font-family: Georgia, serif;">smartstationery.</h1>
+            </div>
+            <div style="padding: 32px;">
+              <h2 style="color: #111; margin-top: 0;">Institute Verification Update</h2>
+              <p style="color: #374151;">Hello <strong>${user.name}</strong>,</p>
+              <p style="color: #374151; line-height: 1.6;">
+                Your institute verification has been <strong style="color: #dc2626;">${status}</strong>.
+              </p>
+              ${comments ? `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;"><p style="margin: 0; color: #991b1b;"><strong>Reason:</strong> ${comments}</p></div>` : ""}
+              <p style="color: #374151; line-height: 1.6;">
+                You may resubmit your verification with the correct documents. If you have any questions, please contact our support team.
+              </p>
+            </div>
+            <div style="background: #f9fafb; padding: 16px 32px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">Smart Stationery © 2025 · stationerymanagementsystem25@gmail.com</p>
+            </div>
           </div>
         `
       });
@@ -1035,6 +1094,12 @@ router.post(
       };
 
       await req.user.save();
+
+      const NotificationService = require("../services/notificationService");
+      NotificationService.notifyAdminNewVerification(
+        instituteName || schoolName,
+        req.user.id
+      ).catch(() => {});
 
       res.json({
         success: true,

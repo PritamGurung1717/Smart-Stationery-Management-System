@@ -15,6 +15,16 @@ class DonationController {
 
       console.log("✅ Donation created successfully:", donation.id);
 
+      try {
+        const User = require("../models/user");
+        const donor = await User.findOne({ id: userId });
+        await NotificationService.notifyAdminNewDonation(
+          donation.id,
+          donation.title,
+          donor?.name || `User #${userId}`
+        );
+      } catch (e) { /* non-blocking */ }
+
       res.status(201).json({
         success: true,
         message: "Donation created successfully",

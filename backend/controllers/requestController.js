@@ -24,20 +24,15 @@ exports.createRequest = async (req, res) => {
       item_name, category, description, quantity_requested: qty
     });
 
-    // Notify admin
+    // Notify all admins
     try {
       const User = require('../models/user');
-      const adminUser = await User.findOne({ role: 'admin' });
-      if (adminUser) {
-        await NotificationService.createNotification({
-          user_id: adminUser.id,
-          type: 'donation_request_received',
-          title: '📦 New Item Request',
-          message: `User #${userId} requested: ${item_name} (${qty} units)`,
-          link: '/admin-dashboard',
-          icon: '📦'
-        });
-      }
+      const requester = await User.findOne({ id: userId });
+      await NotificationService.notifyAdminItemRequest(
+        item_name.trim(),
+        requester?.name || `User #${userId}`,
+        request.id
+      );
     } catch (e) { /* non-blocking */ }
 
     res.status(201).json({

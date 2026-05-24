@@ -3,6 +3,7 @@ const jwt          = require("jsonwebtoken");
 const User         = require("../models/user");
 const Conversation = require("../models/conversation");
 const chatService  = require("../services/chatService");
+const NotificationService = require("../services/notificationService");
 
 // Map userId → socketId for online status
 const onlineUsers = new Map();
@@ -73,6 +74,16 @@ module.exports = (io) => {
 
         // Broadcast to everyone in the room (including sender for confirmation)
         io.to(`conv_${convId}`).emit("receive_message", msg);
+
+        // In-app notification for admins when institute sends a message
+        if (role === "institute") {
+          const preview = message_text || (file_name ? `📎 ${file_name}` : "New message");
+          NotificationService.notifyAdminChatMessage(
+            socket.user.name,
+            preview,
+            convId
+          ).catch(() => {});
+        }
       } catch (err) {
         socket.emit("error", { message: err.message });
       }

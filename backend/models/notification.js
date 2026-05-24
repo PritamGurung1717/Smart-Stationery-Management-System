@@ -24,7 +24,19 @@ const notificationSchema = new mongoose.Schema({
       'new_message',
       'chat_message',
       'product_low_stock',
-      'product_out_of_stock'
+      'product_out_of_stock',
+      // Admin-targeted notification types
+      'admin_new_order',
+      'admin_new_payment',
+      'admin_new_verification',
+      'admin_low_stock',
+      'admin_out_of_stock',
+      'admin_order_delivered',
+      'admin_order_cancelled',
+      'admin_new_item_request',
+      'admin_new_book_set_request',
+      'admin_new_donation',
+      'admin_chat_message'
     ]
   },
   title: {

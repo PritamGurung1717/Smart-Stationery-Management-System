@@ -9,6 +9,7 @@ const nodemailer = require("nodemailer");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const path = require("path");
+const NotificationService = require("../services/notificationService");
 
 // Gmail transporter for notifications (optional)
 let transporter = null;
@@ -220,6 +221,13 @@ router.post("/institute/book-set-request/upload-excel", instituteAuth, excelUplo
       console.error("Failed to send notification email:", emailError);
     }
 
+    if (createdRequests.length > 0) {
+      NotificationService.notifyAdminBulkBookSetRequests(
+        createdRequests.length,
+        req.user.name || `Institute #${userId}`
+      ).catch(() => {});
+    }
+
     // Clean up uploaded file
     const fs = require("fs");
     try {
@@ -358,6 +366,14 @@ router.post("/institute/book-set-request", instituteAuth, async (req, res) => {
     console.log("💾 Saving to database...");
     await bookSetRequest.save();
     console.log("✅ Saved successfully! ID:", bookSetRequest.id);
+
+    NotificationService.notifyAdminNewBookSetRequest(
+      bookSetRequest.id,
+      req.user.name || `Institute #${userId}`,
+      school_name.trim(),
+      grade.trim(),
+      items.length
+    ).catch(() => {});
 
     // Send notification email to admins
     try {

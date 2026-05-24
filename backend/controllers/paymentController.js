@@ -318,11 +318,24 @@ const verifyKhaltiPaymentHandler = async (req, res) => {
       
       console.log("🟢 Notification created/updated successfully:", notification._id);
     } catch (notifErr) {
-      console.error("❌ Failed to send notification:");
+      console.error("❌ Failed to send user payment notification:");
       console.error("Error name:", notifErr.name);
       console.error("Error message:", notifErr.message);
       console.error("Full error:", notifErr);
       // Don't fail the payment if notification fails
+    }
+
+    // --- Notify all admins (non-blocking) ---
+    try {
+      const payer = await User.findOne({ id: req.user.id });
+      await NotificationService.notifyAdminPayment(
+        order.id,
+        payer?.name || `User #${req.user.id}`,
+        order.totalAmount,
+        khaltiResponse.transaction_id
+      );
+    } catch (adminNotifErr) {
+      console.error("⚠️ Failed to notify admins of payment:", adminNotifErr.message);
     }
 
     // --- Send email (non-blocking) ---
