@@ -19,6 +19,34 @@ import {
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
+const ADMIN_NOTIF_TAB = {
+  admin_new_order: "orders",
+  admin_new_payment: "orders",
+  admin_new_verification: "verifications",
+  admin_low_stock: "products",
+  admin_out_of_stock: "products",
+  admin_order_delivered: "orders",
+  admin_order_cancelled: "orders",
+  admin_new_item_request: "item-requests",
+  admin_new_book_set_request: "book-sets",
+  admin_new_donation: "donations",
+  admin_chat_message: "institute-chats",
+};
+
+const ADMIN_NOTIF_LABEL = {
+  admin_new_order: "New Order",
+  admin_new_payment: "Khalti Payment",
+  admin_new_verification: "Verification",
+  admin_low_stock: "Low Stock",
+  admin_out_of_stock: "Out of Stock",
+  admin_order_delivered: "Delivery Confirmed",
+  admin_order_cancelled: "Order Cancelled",
+  admin_new_item_request: "Item Request",
+  admin_new_book_set_request: "Book Set Request",
+  admin_new_donation: "Donation",
+  admin_chat_message: "Institute Chat",
+};
+
 /* ─── Sidebar ───────────────────────────────────────────────── */
 const NAV_ITEMS = [
   { id: "dashboard",         icon: <FaTachometerAlt />, label: "Dashboard" },
@@ -114,16 +142,177 @@ const Sidebar = ({ active, onTab, admin, stats, onLogout, unreadNotifs }) => (
 );
 
 /* ─── Stat Card ─────────────────────────────────────────────── */
-const StatCard = ({ label, value, sub, icon, accent }) => (
-  <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
-    <div className="d-flex justify-content-between align-items-start mb-3">
+const StatCard = ({ label, value, sub, icon, accent, onClick, highlight }) => (
+  <div
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onClick={onClick}
+    onKeyDown={onClick ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    className="bg-white p-4 h-100 d-flex flex-column"
+    style={{
+      border: highlight ? `2px solid ${accent || "#111"}` : "1px solid #e5e7eb",
+      cursor: onClick ? "pointer" : "default",
+      minHeight: 118,
+      transition: "box-shadow 0.15s, transform 0.15s",
+    }}
+    onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,0,0,0.06)"; }}
+    onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
+  >
+    <div className="d-flex justify-content-between align-items-start mb-auto">
       <div className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>{label}</div>
-      <div style={{ fontSize: "1rem", color: accent || "#9ca3af" }}>{icon}</div>
+      <div
+        className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+        style={{
+          width: 36, height: 36, fontSize: "0.9rem",
+          color: accent || "#374151",
+          background: accent ? `${accent}14` : "#f3f4f6",
+        }}
+      >
+        {icon}
+      </div>
     </div>
-    <div className="fw-bold" style={{ fontSize: "1.75rem", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</div>
+    <div className="fw-bold mt-3" style={{ fontSize: "1.65rem", lineHeight: 1.1, letterSpacing: "-0.02em", color: accent || "#111" }}>
+      {value}
+    </div>
     {sub && <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>{sub}</div>}
   </div>
 );
+
+const formatRevenue = (amount) => {
+  const n = Number(amount) || 0;
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+};
+
+/* ─── Dashboard overview layout ─────────────────────────────── */
+const DashboardOverview = ({ stats, onTabChange, onNavigate }) => {
+  const quickActions = [
+    { label: "Add Product", sub: "New catalogue item", icon: <FaPlus />, action: () => onNavigate("/admin/add-product"), primary: true },
+    { label: "Manage Users", sub: `${stats.totalUsers} accounts`, icon: <FaUsers />, action: () => onTabChange("users") },
+    { label: "View Orders", sub: `${stats.totalOrders} orders`, icon: <FaShoppingCart />, action: () => onTabChange("orders") },
+    { label: "Verifications", sub: stats.pendingVerifications > 0 ? `${stats.pendingVerifications} awaiting review` : "All clear", icon: <FaUserCheck />, action: () => onTabChange("verifications"), alert: stats.pendingVerifications > 0 },
+    { label: "Donations", sub: "Manage listings", icon: <FaGift />, action: () => onTabChange("donations") },
+    { label: "Item Requests", sub: "Review catalog requests", icon: <FaBoxOpen />, action: () => onTabChange("item-requests") },
+  ];
+
+  const gridGap = 12;
+
+  return (
+    <>
+      <SectionHeader title="Dashboard Overview" sub="OVERVIEW" />
+
+      {/* Primary KPIs — responsive equal columns */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+          gap: gridGap,
+          marginBottom: gridGap,
+        }}
+      >
+        <StatCard label="Total Users" value={stats.totalUsers} icon={<FaUsers />} sub="Registered accounts" onClick={() => onTabChange("users")} />
+        <StatCard label="Total Products" value={stats.totalProducts} icon={<FaBox />} sub="In catalogue" onClick={() => onTabChange("products")} />
+        <StatCard label="Total Orders" value={stats.totalOrders} icon={<FaShoppingCart />} sub="All time" onClick={() => onTabChange("orders")} />
+        <StatCard label="Total Revenue" value={formatRevenue(stats.revenue)} icon={<FaRupeeSign />} sub="Gross order value" accent="#16a34a" onClick={() => onTabChange("orders")} />
+      </div>
+
+      {/* Inventory & verification alerts — full-width row */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+          gap: gridGap,
+          marginBottom: 28,
+        }}
+      >
+        <StatCard
+          label="Out of Stock"
+          value={stats.outOfStock}
+          icon={<FaExclamationTriangle />}
+          sub="Products need restocking"
+          accent={stats.outOfStock > 0 ? "#ef4444" : "#6b7280"}
+          highlight={stats.outOfStock > 0}
+          onClick={() => onTabChange("products")}
+        />
+        <StatCard
+          label="Low Stock"
+          value={stats.lowStock}
+          icon={<FaExclamationTriangle />}
+          sub="10 units or fewer"
+          accent={stats.lowStock > 0 ? "#f59e0b" : "#6b7280"}
+          highlight={stats.lowStock > 0}
+          onClick={() => onTabChange("products")}
+        />
+        <StatCard
+          label="Pending Verifications"
+          value={stats.pendingVerifications}
+          icon={<FaUserCheck />}
+          sub={stats.pendingVerifications > 0 ? "Institutes awaiting approval" : "No pending requests"}
+          accent={stats.pendingVerifications > 0 ? "#ef4444" : "#6b7280"}
+          highlight={stats.pendingVerifications > 0}
+          onClick={() => onTabChange("verifications")}
+        />
+      </div>
+
+      {/* Quick actions — 3×2 grid */}
+      <div className="mb-2">
+        <p className="text-uppercase fw-bold small text-muted mb-3" style={{ letterSpacing: "0.1em" }}>QUICK ACTIONS</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+            gap: gridGap,
+          }}
+        >
+          {quickActions.map(a => (
+            <button
+              key={a.label}
+              type="button"
+              onClick={a.action}
+              className="btn border-0 text-start h-100"
+              style={{
+                background: a.primary ? "#111" : "#fff",
+                padding: "1.25rem 1.35rem",
+                borderRadius: 0,
+                border: a.primary ? "none" : "1px solid #e5e7eb",
+                minHeight: 88,
+                transition: "background 0.15s, box-shadow 0.15s",
+              }}
+              onMouseEnter={e => {
+                if (!a.primary) e.currentTarget.style.background = "#f9fafb";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = a.primary ? "#111" : "#fff";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              <div className="d-flex align-items-start gap-3">
+                <span
+                  className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                  style={{
+                    width: 32, height: 32, fontSize: "0.8rem",
+                    background: a.primary ? "rgba(255,255,255,0.15)" : "#f3f4f6",
+                    color: a.primary ? "#fff" : "#374151",
+                  }}
+                >
+                  {a.icon}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="fw-bold mb-1" style={{ fontSize: "0.9rem", color: a.primary ? "#fff" : "#111" }}>{a.label}</div>
+                  <div style={{ fontSize: "0.75rem", color: a.primary ? "rgba(255,255,255,0.7)" : a.alert ? "#ef4444" : "#9ca3af", lineHeight: 1.35 }}>
+                    {a.sub}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
 
 /* ─── Section Header ────────────────────────────────────────── */
 const SectionHeader = ({ title, sub, action }) => (
@@ -185,11 +374,27 @@ const TableShell = ({ heads, children, loading }) => (
 );
 
 /* ─── Status Badge ──────────────────────────────────────────── */
+const ORDER_STATUS_OPTIONS = [
+  ["pending", "Pending"],
+  ["confirmed", "Confirmed"],
+  ["preparing", "Processing"],
+  ["shipped", "Shipped"],
+  ["out_for_delivery", "Out for Delivery"],
+  ["delivered", "Delivered"],
+  ["cancelled", "Cancelled"],
+];
+
+const TotalCount = ({ value }) => (
+  <span className="text-muted small" style={{ whiteSpace: "nowrap" }}>Total: {value ?? 0}</span>
+);
+
 const STATUS_STYLES = {
   pending:   { bg: "#fef3c7", color: "#92400e" },
   confirmed: { bg: "#dbeafe", color: "#1e40af" },
+  preparing: { bg: "#ede9fe", color: "#5b21b6" },
   processing:{ bg: "#ede9fe", color: "#5b21b6" },
   shipped:   { bg: "#d1fae5", color: "#065f46" },
+  out_for_delivery: { bg: "#cffafe", color: "#0e7490" },
   delivered: { bg: "#d1fae5", color: "#065f46" },
   cancelled: { bg: "#fee2e2", color: "#991b1b" },
   approved:  { bg: "#d1fae5", color: "#065f46" },
@@ -319,10 +524,10 @@ const AnalyticsSection = ({ orders, products }) => {
         )}
       </div>
 
-      {/* 3-col charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+      {/* Charts grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 12 }}>
         {/* Category bar */}
-        <div className="bg-white p-4">
+        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Products by Category</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} total products</div>
           <ResponsiveContainer width="100%" height={180}>
@@ -339,7 +544,7 @@ const AnalyticsSection = ({ orders, products }) => {
         </div>
 
         {/* Order status pie */}
-        <div className="bg-white p-4">
+        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Order Status</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{orders.length} total orders</div>
           <ResponsiveContainer width="100%" height={180}>
@@ -355,7 +560,7 @@ const AnalyticsSection = ({ orders, products }) => {
         </div>
 
         {/* Stock health pie */}
-        <div className="bg-white p-4">
+        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Stock Health</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} products tracked</div>
           <ResponsiveContainer width="100%" height={180}>
@@ -448,9 +653,18 @@ const AdminDashboard = ({ setUser }) => {
     fetchUserNames();
     fetchUnreadCount();
     fetchUnreadChatCount();
-    const interval = setInterval(() => { fetchUnreadCount(); fetchUnreadChatCount(); }, 15000);
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+      fetchUnreadChatCount();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "notifications") return;
+    const interval = setInterval(() => fetchNotifications(1), 20000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   // Handle tab navigation from AdminLayout sidebar — fires even on same route
   useEffect(() => {
@@ -584,7 +798,7 @@ const AdminDashboard = ({ setUser }) => {
   const fetchNotifications = async (page = 1) => {
     try {
       setFetchingData(true);
-      const r = await axios.get(`${API}/notifications?limit=50`, { headers: authH() });
+      const r = await axios.get(`${API}/notifications?limit=100`, { headers: authH() });
       if (r.data.success) {
         setNotifications(r.data.notifications || []);
         setUnreadNotifs(r.data.unreadCount || 0);
@@ -722,7 +936,16 @@ const AdminDashboard = ({ setUser }) => {
     try {
       await axios.delete(`${API}/notifications/${id}`, { headers: authH() });
       setNotifications(p => p.filter(n => n._id !== id));
+      fetchUnreadCount();
     } catch {}
+  };
+
+  const handleNotifClick = async (n) => {
+    if (!n.is_read) await markNotifRead(n._id);
+    const tab = n.metadata?.tab || ADMIN_NOTIF_TAB[n.type];
+    if (!tab) return;
+    if (tab === "book-sets") setBookSetSubTab("requests");
+    handleTabChange(tab);
   };
 
   const getTimeAgo = (date) => {
@@ -804,44 +1027,11 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── DASHBOARD TAB ── */}
           {activeTab === "dashboard" && (
             <>
-              <SectionHeader title="Dashboard Overview" sub="OVERVIEW" />
-
-              {/* Stats grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", marginBottom: "1px" }}>
-                <StatCard label="Total Users" value={stats.totalUsers} icon={<FaUsers />} sub="Registered accounts" />
-                <StatCard label="Total Products" value={stats.totalProducts} icon={<FaBox />} sub="In catalogue" />
-                <StatCard label="Total Orders" value={stats.totalOrders} icon={<FaShoppingCart />} sub="All time" />
-                <StatCard label="Total Revenue" value={`₹${stats.revenue.toLocaleString()}`} icon={<FaRupeeSign />} sub="All orders" accent="#16a34a" />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-                <StatCard label="Out of Stock" value={stats.outOfStock} icon={<FaExclamationTriangle />} sub="Need restocking" accent="#ef4444" />
-                <StatCard label="Low Stock" value={stats.lowStock} icon={<FaExclamationTriangle />} sub="≤ 10 units" accent="#f59e0b" />
-                <StatCard label="Pending Verifications" value={stats.pendingVerifications} icon={<FaUserCheck />} sub="Awaiting review" accent={stats.pendingVerifications > 0 ? "#ef4444" : undefined} />
-              </div>
-
-              {/* Quick actions */}
-              <div className="mt-5 mb-4">
-                <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>QUICK ACTIONS</p>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-                  {[
-                    { label: "Add Product", sub: "New catalogue item", action: () => navigate("/admin/add-product"), primary: true },
-                    { label: "Manage Users", sub: `${stats.totalUsers} accounts`, action: () => handleTabChange("users") },
-                    { label: "View Orders", sub: `${stats.totalOrders} orders`, action: () => handleTabChange("orders") },
-                    { label: "Verifications", sub: `${stats.pendingVerifications} pending`, action: () => handleTabChange("verifications"), alert: stats.pendingVerifications > 0 },
-                    { label: "Donations", sub: "Manage donations", action: () => handleTabChange("donations") },
-                    { label: "Item Requests", sub: "Review requests", action: () => handleTabChange("item-requests") },
-                  ].map(a => (
-                    <button key={a.label} onClick={a.action}
-                      className="btn border-0 text-start"
-                      style={{ background: a.primary ? "#111" : "#fff", padding: "1.5rem", borderRadius: 0 }}
-                      onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#f9fafb"; }}
-                      onMouseLeave={e => { if (!a.primary) e.currentTarget.style.background = "#fff"; }}>
-                      <div className="fw-bold mb-1" style={{ fontSize: "0.9rem", color: a.primary ? "#fff" : "#111" }}>{a.label}</div>
-                      <div style={{ fontSize: "0.75rem", color: a.primary ? "rgba(255,255,255,0.65)" : a.alert ? "#ef4444" : "#9ca3af" }}>{a.sub}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <DashboardOverview
+                stats={stats}
+                onTabChange={handleTabChange}
+                onNavigate={navigate}
+              />
 
               <AnalyticsSection orders={orders} products={products} />
 
@@ -924,7 +1114,7 @@ const AdminDashboard = ({ setUser }) => {
                     options={[["all","All Roles"],["admin","Admin"],["institute","Institute"],["personal","Personal"]]} />
                   <FilterSelect value={userStatusFilter} onChange={v => { setUserStatusFilter(v); fetchUsers(1, undefined, v); }}
                     options={[["all","All Status"],["active","Active"],["suspended","Suspended"]]} />
-                  <span className="text-muted small">Total: {totalItems || stats.totalUsers}</span>
+                  <TotalCount value={totalItems || stats.totalUsers} />
                 </div>
               </div>
               <TableShell loading={fetchingData} heads={["Name","Email","Role","Status","Verified","Phone","Actions"]}>
@@ -983,6 +1173,7 @@ const AdminDashboard = ({ setUser }) => {
                     className="btn btn-dark fw-bold d-flex align-items-center gap-1">
                     <FaPlus style={{ fontSize: "0.75rem" }} /> Add Product
                   </button>
+                  <TotalCount value={totalItems || stats.totalProducts} />
                 </div>
               </div>
               <TableShell loading={fetchingData} heads={[
@@ -1052,12 +1243,12 @@ const AdminDashboard = ({ setUser }) => {
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                   <SearchInput value={orderSearch} onChange={setOrderSearch} onSearch={() => fetchOrders(1)} placeholder="Search order ID, customer…" />
                   <FilterSelect value={orderStatusFilter} onChange={v => { setOrderStatusFilter(v); fetchOrders(1, v); }}
-                    options={[["all","All Status"],["pending","Pending"],["confirmed","Confirmed"],["processing","Processing"],["shipped","Shipped"],["delivered","Delivered"],["cancelled","Cancelled"]]} />
+                    options={[["all","All Status"], ...ORDER_STATUS_OPTIONS]} />
                   <FilterSelect value={orderTypeFilter} onChange={v => { setOrderTypeFilter(v); fetchOrders(1, undefined, v); }}
                     options={[["all","All Types"],["regular","Regular"],["bulk","Bulk"]]} />
                   <FilterSelect value={orderPaymentFilter} onChange={v => { setOrderPaymentFilter(v); fetchOrders(1, undefined, undefined, v); }}
                     options={[["all","All Payment"],["pending","Pending"],["completed","Completed"]]} />
-                  <span className="text-muted small">Total: {totalItems || stats.totalOrders}</span>
+                  <TotalCount value={totalItems || stats.totalOrders} />
                 </div>
               </div>
               <TableShell loading={fetchingData} heads={["Order ID","Customer","Amount","Status","Payment","Type","Date","Actions"]}>
@@ -1089,8 +1280,8 @@ const AdminDashboard = ({ setUser }) => {
                           </button>
                           <select className="form-select form-select-sm rounded-0" style={{ width: 110, fontSize: "0.75rem", borderColor: "#e5e7eb" }}
                             value={status} onChange={e => handleOrderStatus(o.id, e.target.value)}>
-                            {["pending","confirmed","processing","shipped","delivered","cancelled"].map(s => (
-                              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                            {ORDER_STATUS_OPTIONS.map(([value, label]) => (
+                              <option key={value} value={value}>{label}</option>
                             ))}
                           </select>
                         </div>
@@ -1117,11 +1308,7 @@ const AdminDashboard = ({ setUser }) => {
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                   <SearchInput value={verificationSearch} onChange={setVerificationSearch}
                     onSearch={fetchVerifications} placeholder="Search institute, contact…" />
-                  {stats.pendingVerifications > 0 && (
-                    <span className="fw-semibold" style={{ color: "#ef4444", fontSize: "0.875rem" }}>
-                      {stats.pendingVerifications} pending
-                    </span>
-                  )}
+                  <TotalCount value={pendingVerifications.length} />
                 </div>
               </div>
               <TableShell loading={fetchingData} heads={["Institute","Contact Person","Email","Phone","School","Status","Actions"]}>
@@ -1172,7 +1359,7 @@ const AdminDashboard = ({ setUser }) => {
                   <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Book Sets</h2>
                 </div>
                 <div className="d-flex gap-2 align-items-center">
-                  <span className="text-muted small">Total: {totalItems}</span>
+                  <TotalCount value={totalItems} />
                   <button onClick={() => navigate("/admin/book-sets/upload-excel")}
                     className="btn btn-success btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
                     <FaFileExcel style={{ fontSize: "0.7rem" }} /> Excel Upload
@@ -1338,7 +1525,7 @@ const AdminDashboard = ({ setUser }) => {
                   <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>DONATIONS</p>
                   <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Donations Management</h2>
                 </div>
-                <span className="text-muted small">Total: {totalItems}</span>
+                <TotalCount value={totalItems} />
               </div>
               <TableShell loading={fetchingData} heads={["Title","Donor","Category","Condition","Status","Date","Actions"]}>
                 {donations.map(d => (
@@ -1393,7 +1580,7 @@ const AdminDashboard = ({ setUser }) => {
                 <div className="d-flex gap-2 align-items-center">
                   <FilterSelect value={itemRequestFilter} onChange={v => { setItemRequestFilter(v); fetchItemRequests(1); }}
                     options={[["all","All Statuses"],["pending","Pending"],["approved","Approved"],["rejected","Rejected"],["cancelled","Cancelled"]]} />
-                  <span className="text-muted small">Total: {totalItems}</span>
+                  <TotalCount value={totalItems} />
                 </div>
               </div>
               <TableShell loading={fetchingData} heads={["#","User","Item","Category","Qty","Description","Status","Date","Actions"]}>
@@ -1457,12 +1644,15 @@ const AdminDashboard = ({ setUser }) => {
                     )}
                   </h2>
                 </div>
-                {unreadNotifs > 0 && (
-                  <button onClick={markAllNotifsRead}
-                    className="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center gap-1">
-                    <FaCheck style={{ fontSize: "0.7rem" }} /> Mark all as read
-                  </button>
-                )}
+                <div className="d-flex align-items-center gap-2">
+                  <TotalCount value={notifications.length} />
+                  {unreadNotifs > 0 && (
+                    <button onClick={markAllNotifsRead}
+                      className="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center gap-1">
+                      <FaCheck style={{ fontSize: "0.7rem" }} /> Mark all as read
+                    </button>
+                  )}
+                </div>
               </div>
 
               {fetchingData ? (
@@ -1480,14 +1670,18 @@ const AdminDashboard = ({ setUser }) => {
                 <div className="d-flex flex-column" style={{ gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", maxWidth: 720 }}>
                   {notifications.map(n => (
                     <div key={n._id}
+                      role="button"
+                      tabIndex={0}
                       className="bg-white d-flex gap-3 align-items-start"
                       style={{
                         padding: "1rem 1.25rem",
                         borderLeft: n.is_read ? "3px solid transparent" : "3px solid #111",
                         background: n.is_read ? "#fff" : "#fafafa",
-                        cursor: "default",
+                        cursor: ADMIN_NOTIF_TAB[n.type] || n.metadata?.tab ? "pointer" : "default",
                         transition: "background 0.15s",
                       }}
+                      onClick={() => handleNotifClick(n)}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNotifClick(n); } }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                       onMouseLeave={e => e.currentTarget.style.background = n.is_read ? "#fff" : "#fafafa"}>
                       <div className="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0"
@@ -1498,19 +1692,24 @@ const AdminDashboard = ({ setUser }) => {
                         <div className="d-flex justify-content-between align-items-start gap-2">
                           <span className="fw-semibold small">
                             {n.title}
+                            {ADMIN_NOTIF_LABEL[n.type] && (
+                              <span className="badge bg-secondary ms-2" style={{ fontSize: "0.58rem", fontWeight: 500 }}>
+                                {ADMIN_NOTIF_LABEL[n.type]}
+                              </span>
+                            )}
                             {!n.is_read && (
                               <span className="badge text-bg-dark ms-2" style={{ fontSize: "0.58rem" }}>New</span>
                             )}
                           </span>
                           <div className="d-flex gap-1 flex-shrink-0">
                             {!n.is_read && (
-                              <button onClick={() => markNotifRead(n._id)}
+                              <button type="button" onClick={e => { e.stopPropagation(); markNotifRead(n._id); }}
                                 className="btn btn-link p-1 text-muted" style={{ fontSize: "0.75rem" }}
                                 title="Mark as read">
                                 <FaCheck />
                               </button>
                             )}
-                            <button onClick={() => deleteNotif(n._id)}
+                            <button type="button" onClick={e => { e.stopPropagation(); deleteNotif(n._id); }}
                               className="btn btn-link p-1 text-danger" style={{ fontSize: "0.75rem" }}
                               title="Delete">
                               <FaTimes />

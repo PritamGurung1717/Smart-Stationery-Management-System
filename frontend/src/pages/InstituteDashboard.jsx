@@ -77,33 +77,33 @@ const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
 /* ─── Quick Actions ─────────────────────────────────────────── */
 const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
   const actions = [
-    { icon: <FaBook />,         label: "Book Set Request",  sub: "Submit new request",          path: "/institute/book-set-request", primary: true },
-    { icon: <FaFileExcel />,    label: "Excel Upload",      sub: "Bulk upload via Excel",       path: "/institute/book-set-request/excel", primary: false },
+    { icon: <FaBook />,         label: "Book Set Request",  sub: "Submit new request",          path: "/institute/book-set-request" },
+    { icon: <FaFileExcel />,    label: "Excel Upload",      sub: "Bulk upload via Excel",       path: "/institute/book-set-request/excel" },
     { icon: <FaClipboardList />, label: "Browse Book Sets", sub: "View approved sets",           path: "/book-sets" },
     { icon: <FaBoxOpen />,      label: "Bulk Order",        sub: "10% institute discount",       path: "/cart" },
     { icon: <FaHistory />,      label: "My Orders",         sub: "Track all orders",             path: "/my-orders" },
     { icon: <FaGift />,         label: "My Donations",      sub: pendingRequestCount > 0 ? `${pendingRequestCount} pending` : "Manage donations", path: "/my-donations", badge: pendingRequestCount },
     { icon: <FaPaperPlane />,   label: "Item Requests",     sub: "Request unavailable items",    path: "/my-item-requests" },
-    { icon: <FaComments />,     label: "Chat with Admin",   sub: "Get support & assistance",     path: "#chat", primary: false, isChat: true },
+    { icon: <FaComments />,     label: "Chat with Admin",   sub: "Get support & assistance",     path: "#chat", isChat: true },
   ];
   return (
     <section className="py-5" style={{ background: "#fafafa" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
         <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>QUICK ACCESS</p>
         <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em" }}>What would you like to do?</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", overflowX: "auto" }}>
           {actions.map(a => (
             <button key={a.label} onClick={() => a.isChat ? onChatClick?.() : navigate(a.path)}
               className="btn border-0 text-start position-relative"
-              style={{ background: a.primary ? "#111" : "#fff", padding: "2rem 1.75rem", borderRadius: 0, transition: "background 0.2s" }}
-              onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#f9fafb"; }}
-              onMouseLeave={e => { if (!a.primary) e.currentTarget.style.background = "#fff"; }}>
+              style={{ background: "#fff", padding: "1.5rem 1.25rem", borderRadius: 0, transition: "background 0.2s", minWidth: 120 }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
               {a.badge > 0 && (
-                <span className="position-absolute badge rounded-pill bg-danger" style={{ top: 12, right: 12, fontSize: "0.65rem" }}>{a.badge}</span>
+                <span className="position-absolute badge rounded-pill bg-danger" style={{ top: 10, right: 10, fontSize: "0.65rem" }}>{a.badge}</span>
               )}
-              <div style={{ fontSize: "1.3rem", color: a.primary ? "#fff" : "#111", marginBottom: "1rem" }}>{a.icon}</div>
-              <div className="fw-bold" style={{ fontSize: "1rem", color: a.primary ? "#fff" : "#111", marginBottom: "0.25rem" }}>{a.label}</div>
-              <div style={{ fontSize: "0.8rem", color: a.primary ? "rgba(255,255,255,0.65)" : "#9ca3af" }}>{a.sub}</div>
+              <div style={{ fontSize: "1.2rem", color: "#111", marginBottom: "0.75rem" }}>{a.icon}</div>
+              <div className="fw-bold" style={{ fontSize: "0.88rem", color: "#111", marginBottom: "0.2rem" }}>{a.label}</div>
+              <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{a.sub}</div>
             </button>
           ))}
         </div>
@@ -343,23 +343,34 @@ const DonationSection = ({ navigate }) => {
             <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
               {donations.length === 0 ? (
                 <div className="bg-white text-center text-muted small p-4">No donations yet</div>
-              ) : donations.map(d => (
-                <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
-                  className="bg-white d-flex align-items-center gap-3 px-3 py-2"
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                  onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                  <span style={{ fontSize: "1.2rem" }}>🎁</span>
-                  <div className="flex-grow-1">
-                    <div className="fw-semibold small">{d.title}</div>
-                    <div className="text-muted" style={{ fontSize: "0.75rem" }}>by {d.donorName || "Anonymous"}</div>
+              ) : donations.map(d => {
+                const imgSrc = d.images?.[0]
+                  ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`)
+                  : null;
+                return (
+                  <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
+                    className="bg-white d-flex align-items-center gap-3 px-3 py-2"
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                    <div className="rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden"
+                      style={{ width: 44, height: 44 }}>
+                      {imgSrc
+                        ? <img src={imgSrc} alt={d.title} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            onError={e => { e.target.style.display = "none"; e.target.parentNode.innerHTML = "📦"; }} />
+                        : <span style={{ fontSize: "1.2rem" }}>📦</span>}
+                    </div>
+                    <div className="flex-grow-1">
+                      <div className="fw-semibold small">{d.title}</div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>by {d.donor?.name || "Anonymous"}</div>
+                    </div>
+                    <div className="text-end">
+                      <div className="text-muted" style={{ fontSize: "0.7rem" }}>{d.condition || "Good"}</div>
+                      <div className="fw-bold small">FREE</div>
+                    </div>
                   </div>
-                  <div className="text-end">
-                    <div className="text-muted" style={{ fontSize: "0.7rem" }}>{d.condition || "Good"}</div>
-                    <div className="fw-bold small">FREE</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="text-center mt-3">
               <button onClick={() => navigate("/donations")}

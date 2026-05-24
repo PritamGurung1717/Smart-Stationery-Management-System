@@ -9,7 +9,8 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [cart, setCart] = useState({ items: [] });
-  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "India" });
+  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "Nepal" });
+  const [contactDetails, setContactDetails] = useState({ fullName: "", phone: "" });
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [orderType, setOrderType] = useState("regular");
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,9 @@ const CheckoutPage = () => {
     fetchCart();
     const saved = JSON.parse(localStorage.getItem("shippingAddress") || "{}");
     if (saved) setShippingAddress(prev => ({ ...prev, ...saved }));
+    const savedContact = JSON.parse(localStorage.getItem("contactDetails") || "{}");
+    if (savedContact.fullName) setContactDetails(savedContact);
+    else if (storedUser?.name) setContactDetails(prev => ({ ...prev, fullName: storedUser.name, phone: storedUser.phone || "" }));
   }, [navigate]);
 
   const fetchCart = async () => {
@@ -79,6 +83,9 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     if (cart.items.length === 0) { toast.warning("Your cart is empty!"); return; }
+    if (!contactDetails.fullName.trim() || !contactDetails.phone.trim()) {
+      toast.warning("Please fill in your full name and phone number!"); return;
+    }
     if (!shippingAddress.address.trim() || !shippingAddress.city.trim() || !shippingAddress.state.trim() || !shippingAddress.zipCode.trim()) {
       toast.warning("Please fill in all required shipping address fields!"); return;
     }
@@ -91,6 +98,7 @@ const CheckoutPage = () => {
         shippingAddress, paymentMethod, orderType, notes: ""
       });
       localStorage.setItem("shippingAddress", JSON.stringify(shippingAddress));
+      localStorage.setItem("contactDetails", JSON.stringify(contactDetails));
       try { await axios.delete("http://localhost:5000/api/users/cart/clear"); } catch {}
 
       const orderId = res.data.order.id || res.data.order._id;
@@ -161,9 +169,26 @@ const CheckoutPage = () => {
             {/* Shipping */}
             <div className="border rounded-3 bg-white p-4 mb-4">
               <h5 className="fw-bold mb-4">Shipping Address</h5>
+
+              {/* Contact Details */}
+              <div className="row g-3 mb-3">
+                <div className="col-6">
+                  <label className="form-label fw-semibold small">Full Name *</label>
+                  <input type="text" className="form-control" placeholder="Recipient's full name"
+                    value={contactDetails.fullName}
+                    onChange={e => setContactDetails({ ...contactDetails, fullName: e.target.value })} />
+                </div>
+                <div className="col-6">
+                  <label className="form-label fw-semibold small">Phone Number *</label>
+                  <input type="tel" className="form-control" placeholder="+977 98XXXXXXXX"
+                    value={contactDetails.phone}
+                    onChange={e => setContactDetails({ ...contactDetails, phone: e.target.value })} />
+                </div>
+              </div>
+
               <div className="mb-3">
                 <label className="form-label fw-semibold small">Full Address *</label>
-                <input type="text" className="form-control" placeholder="Enter your full address"
+                <input type="text" className="form-control" placeholder="Street address, apartment, suite..."
                   value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
               </div>
               <div className="row g-3 mb-3">
@@ -208,7 +233,7 @@ const CheckoutPage = () => {
                 <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
               </div>
               <button onClick={handlePlaceOrder}
-                disabled={loading || cart.items.length === 0 || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
+                disabled={loading || cart.items.length === 0 || !contactDetails.fullName || !contactDetails.phone || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
                 className={`btn btn-dark fw-bold w-100 mb-2 ${(loading || cart.items.length === 0) ? "opacity-50" : ""}`}>
                 {loading
                   ? "Placing Order…"

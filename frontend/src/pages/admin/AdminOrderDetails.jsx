@@ -13,6 +13,7 @@ const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` 
 const STATUS_CONFIG = {
   pending:          { bg: "#fef3c7", color: "#92400e", dot: "#f59e0b",  label: "Pending" },
   confirmed:        { bg: "#dbeafe", color: "#1e40af", dot: "#3b82f6",  label: "Confirmed" },
+  preparing:        { bg: "#ede9fe", color: "#5b21b6", dot: "#8b5cf6",  label: "Processing" },
   processing:       { bg: "#ede9fe", color: "#5b21b6", dot: "#8b5cf6",  label: "Processing" },
   shipped:          { bg: "#d1fae5", color: "#065f46", dot: "#10b981",  label: "Shipped" },
   out_for_delivery: { bg: "#d1fae5", color: "#065f46", dot: "#10b981",  label: "Out for Delivery" },
@@ -23,14 +24,20 @@ const STATUS_CONFIG = {
 const FLOW_STEPS = [
   { key: "pending",          icon: <FaClock />,        label: "Order Placed" },
   { key: "confirmed",        icon: <FaCheck />,        label: "Confirmed" },
-  { key: "processing",       icon: <FaBox />,          label: "Processing" },
+  { key: "preparing",        icon: <FaBox />,          label: "Processing" },
   { key: "shipped",          icon: <FaTruck />,        label: "Shipped" },
   { key: "out_for_delivery", icon: <FaMapMarkerAlt />, label: "Out for Delivery" },
   { key: "delivered",        icon: <FaCheckCircle />,  label: "Delivered" },
 ];
 
 const ALL_STATUSES = [
-  "pending","confirmed","processing","shipped","out_for_delivery","delivered","cancelled"
+  ["pending", "Pending"],
+  ["confirmed", "Confirmed"],
+  ["preparing", "Processing"],
+  ["shipped", "Shipped"],
+  ["out_for_delivery", "Out for Delivery"],
+  ["delivered", "Delivered"],
+  ["cancelled", "Cancelled"],
 ];
 
 const Toast = ({ msg, type, onClose }) => {
@@ -220,8 +227,8 @@ function AdminOrderDetails() {
         <span className="fw-semibold small text-muted text-uppercase" style={{ letterSpacing:"0.07em", whiteSpace:"nowrap" }}>Update Status</span>
         <select value={newStatus} onChange={e => setNewStatus(e.target.value)}
           className="form-select form-select-sm rounded-0" style={{ maxWidth:200, borderColor:"#e5e7eb" }}>
-          {ALL_STATUSES.map(s => (
-            <option key={s} value={s}>{s.replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase())}</option>
+          {ALL_STATUSES.map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
           ))}
         </select>
         <button onClick={handleStatusUpdate} disabled={updatingStatus || newStatus === order.orderStatus}

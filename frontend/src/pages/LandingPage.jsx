@@ -200,6 +200,8 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
       if (err.response?.data?.needsVerification) {
         localStorage.setItem("user", JSON.stringify({ email: loginForm.email, role: "institute", needsVerification: true }));
         navigate("/institute-verification");
+      } else if (err.response?.data?.isPending) {
+        setError(err.response.data.message);
       } else if (err.response?.data?.isGoogleAccount) {
         setError("This account uses Google sign-in. Please click 'Continue with Google' below.");
       } else setError(err?.response?.data?.message || "Login failed");
@@ -661,9 +663,10 @@ const Footer = ({ onLogin }) => (
       <div className="row g-4 mb-4">
         <div className="col-md-4">
           <h6 className="fw-bold mb-3">Contact</h6>
-          <p className="text-muted small lh-lg mb-0">
-            Kathmandu, Nepal<br /><br />
-            +977 9815127051<br />stationerymanagementsystem25@gmail.com
+          <p className="text-muted small mb-0" style={{ lineHeight: 1.8 }}>
+            Kathmandu, Nepal<br />
+            +977 9815127051<br />
+            stationerymanagementsystem25@gmail.com
           </p>
         </div>
         <div className="col-md-2 col-6">
@@ -681,7 +684,7 @@ const Footer = ({ onLogin }) => (
         <div className="col-md-3 col-6">
           <h6 className="fw-bold mb-3">About</h6>
           {["About Us","Privacy Policy","Terms of Service","Help Center"].map(l => (
-            <button key={l} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
+            <button key={l} onClick={onLogin} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
           ))}
         </div>
       </div>
@@ -692,8 +695,8 @@ const Footer = ({ onLogin }) => (
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span className="text-muted small">© 2025 SmartStationery. All rights reserved.</span>
           <div className="d-flex gap-3">
-            <button className="btn btn-link p-0 text-muted small text-decoration-none">Privacy</button>
-            <button className="btn btn-link p-0 text-muted small text-decoration-none">Terms</button>
+            <button onClick={onLogin} className="btn btn-link p-0 text-muted small text-decoration-none">Privacy</button>
+            <button onClick={onLogin} className="btn btn-link p-0 text-muted small text-decoration-none">Terms</button>
           </div>
         </div>
       </div>

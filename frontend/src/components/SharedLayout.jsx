@@ -167,12 +167,13 @@ export const Navbar = ({ activeLink = "" }) => {
     { label: "Collections", path: "/products" },
     { label: "School Sets", path: "/book-sets" },
     { label: "Donate",      path: "/donations" },
+    { label: "FAQs",        path: "/faq" },
   ];
 
   return (
     <>
       <nav style={{ position: "sticky", top: 0, zIndex: 1000, background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, position: "relative" }}>
           <div style={{ display: "flex", gap: "1.75rem", alignItems: "center" }}>
             {NAV_LINKS.map(l => (
               <button key={l.label} onClick={() => navigate(l.path)}
@@ -181,8 +182,16 @@ export const Navbar = ({ activeLink = "" }) => {
               </button>
             ))}
           </div>
+
+          {/* Brand — absolutely centered so it never moves */}
           <button onClick={() => navigate(dashPath)}
-            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.35rem", fontWeight: 400, letterSpacing: "-0.01em", color: "#111" }}>
+            style={{
+              position: "absolute", left: "50%", transform: "translateX(-50%)",
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.35rem",
+              fontWeight: 400, letterSpacing: "-0.01em", color: "#111",
+              whiteSpace: "nowrap", pointerEvents: "auto",
+            }}>
             smartstationery.
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: "1.1rem" }}>
@@ -274,8 +283,9 @@ export const Footer = () => {
           <div>
             <h4 style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "1rem" }}>Contact</h4>
             <p style={{ color: "#6b7280", fontSize: "0.9rem", lineHeight: 1.8, margin: 0 }}>
-              Kathmandu, Nepal<br /><br />
-              +977 9815127051<br />stationerymanagementsystem25@gmail.com
+              Kathmandu, Nepal<br />
+              +977 9815127051<br />
+              stationerymanagementsystem25@gmail.com
             </p>
           </div>
           <div>
@@ -286,13 +296,24 @@ export const Footer = () => {
           </div>
           <div>
             <h4 style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "1rem" }}>Quick Links</h4>
-            {[["Request a Book","/my-item-requests"],["Donation Box","/donations"],["Track Order","/my-orders"],["FAQs","#"],["Contact Us","#"]].map(([l,p]) => (
+            {[
+              ["Request a Book","/my-item-requests"],
+              ["Donation Box","/donations"],
+              ["Track Order","/my-orders"],
+              ["FAQs","/faq"],
+              ["Contact Us","/about"],
+            ].map(([l,p]) => (
               <button key={l} onClick={() => navigate(p)} style={{ display: "block", background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", padding: "0.25rem 0", textAlign: "left" }}>{l}</button>
             ))}
           </div>
           <div>
             <h4 style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: "1rem" }}>About</h4>
-            {[["About Us","#"],["Privacy Policy","#"],["Terms of Service","#"],["Help Center","#"]].map(([l,p]) => (
+            {[
+              ["About Us","/about"],
+              ["Privacy Policy","/about"],
+              ["Terms of Service","/about"],
+              ["Help Center","/faq"],
+            ].map(([l,p]) => (
               <button key={l} onClick={() => navigate(p)} style={{ display: "block", background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.9rem", padding: "0.25rem 0", textAlign: "left" }}>{l}</button>
             ))}
           </div>
@@ -304,8 +325,8 @@ export const Footer = () => {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>© 2025 SmartStationery. All rights reserved.</span>
             <div style={{ display: "flex", gap: "1.5rem" }}>
-              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Privacy</button>
-              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Terms</button>
+              <button onClick={() => navigate("/about")} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Privacy</button>
+              <button onClick={() => navigate("/about")} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem" }}>Terms</button>
             </div>
           </div>
         </div>

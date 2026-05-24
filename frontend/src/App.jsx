@@ -43,6 +43,8 @@ import LandingPage from "./pages/LandingPage.jsx";
 import PaymentPage from "./pages/PaymentPage.jsx";
 import PaymentVerifyPage from "./pages/PaymentVerifyPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import FAQPage from "./pages/FAQPage.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -418,6 +420,8 @@ function App() {
         />
 
         {/* Catch-all route */}
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/faq" element={<FAQPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
 
         {/* Admin Chat standalone route */}

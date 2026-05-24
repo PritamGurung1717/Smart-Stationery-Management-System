@@ -159,17 +159,17 @@ const BookSetsSection = ({ navigate }) => {
             <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
               Get complete book sets for your child's class with a single click. Select your school and grade to find the perfect set.
             </p>
-            <div className="d-flex gap-2 flex-wrap">
-              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select" style={{ width: "auto" }}>
+            <div className="d-flex gap-2 mb-2">
+              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select form-select-sm" style={{ flex: 1 }}>
                 <option value="">Select Grade</option>
                 {grades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select" style={{ width: "auto" }}>
+              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select form-select-sm" style={{ flex: 1 }}>
                 <option value="">Select School</option>
                 {schools.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <button onClick={handleSearch} className="btn btn-dark fw-bold">Search Sets</button>
             </div>
+            <button onClick={handleSearch} className="btn btn-dark fw-bold btn-sm">Search Sets</button>
           </div>
           <div className="col-md-8">
             {sets.length === 0 ? (

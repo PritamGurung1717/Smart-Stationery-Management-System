@@ -30,54 +30,100 @@ const NAV_ITEMS = [
  *   children   — page content
  *   setUser    — optional, for logout
  */
+/** Red count badge for new/unread items in sidebar */
+const NewCountBadge = ({ count, isActive }) => (
+  <span
+    title={`${count} new`}
+    className="badge rounded-pill"
+    style={{
+      background: "#ef4444",
+      color: "#fff",
+      fontSize: "0.65rem",
+      fontWeight: 700,
+      minWidth: 20,
+      padding: "0.2em 0.5em",
+      flexShrink: 0,
+      boxShadow: isActive ? "0 0 0 1px #111" : "none",
+    }}
+  >
+    {count > 99 ? "99+" : count}
+  </span>
+);
+
 const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => {
   const navigate = useNavigate();
   const admin = JSON.parse(localStorage.getItem("user") || "null");
 
-  const [stats, setStats] = useState({
-    totalUsers: 0, totalProducts: 0, totalOrders: 0, pendingVerifications: 0, unreadChats: 0,
+  const [newCounts, setNewCounts] = useState({
+    pendingOrders: 0,
+    pendingVerifications: 0,
+    pendingBookSetRequests: 0,
+    pendingItemRequests: 0,
+    unreadChats: 0,
   });
   const [unreadNotifs, setUnreadNotifs] = useState(0);
+  /** Last acknowledged counts per section — dot shows when current > acknowledged */
+  const [acknowledged, setAcknowledged] = useState({});
 
-  const fetchStats = useCallback(async () => {
+  const fetchNewCounts = useCallback(async () => {
     try {
-      const [usersRes, prodsRes, ordersRes, verifRes] = await Promise.all([
-        axios.get(`${API}/users/admin/users?limit=1`).catch(() => ({ data: {} })),
-        axios.get(`${API}/products?limit=1`).catch(() => ({ data: {} })),
-        axios.get(`${API}/orders?limit=1`).catch(() => ({ data: {} })),
-        axios.get(`${API}/users/admin/verifications/pending`).catch(() => ({ data: {} })),
-      ]);
-      setStats(prev => ({
-        ...prev,
-        totalUsers: usersRes.data.total || 0,
-        totalProducts: prodsRes.data.total || 0,
-        totalOrders: ordersRes.data.total || 0,
-        pendingVerifications: (verifRes.data.pendingVerifications || []).length,
-      }));
-    } catch {}
-  }, []);
-
-  const fetchUnread = useCallback(async () => {
-    try {
-      const [notifRes, chatRes] = await Promise.all([
+      const [ordersRes, verifRes, bsRes, irRes, notifRes, chatRes] = await Promise.all([
+        axios.get(`${API}/orders?status=pending&limit=1`, { headers: authH() }).catch(() => ({ data: {} })),
+        axios.get(`${API}/users/admin/verifications/pending`, { headers: authH() }).catch(() => ({ data: {} })),
+        axios.get(`${API}/admin/book-set-requests?status=pending&limit=1`, { headers: authH() }).catch(() => ({ data: {} })),
+        axios.get(`${API}/requests/admin/all?status=pending&limit=1`, { headers: authH() }).catch(() => ({ data: {} })),
         axios.get(`${API}/notifications/unread-count`, { headers: authH() }).catch(() => ({ data: {} })),
         axios.get(`${API}/chat/unread-count`, { headers: authH() }).catch(() => ({ data: {} })),
       ]);
+      setNewCounts({
+        pendingOrders: ordersRes.data.total ?? 0,
+        pendingVerifications: (verifRes.data.pendingVerifications || []).length,
+        pendingBookSetRequests: bsRes.data.total ?? 0,
+        pendingItemRequests: irRes.data.total ?? 0,
+        unreadChats: chatRes.data.count ?? 0,
+      });
       if (notifRes.data.success) setUnreadNotifs(notifRes.data.count || 0);
-      if (chatRes.data.success) setStats(prev => ({ ...prev, unreadChats: chatRes.data.count || 0 }));
     } catch {}
   }, []);
 
   useEffect(() => {
-    fetchStats();
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 15000);
+    fetchNewCounts();
+    const interval = setInterval(fetchNewCounts, 15000);
     return () => clearInterval(interval);
-  }, [fetchStats, fetchUnread]);
+  }, [fetchNewCounts]);
+
+  const getCountForTab = (itemId) => {
+    switch (itemId) {
+      case "orders": return newCounts.pendingOrders;
+      case "verifications": return newCounts.pendingVerifications;
+      case "book-sets": return newCounts.pendingBookSetRequests;
+      case "item-requests": return newCounts.pendingItemRequests;
+      case "notifications": return unreadNotifs;
+      case "institute-chats": return newCounts.unreadChats;
+      default: return 0;
+    }
+  };
+
+  const acknowledgeTab = (itemId) => {
+    const count = getCountForTab(itemId);
+    setAcknowledged(prev => ({ ...prev, [itemId]: count }));
+  };
+
+  useEffect(() => {
+    if (activeTab && ["orders", "verifications", "book-sets", "item-requests", "notifications", "institute-chats"].includes(activeTab)) {
+      acknowledgeTab(activeTab);
+    }
+  }, [activeTab, newCounts.pendingOrders, newCounts.pendingVerifications, newCounts.pendingBookSetRequests, newCounts.pendingItemRequests, unreadNotifs, newCounts.unreadChats]);
+
+  const getNewCount = (itemId) => {
+    const current = getCountForTab(itemId);
+    const seen = acknowledged[itemId] ?? 0;
+    return Math.max(0, current - seen);
+  };
 
   const handleNav = (item) => {
-    const tab = item.id; // always pass tab in state
-    navigate("/admin-dashboard", { state: { tab }, replace: false });
+    acknowledgeTab(item.id);
+    navigate("/admin-dashboard", { state: { tab: item.id }, replace: false });
   };
 
   const handleLogout = () => {
@@ -118,18 +164,7 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
         <nav className="flex-grow-1 py-3 px-2">
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
-            const badge =
-              item.id === "users" ? (stats.totalUsers || null) :
-              item.id === "products" ? (stats.totalProducts || null) :
-              item.id === "orders" ? (stats.totalOrders || null) :
-              item.id === "verifications" ? (stats.pendingVerifications || null) :
-              item.id === "notifications" ? (unreadNotifs || null) :
-              item.id === "institute-chats" ? (stats.unreadChats || null) :
-              null;
-            const badgeDanger =
-              (item.id === "verifications" && stats.pendingVerifications > 0) ||
-              (item.id === "notifications" && unreadNotifs > 0) ||
-              (item.id === "institute-chats" && stats.unreadChats > 0);
+            const newCount = getNewCount(item.id);
             return (
               <button key={item.id} onClick={() => handleNav(item)}
                 className="btn border-0 w-100 text-start d-flex align-items-center gap-2 mb-1"
@@ -144,12 +179,7 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
                 <span style={{ fontSize: "0.85rem", opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
                 <span className="flex-grow-1">{item.label}</span>
-                {badge != null && (
-                  <span className={`badge rounded-pill ${badgeDanger ? "bg-danger" : isActive ? "bg-white text-dark" : "bg-dark text-white"}`}
-                    style={{ fontSize: "0.65rem" }}>
-                    {badge}
-                  </span>
-                )}
+                {newCount > 0 && <NewCountBadge count={newCount} isActive={isActive} />}
               </button>
             );
           })}

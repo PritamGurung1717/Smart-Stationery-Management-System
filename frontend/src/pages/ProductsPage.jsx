@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaSearch, FaShoppingBag, FaFilter } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
@@ -9,6 +8,105 @@ import { getAuthHeaders, isAuthenticated } from "../utils/auth.js";
 import toast from "../utils/toast.js";
 
 const API = "http://localhost:5000/api";
+
+/* ─── Category Row with horizontal scroll + arrow buttons ── */
+const CategoryRow = ({ category, products, formatCategoryName, addToCart, setSelectedProduct, toggleWishlist, isInWishlist }) => {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+    return () => { el.removeEventListener("scroll", checkScroll); window.removeEventListener("resize", checkScroll); };
+  }, [products]);
+
+  const scroll = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 240, behavior: "smooth" });
+  };
+
+  return (
+    <div className="mb-5">
+      {/* Row header: category name + arrow buttons */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2 className="fw-bold mb-0" style={{ fontSize: "1.4rem", letterSpacing: "-0.01em" }}>
+          {formatCategoryName(category)}
+        </h2>
+        {products.length > 4 && (
+          <div className="d-flex gap-2">
+            <button
+              onClick={() => scroll(-1)}
+              disabled={!canScrollLeft}
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                border: "1.5px solid #e5e7eb",
+                background: canScrollLeft ? "#111" : "#f9fafb",
+                color: canScrollLeft ? "#fff" : "#d1d5db",
+                cursor: canScrollLeft ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.15s",
+              }}>
+              ‹
+            </button>
+            <button
+              onClick={() => scroll(1)}
+              disabled={!canScrollRight}
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                border: "1.5px solid #e5e7eb",
+                background: canScrollRight ? "#111" : "#f9fafb",
+                color: canScrollRight ? "#fff" : "#d1d5db",
+                cursor: canScrollRight ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.15s",
+              }}>
+              ›
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Horizontal scroll container — single row */}
+      <div
+        ref={scrollRef}
+        style={{
+          display: "flex",
+          gap: 16,
+          overflowX: "auto",
+          scrollbarWidth: "none",       /* Firefox */
+          msOverflowStyle: "none",      /* IE */
+          paddingBottom: 4,
+        }}
+        className="hide-scrollbar"
+      >
+        <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+        {products.map(p => (
+          <div key={p.id} style={{ flexShrink: 0, width: 220 }}>
+            <ProductCard
+              product={p}
+              onCart={addToCart}
+              onView={setSelectedProduct}
+              onWishlist={toggleWishlist}
+              inWishlist={isInWishlist(p.id)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ProductsPage = () => {
   const navigate = useNavigate();
@@ -218,46 +316,48 @@ const ProductsPage = () => {
     <SharedLayout activeLink="Collections">
       <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-4 py-5">
 
-        {/* Page Header */}
-        <div className="mb-4">
-          <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATALOGUE</p>
-          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 400 }} className="mb-0">
-            All Products
-          </h1>
-          {searchTerm && (
-            <p className="text-muted mt-2 mb-0 small">
-              Results for: <span className="fw-semibold">"{searchTerm}"</span>
-            </p>
-          )}
-        </div>
-
-        {/* Search + Filter toggle row */}
-        <div className="d-flex gap-2 mb-4 align-items-center">
-          <div className="input-group" style={{ maxWidth: 480 }}>
-            <span className="input-group-text bg-white border-end-0 border" style={{ borderRadius: "8px 0 0 8px" }}>
-              <FaSearch className="text-muted" style={{ fontSize: "0.85rem" }} />
-            </span>
-            <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search products…" className="form-control border-start-0"
-              style={{ fontSize: "0.9rem", borderRadius: "0 8px 8px 0" }} />
+        {/* Page Header + Search on same line */}
+        <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
+          <div>
+            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATALOGUE</p>
+            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(1.75rem,4vw,2.5rem)", fontWeight: 400 }} className="mb-0">
+              All Products
+            </h1>
             {searchTerm && (
-              <button onClick={() => setSearchTerm("")}
-                className="btn btn-link text-muted p-0"
-                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}>
-                ×
+              <p className="text-muted mt-1 mb-0 small">
+                Results for: <span className="fw-semibold">"{searchTerm}"</span>
+              </p>
+            )}
+          </div>
+
+          {/* Search bar — right side, same line as heading */}
+          <div className="d-flex gap-2 align-items-center">
+            <div className="input-group" style={{ width: 280 }}>
+              <span className="input-group-text bg-white border-end-0 border" style={{ borderRadius: "8px 0 0 8px" }}>
+                <FaSearch className="text-muted" style={{ fontSize: "0.85rem" }} />
+              </span>
+              <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search products…" className="form-control border-start-0"
+                style={{ fontSize: "0.9rem", borderRadius: "0 8px 8px 0" }} />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm("")}
+                  className="btn btn-link text-muted p-0"
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 10 }}>
+                  ×
+                </button>
+              )}
+            </div>
+            <button onClick={() => setShowFilters(!showFilters)}
+              className={`btn d-lg-none fw-semibold d-flex align-items-center gap-2 ${showFilters ? "btn-dark" : "btn-outline-secondary"}`}
+              style={{ borderRadius: 8 }}>
+              <FaFilter style={{ fontSize: "0.8rem" }} /> Filters
+            </button>
+            {(selectedCategories.length > 0 || minPrice || maxPrice) && (
+              <button onClick={clearFilters} className="btn btn-link text-muted small text-decoration-none p-0">
+                Clear filters
               </button>
             )}
           </div>
-          <button onClick={() => setShowFilters(!showFilters)}
-            className={`btn d-lg-none fw-semibold d-flex align-items-center gap-2 ${showFilters ? "btn-dark" : "btn-outline-secondary"}`}
-            style={{ borderRadius: 8 }}>
-            <FaFilter style={{ fontSize: "0.8rem" }} /> Filters
-          </button>
-          {(selectedCategories.length > 0 || minPrice || maxPrice) && (
-            <button onClick={clearFilters} className="btn btn-link text-muted small text-decoration-none p-0 ms-1">
-              Clear filters
-            </button>
-          )}
         </div>
 
         <div className="row g-4 align-items-start">
@@ -407,22 +507,16 @@ const ProductsPage = () => {
               </div>
             ) : (
               Object.entries(groupedProducts).map(([category, products]) => (
-                <div key={category} className="mb-5">
-                  <h2 className="fw-bold mb-3" style={{ fontSize: "1.4rem", letterSpacing: "-0.01em" }}>
-                    {formatCategoryName(category)}
-                  </h2>
-                  <div className="row g-3">
-                    {products.map(p => (
-                      <div key={p.id} className="col-sm-6 col-md-4 col-xl-3">
-                        <ProductCard product={p}
-                          onCart={addToCart}
-                          onView={setSelectedProduct}
-                          onWishlist={toggleWishlist}
-                          inWishlist={isInWishlist(p.id)} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CategoryRow
+                  key={category}
+                  category={category}
+                  products={products}
+                  formatCategoryName={formatCategoryName}
+                  addToCart={addToCart}
+                  setSelectedProduct={setSelectedProduct}
+                  toggleWishlist={toggleWishlist}
+                  isInWishlist={isInWishlist}
+                />
               ))
             )}
           </div>

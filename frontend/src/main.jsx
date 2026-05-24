@@ -1,13 +1,19 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import axios from 'axios'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './index.css'
 import './App.css'
 import App from './App'
 
-// ── Sanitize stored token on every page load ──────────────────
+// ── Scroll to top on every route change ──────────────────────
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
 const rawToken = localStorage.getItem('token') || ''
 if (rawToken && /^Bearer\s+/i.test(rawToken)) {
   localStorage.setItem('token', rawToken.replace(/^Bearer\s+/i, '').trim())
@@ -65,6 +71,7 @@ axios.interceptors.response.use(
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ScrollToTop />
       <App />
     </BrowserRouter>
   </React.StrictMode>
