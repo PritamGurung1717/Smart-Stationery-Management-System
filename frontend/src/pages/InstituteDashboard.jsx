@@ -11,38 +11,30 @@ import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import ChatPage from "./ChatPage.jsx";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 const Hero = ({ user, navigate }) => (
-  <section className="position-relative overflow-hidden" style={{ height: "55vh", minHeight: 380 }}>
-    <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&q=80"
-      alt="Institute" className="position-absolute top-0 start-0 w-100 h-100"
-      style={{ objectFit: "cover", objectPosition: "center 30%" }} />
-    <div className="position-absolute top-0 start-0 w-100 h-100"
-      style={{ background: "linear-gradient(to right, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%)" }} />
-    <div className="position-relative h-100 d-flex flex-column justify-content-center px-3"
-      style={{ zIndex: 1, maxWidth: 1280, margin: "0 auto" }}>
-      <p className="text-uppercase fw-bold mb-2" style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", letterSpacing: "0.12em" }}>
-        INSTITUTE PORTAL
-      </p>
-      <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(2.5rem,6vw,5rem)", fontWeight: 400, color: "#fff", lineHeight: 1, margin: "0 0 1rem", letterSpacing: "-0.02em" }}>
-        Welcome back,<br />{user?.name}.
+  <section className="landing-hero">
+    <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&q=80" alt="Institute campus" />
+    <div className="landing-hero-overlay" />
+    <div className="landing-hero-content">
+      <p className="ss-section-label mb-2" style={{ color: "rgba(255,255,255,0.75)" }}>INSTITUTE PORTAL</p>
+      <h1>
+        <span className="hero-smart">Welcome back,</span><br />
+        <span className="hero-stationery">{user?.name}.</span>
       </h1>
-      <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.9rem", maxWidth: 380, margin: "0 0 2rem", lineHeight: 1.65 }}>
-        {user?.instituteInfo?.schoolName || "Manage your book set requests, bulk orders, and donations."}
+      <p className="landing-hero-desc">
+        {user?.instituteInfo?.schoolName || "Manage book set requests, bulk orders, and donations."}
       </p>
-      <div className="d-flex gap-3 flex-wrap">
-        <button onClick={() => navigate("/institute/book-set-request")}
-          className="btn btn-light fw-bold rounded-pill d-flex align-items-center gap-2"
-          style={{ padding: "0.75rem 1.75rem" }}>
-          📚 Book Set Request
+      <div className="landing-hero-actions">
+        <button type="button" onClick={() => navigate("/institute/book-set-request")} className="landing-btn-primary">
+          Book Set Request
         </button>
-        <button onClick={() => navigate("/my-orders")}
-          className="btn fw-bold rounded-pill"
-          style={{ padding: "0.75rem 1.75rem", background: "none", color: "#fff", border: "1.5px solid rgba(255,255,255,0.7)" }}>
+        <button type="button" onClick={() => navigate("/my-orders")} className="landing-btn-outline">
           Track Orders
         </button>
       </div>
@@ -50,7 +42,7 @@ const Hero = ({ user, navigate }) => (
   </section>
 );
 
-/* ─── Stats Row ─────────────────────────────────────────────── */
+/* ─── Stats Row (same strip layout as personal dashboard value bar) ─ */
 const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
   const stats = [
     { label: "Total Orders",      value: orders.length,                                                    icon: "📦" },
@@ -60,19 +52,28 @@ const StatsRow = ({ orders, cartCount, pendingRequestCount }) => {
     { label: "Donation Requests", value: pendingRequestCount, icon: "🎁", highlight: pendingRequestCount > 0 },
   ];
   return (
-    <section className="bg-white border-bottom">
-      <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+    <section className="landing-value-bar">
+      <div className="landing-stats-inner">
         {stats.map(s => (
-          <div key={s.label} className="bg-white text-center p-4">
-            <div style={{ fontSize: "1.5rem" }} className="mb-1">{s.icon}</div>
-            <div className="fw-bold" style={{ fontSize: "1.5rem", color: s.highlight ? "#ef4444" : "#111", lineHeight: 1 }}>{s.value}</div>
-            <div className="text-muted mt-1" style={{ fontSize: "0.78rem" }}>{s.label}</div>
+          <div key={s.label} className="landing-stat-cell">
+            <div style={{ fontSize: "1.35rem" }} className="mb-1">{s.icon}</div>
+            <div className={`landing-stat-value ${s.highlight ? "alert-val" : ""}`}>{s.value}</div>
+            <div className="landing-stat-label">{s.label}</div>
           </div>
         ))}
       </div>
     </section>
   );
 };
+
+const SIDEBAR_CATS = [
+  { id: "all", label: "All Products" },
+  { id: "book", label: "Books" },
+  { id: "stationery", label: "Stationery" },
+  { id: "electronics", label: "School Sets" },
+  { id: "sports", label: "Sports" },
+  { id: "others", label: "Others" },
+];
 
 /* ─── Quick Actions ─────────────────────────────────────────── */
 const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
@@ -87,23 +88,25 @@ const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
     { icon: <FaComments />,     label: "Chat with Admin",   sub: "Get support & assistance",     path: "#chat", isChat: true },
   ];
   return (
-    <section className="py-5" style={{ background: "#fafafa" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>QUICK ACCESS</p>
-        <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em" }}>What would you like to do?</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb", overflowX: "auto" }}>
+    <section className="py-5 bg-white">
+      <div className="landing-shop-inner landing-shop-inner--full">
+        <p className="ss-section-label mb-1">QUICK ACCESS</p>
+        <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em", color: "#111" }}>
+          What would you like to do?
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "1px", background: "#E5E7EB", border: "1px solid #E5E7EB" }}>
           {actions.map(a => (
-            <button key={a.label} onClick={() => a.isChat ? onChatClick?.() : navigate(a.path)}
+            <button key={a.label} type="button" onClick={() => a.isChat ? onChatClick?.() : navigate(a.path)}
               className="btn border-0 text-start position-relative"
-              style={{ background: "#fff", padding: "1.5rem 1.25rem", borderRadius: 0, transition: "background 0.2s", minWidth: 120 }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#f9fafb"; }}
+              style={{ background: "#fff", padding: "1.5rem 1.25rem", borderRadius: 0, minHeight: 120 }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#EFF6FF"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
               {a.badge > 0 && (
                 <span className="position-absolute badge rounded-pill bg-danger" style={{ top: 10, right: 10, fontSize: "0.65rem" }}>{a.badge}</span>
               )}
-              <div style={{ fontSize: "1.2rem", color: "#111", marginBottom: "0.75rem" }}>{a.icon}</div>
+              <div style={{ fontSize: "1.2rem", color: "#1D4ED8", marginBottom: "0.75rem" }}>{a.icon}</div>
               <div className="fw-bold" style={{ fontSize: "0.88rem", color: "#111", marginBottom: "0.2rem" }}>{a.label}</div>
-              <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{a.sub}</div>
+              <div style={{ fontSize: "0.75rem", color: "#4B5563" }}>{a.sub}</div>
             </button>
           ))}
         </div>
@@ -112,52 +115,57 @@ const QuickActions = ({ navigate, pendingRequestCount, onChatClick }) => {
   );
 };
 
-/* ─── Featured Products ─────────────────────────────────────── */
-const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate, onView }) => {
-  const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
-  return (
-    <section className="py-5" style={{ background: "#fafafa" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CURATED</p>
-        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+/* ─── Featured Products (sidebar + grid — same as personal dashboard) ─ */
+const FeaturedProducts = ({ products, selected, onSelect, onCart, onWishlist, isInWishlist, navigate, onView }) => (
+  <section className="landing-shop">
+    <div className="landing-shop-inner">
+      <aside className="landing-sidebar">
+        <h3>Shop by Category</h3>
+        {SIDEBAR_CATS.map(cat => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => onSelect(cat.id)}
+            className={`landing-cat-btn ${selected === cat.id ? "active" : ""}`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </aside>
+      <div className="landing-products-panel">
+        <div className="landing-products-header">
           <div>
-            <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Featured Products</h2>
-            <p className="text-success small mb-0 mt-1 fw-semibold">✓ 10% institute discount applied at checkout</p>
+            <h2>Featured Products</h2>
+            <p className="small mb-0 mt-1 fw-semibold" style={{ color: "#16A34A" }}>10% institute discount at checkout</p>
           </div>
-          <div className="d-flex gap-2 flex-wrap">
-            {FILTER_CATS.map(c => (
-              <button key={c} onClick={() => onSelect(c === "All" ? "all" : c.toLowerCase())}
-                className={`btn btn-sm fw-semibold rounded-pill ${(selected === "all" && c === "All") || selected === c.toLowerCase() ? "btn-dark" : "btn-outline-dark"}`}>
-                {c}
-              </button>
-            ))}
-          </div>
+          <button type="button" onClick={() => navigate("/products")} className="landing-view-all">
+            View all products <FaChevronRight style={{ fontSize: "0.7rem" }} />
+          </button>
         </div>
         {products.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            <FaShoppingBag style={{ fontSize: "3rem" }} className="mb-3 d-block mx-auto" />
+          <div className="text-center py-5" style={{ color: "#4B5563" }}>
+            <FaShoppingBag style={{ fontSize: "3rem", color: "#9CA3AF" }} className="mb-3 d-block mx-auto" />
             <p>No products found</p>
           </div>
         ) : (
-          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
-            {products.slice(0, 10).map(p => (
-              <div key={p.id} className="col">
-                <ProductCard product={p} onCart={onCart} onWishlist={onWishlist}
-                  inWishlist={isInWishlist(p.id)} onView={onView} />
-              </div>
+          <div className="landing-product-grid">
+            {products.slice(0, 12).map(p => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                variant="landing"
+                onCart={onCart}
+                onWishlist={onWishlist}
+                inWishlist={isInWishlist(p.id)}
+                onView={onView}
+              />
             ))}
           </div>
         )}
-        <div className="text-center mt-4">
-          <button onClick={() => navigate("/products")}
-            className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-            View all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
-          </button>
-        </div>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 /* ─── Book Sets Section ─────────────────────────────────────── */
 const BookSetsSection = ({ navigate }) => {
@@ -187,59 +195,53 @@ const BookSetsSection = ({ navigate }) => {
 
   return (
     <section className="py-5 bg-white">
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+      <div className="landing-section-inner">
         <div className="row g-5 align-items-start">
           <div className="col-md-4">
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>SCHOOL SETS</p>
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
-            <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
+            <p className="ss-section-label">SCHOOL SETS</p>
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>Complete Book Sets</h2>
+            <p className="lh-base mb-4" style={{ fontSize: "0.95rem", color: "#4B5563" }}>
               Browse approved book sets by school and grade. Submit a request if your school's set isn't listed yet.
             </p>
-            <div className="d-flex gap-2 flex-wrap mb-3">
-              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select" style={{ flex: "1", minWidth: "150px" }}>
+            <div className="d-flex gap-2 mb-2 flex-wrap">
+              <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select form-select-sm" style={{ flex: 1, minWidth: 120, borderColor: "#E5E7EB" }}>
                 <option value="">Select Grade</option>
-                {grades.map(g => <option key={g} value={g}>Grade {g}</option>)}
+                {grades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select" style={{ flex: "1", minWidth: "150px" }}>
+              <select value={school} onChange={e => setSchool(e.target.value)} className="form-select form-select-sm" style={{ flex: 1, minWidth: 120, borderColor: "#E5E7EB" }}>
                 <option value="">Select School</option>
                 {schools.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <button onClick={handleSearch} className="btn btn-dark fw-bold px-4">Search</button>
             </div>
-            <button onClick={() => navigate("/institute/book-set-request")}
-              className="btn btn-outline-dark fw-semibold d-inline-flex align-items-center gap-1">
+            <button type="button" onClick={handleSearch} className="landing-btn-primary mb-3" style={{ padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
+              Search Sets
+            </button>
+            <button type="button" onClick={() => navigate("/institute/book-set-request")}
+              className="ss-btn-outline fw-semibold d-inline-flex align-items-center gap-1 px-3 py-2">
               + Submit New Request
             </button>
           </div>
           <div className="col-md-8">
             {sets.length === 0 ? (
-              <div className="border rounded-3 text-center p-5 text-muted">
-                <FaBook style={{ fontSize: "2rem" }} className="mb-3 d-block mx-auto" />
-                <p className="mb-3">No book sets available yet.</p>
-                <button onClick={() => navigate("/institute/book-set-request")} className="btn btn-dark fw-semibold">Submit a Request</button>
-              </div>
+              <p className="py-4 mb-0" style={{ color: "#4B5563" }}>No book sets available yet.</p>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+              <div className="landing-bookset-grid">
                 {sets.map(s => (
-                  <div key={s.id} onClick={() => navigate(`/book-sets/${s.id}`)}
-                    className="bg-white p-3" style={{ cursor: "pointer" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                    <p className="fw-bold mb-1" style={{ fontSize: "1rem", lineHeight: 1.3 }}>{s.school_name}</p>
-                    <span className="badge text-bg-dark mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>Grade {s.grade}</span>
-                    <p className="text-muted mb-3" style={{ fontSize: "0.8rem" }}>📚 {s.items?.length || 0} books included</p>
+                  <div key={s.id} onClick={() => navigate(`/book-sets/${s.id}`)} className="landing-bookset-cell" role="button" tabIndex={0}>
+                    <p className="fw-bold mb-1" style={{ fontSize: "1rem", lineHeight: 1.3, color: "#111" }}>{s.school_name}</p>
+                    <span className="mb-2 d-inline-block ss-badge-blue">Grade {s.grade}</span>
+                    <p className="mb-3" style={{ fontSize: "0.8rem", color: "#4B5563" }}>{s.items?.length || 0} books included</p>
                     <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-bold">₹{s.total_price}</span>
-                      <FaShoppingCart className="text-muted" />
+                      <span className="fw-bold" style={{ color: "#111" }}>₹{Number(s.total_price || 0).toFixed(2)}</span>
+                      <FaShoppingCart style={{ color: "#1D4ED8" }} />
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <div className="text-center mt-4">
-              <button onClick={() => navigate("/book-sets")}
-                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-                View all school sets <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              <button type="button" onClick={() => navigate("/book-sets")} className="landing-view-all">
+                View all school sets <FaChevronRight style={{ fontSize: "0.7rem" }} />
               </button>
             </div>
           </div>
@@ -259,52 +261,53 @@ const STATUS_BADGE = {
 };
 
 const RecentOrders = ({ orders, navigate }) => (
-  <section className="py-5" style={{ background: "#fafafa" }}>
-    <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
-      <div className="d-flex justify-content-between align-items-end mb-4">
+  <section className="py-5" style={{ background: "#F3F4F6" }}>
+    <div className="landing-section-inner">
+      <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-2">
         <div>
-          <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>ORDERS</p>
-          <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em" }}>Recent Orders</h2>
+          <p className="ss-section-label">ORDERS</p>
+          <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.5rem,3vw,2rem)", letterSpacing: "-0.02em", color: "#111" }}>Recent Orders</h2>
         </div>
-        <button onClick={() => navigate("/my-orders")}
-          className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
+        <button type="button" onClick={() => navigate("/my-orders")} className="landing-view-all">
           View all <FaChevronRight style={{ fontSize: "0.75rem" }} />
         </button>
       </div>
       {orders.length === 0 ? (
-        <div className="border rounded-3 bg-white text-center p-5 text-muted">
-          <FaBoxOpen style={{ fontSize: "2.5rem", color: "#e5e7eb" }} className="mb-3 d-block mx-auto" />
-          <p className="mb-3">No orders placed yet.</p>
-          <button onClick={() => navigate("/cart")} className="btn btn-dark fw-semibold">Place Bulk Order</button>
+        <div className="ss-empty-state">
+          <FaBoxOpen style={{ fontSize: "2.5rem", color: "#9CA3AF" }} className="mb-3 d-block mx-auto" />
+          <p className="mb-3" style={{ color: "#4B5563" }}>No orders placed yet.</p>
+          <button type="button" onClick={() => navigate("/cart")} className="landing-btn-primary border-0">Place Bulk Order</button>
         </div>
       ) : (
-        <div className="border rounded-3 overflow-hidden">
-          <table className="table table-hover mb-0 align-middle">
-            <thead className="table-light">
-              <tr>
-                {["Order ID","Date","Amount","Status","Action"].map(h => (
-                  <th key={h} className="fw-bold small text-muted text-uppercase py-3" style={{ letterSpacing: "0.05em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {orders.slice(0, 5).map(o => (
-                <tr key={o.id}>
-                  <td className="fw-semibold small">ORD-{o.id}</td>
-                  <td className="text-muted small">{new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
-                  <td className="fw-bold">₹{o.totalAmount}</td>
-                  <td>
-                    <span className={`badge ${STATUS_BADGE[o.orderStatus] || "text-secondary bg-light"} text-capitalize`} style={{ fontSize: "0.75rem" }}>
-                      {o.orderStatus}
-                    </span>
-                  </td>
-                  <td>
-                    <button onClick={() => navigate(`/orders/${o.id}`)} className="btn btn-outline-secondary btn-sm fw-medium">View</button>
-                  </td>
+        <div className="ss-card p-0 overflow-hidden">
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 align-middle">
+              <thead>
+                <tr className="ss-table-head">
+                  {["Order ID","Date","Amount","Status","Action"].map(h => (
+                    <th key={h} className="fw-bold small py-3 border-0 text-nowrap">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {orders.slice(0, 5).map(o => (
+                  <tr key={o.id}>
+                    <td className="fw-semibold small" style={{ color: "#111" }}>ORD-{o.id}</td>
+                    <td className="small text-nowrap" style={{ color: "#4B5563" }}>{new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
+                    <td className="fw-bold text-nowrap" style={{ color: "#111" }}>₹{Number(o.totalAmount || 0).toFixed(2)}</td>
+                    <td>
+                      <span className={`badge ${STATUS_BADGE[o.orderStatus] || "text-secondary bg-light"} text-capitalize`} style={{ fontSize: "0.75rem" }}>
+                        {o.orderStatus}
+                      </span>
+                    </td>
+                    <td>
+                      <button type="button" onClick={() => navigate(`/orders/${o.id}`)} className="ss-btn-outline btn-sm">View</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -321,61 +324,70 @@ const DonationSection = ({ navigate }) => {
 
   return (
     <section className="py-5 bg-white">
-      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+      <div className="landing-section-inner">
         <div className="row g-5 align-items-start">
           <div className="col-md-6">
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>COMMUNITY</p>
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+            <p className="ss-section-label">COMMUNITY</p>
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.75rem)", letterSpacing: "-0.02em", lineHeight: 1.15, color: "#111" }}>
               Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400 }}>Learning</em>
             </h2>
-            <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
+            <p className="lh-base mb-4" style={{ fontSize: "0.95rem", color: "#4B5563" }}>
               Have books or supplies you no longer need? Donate them to help other students. Or browse available donations to find what you need — for free.
             </p>
+            <div className="d-flex gap-4 mb-4 flex-wrap">
+              {[["500+","Items Donated"],["200+","Students Helped"],["50+","Active Donors"]].map(([n, l]) => (
+                <div key={l}>
+                  <div className="fw-bold" style={{ fontSize: "1.5rem", color: "#1D4ED8" }}>{n}</div>
+                  <div className="small" style={{ color: "#4B5563" }}>{l}</div>
+                </div>
+              ))}
+            </div>
             <div className="d-flex gap-2 flex-wrap">
-              <button onClick={() => navigate("/donations/create")} className="btn btn-dark rounded-pill fw-bold">🎁 Donate Items</button>
-              <button onClick={() => navigate("/donations")} className="btn btn-outline-dark rounded-pill fw-bold d-flex align-items-center gap-2">
+              <button type="button" onClick={() => navigate("/donations/create")} className="landing-btn-primary border-0">
+                Donate Items
+              </button>
+              <button type="button" onClick={() => navigate("/donations")} className="ss-btn-outline fw-semibold d-flex align-items-center gap-2 px-4 py-2">
                 Browse Donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
           </div>
           <div className="col-md-6">
-            <p className="text-uppercase fw-bold small text-muted mb-3" style={{ letterSpacing: "0.1em" }}>RECENTLY AVAILABLE</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
+            <p className="ss-section-label mb-3">RECENTLY AVAILABLE</p>
+            <div className="landing-donation-list">
               {donations.length === 0 ? (
-                <div className="bg-white text-center text-muted small p-4">No donations yet</div>
+                <div className="landing-donation-row justify-content-center" style={{ cursor: "default" }}>
+                  <span className="small" style={{ color: "#4B5563" }}>No donations yet</span>
+                </div>
               ) : donations.map(d => {
                 const imgSrc = d.images?.[0]
                   ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`)
                   : null;
                 return (
-                  <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)}
-                    className="bg-white d-flex align-items-center gap-3 px-3 py-2"
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                    <div className="rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden"
-                      style={{ width: 44, height: 44 }}>
+                  <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)} className="landing-donation-row" role="button" tabIndex={0}>
+                    <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden"
+                      style={{ width: 48, height: 48, background: "#EFF6FF" }}>
                       {imgSrc
-                        ? <img src={imgSrc} alt={d.title} style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            onError={e => { e.target.style.display = "none"; e.target.parentNode.innerHTML = "📦"; }} />
+                        ? <img src={imgSrc} alt={d.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                         : <span style={{ fontSize: "1.2rem" }}>📦</span>}
                     </div>
-                    <div className="flex-grow-1">
-                      <div className="fw-semibold small">{d.title}</div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem" }}>by {d.donor?.name || "Anonymous"}</div>
+                    <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                      <div className="fw-semibold small text-truncate" style={{ color: "#111" }}>{d.title}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#4B5563" }}>
+                        by {d.donor?.name || "Anonymous"}
+                        {d.created_at ? ` · ${new Date(d.created_at).toLocaleDateString()}` : ""}
+                      </div>
                     </div>
-                    <div className="text-end">
-                      <div className="text-muted" style={{ fontSize: "0.7rem" }}>{d.condition || "Good"}</div>
-                      <div className="fw-bold small">FREE</div>
+                    <div className="text-end flex-shrink-0">
+                      <div className="text-capitalize" style={{ fontSize: "0.7rem", color: "#4B5563" }}>{d.condition?.replace("_", " ") || "Good"}</div>
+                      <div className="fw-bold small" style={{ color: "#16A34A" }}>FREE</div>
                     </div>
                   </div>
                 );
               })}
             </div>
             <div className="text-center mt-3">
-              <button onClick={() => navigate("/donations")}
-                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-                View all donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              <button type="button" onClick={() => navigate("/donations")} className="landing-view-all">
+                View all donations <FaChevronRight style={{ fontSize: "0.7rem" }} />
               </button>
             </div>
           </div>
@@ -486,7 +498,19 @@ const InstituteDashboard = ({ setUser }) => {
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
-    setProducts(cat === "all" ? allProducts : allProducts.filter(p => p.category === cat));
+    if (cat === "all") {
+      setProducts(allProducts);
+      return;
+    }
+    if (cat === "others") {
+      const known = ["book", "stationery", "electronics", "sports", "art"];
+      setProducts(allProducts.filter(p => !known.includes((p.category || "").toLowerCase())));
+      return;
+    }
+    setProducts(allProducts.filter(p => {
+      const c = (p.category || "").toLowerCase();
+      return c === cat || c === cat + "s";
+    }));
   };
 
   const handleLogout = () => {
@@ -499,39 +523,41 @@ const InstituteDashboard = ({ setUser }) => {
   if (!loading && user && verificationStatus !== "approved") {
     return (
       <SharedLayout>
-        <div style={{ maxWidth: 560, margin: "8rem auto" }} className="px-3 text-center">
-          <div style={{ fontSize: "4rem" }} className="mb-4">🏫</div>
-          <h2 className="fw-bold mb-2" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-            Verification {verificationStatus === "pending" ? "Pending" : "Required"}
-          </h2>
-          <p className="text-muted lh-base mb-4">
-            {verificationStatus === "pending"
-              ? "Your institute account is pending verification. We'll notify you once approved."
-              : "Your verification was rejected. Please resubmit with correct details."}
-          </p>
-          {user?.instituteVerification?.comments && (
-            <div className="alert alert-danger text-start small mb-4">
-              <strong>Reason:</strong> {user.instituteVerification.comments}
+        <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+          <div className="ss-page-inner text-center" style={{ maxWidth: 560, paddingTop: "6rem" }}>
+            <div style={{ fontSize: "4rem" }} className="mb-4">🏫</div>
+            <h2 className="ss-page-title mb-2">
+              Verification {verificationStatus === "pending" ? "Pending" : "Required"}
+            </h2>
+            <p className="lh-base mb-4" style={{ color: "#4B5563" }}>
+              {verificationStatus === "pending"
+                ? "Your institute account is pending verification. We'll notify you once approved."
+                : "Your verification was rejected. Please resubmit with correct details."}
+            </p>
+            {user?.instituteVerification?.comments && (
+              <div className="alert alert-danger text-start small mb-4">
+                <strong>Reason:</strong> {user.instituteVerification.comments}
+              </div>
+            )}
+            <div className="d-flex gap-3 justify-content-center flex-wrap">
+              <button type="button" onClick={() => navigate("/institute-verification")} className="landing-btn-primary border-0 px-4">
+                {verificationStatus === "pending" ? "Check Status" : "Resubmit"}
+              </button>
+              <button type="button" onClick={handleLogout} className="ss-btn-outline px-4 py-2">Logout</button>
             </div>
-          )}
-          <div className="d-flex gap-3 justify-content-center">
-            <button onClick={() => navigate("/institute-verification")} className="btn btn-dark rounded-pill fw-bold px-4">
-              {verificationStatus === "pending" ? "Check Status" : "Resubmit"}
-            </button>
-            <button onClick={handleLogout} className="btn btn-outline-dark rounded-pill fw-bold px-4">Logout</button>
           </div>
-        </div>
+        </section>
       </SharedLayout>
     );
   }
 
   if (loading) return (
-    <div className="d-flex align-items-center justify-content-center bg-white" style={{ minHeight: "100vh" }}>
+    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh", background: "#F3F4F6" }}>
       <div className="text-center">
-        <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+        <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status">
           <span className="visually-hidden">Loading…</span>
         </div>
-        <p className="text-muted">Loading…</p>
+        <p style={{ color: "#4B5563" }}>Loading…</p>
       </div>
     </div>
   );
@@ -544,15 +570,14 @@ const InstituteDashboard = ({ setUser }) => {
       <StatsRow orders={orders} cartCount={cartCount} pendingRequestCount={pendingRequestCount} />
       <QuickActions navigate={navigate} pendingRequestCount={pendingRequestCount} onChatClick={() => setShowChat(true)} />
       <FeaturedProducts
-        products={products} selected={selectedCategory} onSelect={handleCategorySelect}
-        quantities={quantities}
-        onQtyChange={(id, v) => {
-          const n = parseInt(v) || 1;
-          const p = allProducts.find(x => x.id === id);
-          setQuantities(q => ({ ...q, [id]: p ? Math.min(n, p.stock_quantity) : n }));
-        }}
-        onCart={addToCart} onWishlist={toggleWishlist} isInWishlist={isInWishlist}
-        navigate={navigate} onView={setSelectedProduct}
+        products={products}
+        selected={selectedCategory}
+        onSelect={handleCategorySelect}
+        onCart={addToCart}
+        onWishlist={toggleWishlist}
+        isInWishlist={isInWishlist}
+        navigate={navigate}
+        onView={setSelectedProduct}
       />
       <BookSetsSection navigate={navigate} />
       <RecentOrders orders={orders} navigate={navigate} />

@@ -144,10 +144,10 @@ const NotificationBell = () => {
       <button
         ref={bellRef}
         onClick={isAuthed ? toggleOpen : undefined}
+        className="landing-icon-btn"
         style={{
-          background: 'none', border: 'none', cursor: isAuthed ? 'pointer' : 'default',
-          color: '#111', fontSize: '1.05rem', position: 'relative',
-          padding: '0.25rem', display: 'flex', alignItems: 'center'
+          cursor: isAuthed ? 'pointer' : 'default',
+          position: 'relative',
         }}
         aria-label="Notifications"
       >
@@ -155,7 +155,7 @@ const NotificationBell = () => {
         {isAuthed && unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -5, right: -5,
-            background: '#111', color: '#fff', borderRadius: '50%',
+            background: '#1D4ED8', color: '#fff', borderRadius: '50%',
             fontSize: '0.6rem', width: 16, height: 16,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 700, lineHeight: 1
@@ -178,7 +178,7 @@ const NotificationBell = () => {
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111' }}>
               Notifications
               {unreadCount > 0 && (
-                <span style={{ marginLeft: '0.5rem', background: '#111', color: '#fff', borderRadius: 50, fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem' }}>
+                <span style={{ marginLeft: '0.5rem', background: '#1D4ED8', color: '#fff', borderRadius: 50, fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem' }}>
                   {unreadCount}
                 </span>
               )}
@@ -216,7 +216,7 @@ const NotificationBell = () => {
                   <p style={{ margin: '0.2rem 0 0.4rem', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.45 }}>{n.message}</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{getTimeAgo(n.created_at)}</span>
-                    {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />}
+                    {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1D4ED8', display: 'inline-block' }} />}
                   </div>
                 </div>
               </div>

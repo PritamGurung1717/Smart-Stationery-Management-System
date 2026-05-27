@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaTimes, FaShoppingCart, FaChevronLeft, FaChevronRight, FaStar, FaHeart, FaTrash } from "react-icons/fa";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -85,7 +86,7 @@ const ReviewsSection = ({ productId, isGuest, onStatsChange }) => {
       </div>
 
       {!isGuest && !myReview && (
-        <div className="border rounded-3 p-3 mb-4 bg-light">
+        <div className="ss-card mb-4" style={{ background: "#F9FAFB" }}>
           <p className="fw-semibold small mb-3">Write a Review</p>
           {error && <div className="alert alert-danger small py-2 mb-2">⚠️ {error}</div>}
           {success && <div className="alert alert-success small py-2 mb-2">✓ {success}</div>}
@@ -101,7 +102,7 @@ const ReviewsSection = ({ productId, isGuest, onStatsChange }) => {
                 className="form-control" style={{ resize: "none", fontSize: "0.875rem" }} />
             </div>
             <button type="submit" disabled={submitting}
-              className={`btn btn-dark btn-sm fw-semibold ${submitting ? "opacity-75" : ""}`}>
+              className={`btn landing-btn-primary btn-sm fw-semibold ${submitting ? "opacity-75" : ""}`}>
               {submitting ? "Submitting…" : "Submit Review"}
             </button>
           </form>
@@ -183,12 +184,12 @@ const ImageCarousel = ({ images, name }) => {
       ))}
       {imgs.length > 1 && (
         <>
-          <button onClick={() => go(-1)} className="position-absolute btn d-flex align-items-center justify-content-center"
-            style={{ left: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.4)", color: "#fff", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: "0.7rem", zIndex: 2 }}>
+          <button type="button" onClick={() => go(-1)} className="position-absolute btn d-flex align-items-center justify-content-center"
+            style={{ left: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(29,78,216,0.85)", color: "#fff", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: "0.7rem", zIndex: 2 }}>
             <FaChevronLeft />
           </button>
-          <button onClick={() => go(1)} className="position-absolute btn d-flex align-items-center justify-content-center"
-            style={{ right: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.4)", color: "#fff", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: "0.7rem", zIndex: 2 }}>
+          <button type="button" onClick={() => go(1)} className="position-absolute btn d-flex align-items-center justify-content-center"
+            style={{ right: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(29,78,216,0.85)", color: "#fff", border: "none", borderRadius: "50%", width: 30, height: 30, fontSize: "0.7rem", zIndex: 2 }}>
             <FaChevronRight />
           </button>
           <div className="position-absolute d-flex gap-1 justify-content-center" style={{ bottom: 8, left: 0, right: 0, zIndex: 2 }}>
@@ -272,12 +273,12 @@ const ProductModal = ({ product, onClose, onCart, onWishlist, inWishlist, isGues
 
           <div className="col-md-7 p-4 d-flex flex-column">
             <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
-              <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.7rem", letterSpacing: "0.08em" }}>{product.category}</span>
-              {discount && <span className="badge text-bg-dark" style={{ fontSize: "0.7rem" }}>-{discount}%</span>}
+              <span className="ss-badge-blue text-uppercase">{product.category}</span>
+              {discount && <span className="badge" style={{ fontSize: "0.7rem", background: "#1D4ED8", color: "#fff" }}>-{discount}%</span>}
               {!inStock && <span className="badge bg-danger" style={{ fontSize: "0.7rem" }}>Out of Stock</span>}
             </div>
 
-            <h2 className="fw-bold mb-2" style={{ fontSize: "1.4rem", lineHeight: 1.3, letterSpacing: "-0.01em" }}>{product.name}</h2>
+            <h2 className="ss-page-title mb-2" style={{ fontSize: "1.4rem" }}>{product.name}</h2>
 
             {product.author && <p className="text-muted small mb-2">by {product.author}</p>}
 
@@ -320,31 +321,30 @@ const ProductModal = ({ product, onClose, onCart, onWishlist, inWishlist, isGues
 
             {inStock && <p className="text-success small fw-semibold mb-3">✓ In Stock</p>}
 
-            <div className="mt-auto">
+            <div className="mt-auto ss-modal-actions">
               {inStock ? (
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex gap-2 align-items-stretch">
                   {!isGuest && (
-                    <div className="d-flex align-items-center border rounded-3 overflow-hidden" style={{ flexShrink: 0 }}>
-                      <button onClick={() => setQty(q => Math.max(1, q - 1))} className="btn btn-light border-0 px-3 py-2 fw-bold">−</button>
-                      <span className="px-3 fw-bold" style={{ minWidth: 36, textAlign: "center" }}>{qty}</span>
-                      <button onClick={() => setQty(q => Math.min(product.stock_quantity || 99, q + 1))} className="btn btn-light border-0 px-3 py-2 fw-bold">+</button>
+                    <div className="ss-qty-control">
+                      <button type="button" className="ss-qty-btn" onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
+                      <span className="ss-qty-value">{qty}</span>
+                      <button type="button" className="ss-qty-btn" onClick={() => setQty(q => Math.min(product.stock_quantity || 99, q + 1))}>+</button>
                     </div>
                   )}
-                  <button onClick={handleCart}
-                    className="btn btn-dark fw-bold flex-grow-1 d-flex align-items-center justify-content-center gap-2"
-                    style={{ borderRadius: 10, padding: "0.7rem" }}>
+                  <button type="button" onClick={handleCart}
+                    className="btn landing-btn-primary fw-bold flex-grow-1 d-flex align-items-center justify-content-center gap-2 border-0">
                     <FaShoppingCart /> {isGuest ? "Sign up to Add" : "Add to Cart"}
                   </button>
                   {!isGuest && onWishlist && (
-                    <button onClick={handleWishlist}
-                      className="btn btn-outline-secondary d-flex align-items-center justify-content-center"
-                      style={{ borderRadius: 10, padding: "0.7rem 0.9rem" }}>
-                      <FaHeart style={{ color: inWishlist ? "#ef4444" : undefined }} />
+                    <button type="button" onClick={handleWishlist}
+                      className={`ss-modal-icon-btn ${inWishlist ? "is-active" : ""}`}
+                      aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}>
+                      <FaHeart />
                     </button>
                   )}
                 </div>
               ) : (
-                <button className="btn btn-secondary w-100 fw-bold" disabled style={{ borderRadius: 10, padding: "0.7rem" }}>
+                <button type="button" className="btn landing-btn-primary w-100 fw-bold border-0 opacity-50" disabled>
                   Out of Stock
                 </button>
               )}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SharedLayout from "../components/SharedLayout.jsx";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import "../styles/landing.css";
 
 const FAQS = [
   {
@@ -53,16 +54,16 @@ const FAQS = [
 const FAQItem = ({ q, a }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-bottom" style={{ borderColor: "#f3f4f6" }}>
+    <div className="border-bottom" style={{ borderColor: "#E5E7EB" }}>
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
-        className="btn w-100 text-start d-flex justify-content-between align-items-center py-3 px-0"
-        style={{ background: "none", border: "none", fontWeight: open ? 600 : 500, fontSize: "0.95rem", color: "#111" }}>
+        className={`ss-faq-toggle ${open ? "open" : ""}`}>
         {q}
-        {open ? <FaChevronUp style={{ fontSize: "0.75rem", color: "#6b7280", flexShrink: 0 }} /> : <FaChevronDown style={{ fontSize: "0.75rem", color: "#6b7280", flexShrink: 0 }} />}
+        {open ? <FaChevronUp style={{ fontSize: "0.75rem", color: "#1D4ED8", flexShrink: 0 }} /> : <FaChevronDown style={{ fontSize: "0.75rem", color: "#6B7280", flexShrink: 0 }} />}
       </button>
       {open && (
-        <div className="pb-3 text-muted small lh-lg" style={{ fontSize: "0.9rem" }}>
+        <div className="pb-3 lh-lg" style={{ fontSize: "0.9rem", color: "#4B5563" }}>
           {a}
         </div>
       )}
@@ -74,41 +75,38 @@ const FAQPage = () => {
   const navigate = useNavigate();
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 800, margin: "0 auto" }} className="px-4 py-5">
-
-        <div className="mb-5">
-          <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>HELP CENTER</p>
-          <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(2.5rem,6vw,4rem)", fontWeight: 400, letterSpacing: "-0.02em" }}>
-            Frequently Asked Questions
-          </h1>
-          <p className="text-muted" style={{ fontSize: "1rem" }}>
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <p className="ss-section-label">HELP CENTER</p>
+          <h1 className="ss-page-title mb-2">Frequently Asked Questions</h1>
+          <p className="mb-5" style={{ color: "#4B5563", fontSize: "1rem" }}>
             Find answers to common questions about orders, book sets, donations, and more.
           </p>
-        </div>
 
-        <div className="d-flex flex-column gap-4">
-          {FAQS.map(section => (
-            <div key={section.category} className="border rounded-3 bg-white p-4">
-              <h2 className="fw-bold mb-3" style={{ fontSize: "1.1rem", letterSpacing: "-0.01em" }}>{section.category}</h2>
-              {section.items.map(item => (
-                <FAQItem key={item.q} q={item.q} a={item.a} />
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="border rounded-3 bg-white p-4 mt-4 text-center">
-          <h3 className="fw-bold mb-2" style={{ fontSize: "1.2rem" }}>Still have questions?</h3>
-          <p className="text-muted small mb-3">Reach out to us directly and we'll get back to you within 24 hours.</p>
-          <div className="d-flex flex-column align-items-center gap-2 mb-3">
-            <span className="small text-muted">📞 +977 9815127051</span>
-            <span className="small text-muted">✉️ stationerymanagementsystem25@gmail.com</span>
+          <div className="d-flex flex-column gap-4">
+            {FAQS.map(section => (
+              <div key={section.category} className="ss-card">
+                <h2 className="fw-bold mb-3" style={{ fontSize: "1.1rem", color: "#111" }}>{section.category}</h2>
+                {section.items.map(item => (
+                  <FAQItem key={item.q} q={item.q} a={item.a} />
+                ))}
+              </div>
+            ))}
           </div>
-          <button onClick={() => navigate("/about")} className="btn btn-outline-secondary fw-semibold rounded-pill px-4">
-            About Us
-          </button>
+
+          <div className="ss-card mt-4 text-center">
+            <h3 className="fw-bold mb-2" style={{ fontSize: "1.2rem", color: "#111" }}>Still have questions?</h3>
+            <p className="small mb-3" style={{ color: "#4B5563" }}>Reach out to us directly and we'll get back to you within 24 hours.</p>
+            <div className="d-flex flex-column align-items-center gap-2 mb-3">
+              <span className="small" style={{ color: "#4B5563" }}>📞 +977 9815127051</span>
+              <span className="small" style={{ color: "#4B5563" }}>✉️ stationerymanagementsystem25@gmail.com</span>
+            </div>
+            <button type="button" onClick={() => navigate("/about")} className="ss-btn-outline px-4 py-2">
+              About Us
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
     </SharedLayout>
   );
 };

@@ -1,25 +1,23 @@
 import { FaChevronLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import "../../../styles/landing.css";
 
-const PageHeader = ({ title, subtitle, backPath, backLabel = "Back" }) => {
+const PageHeader = ({ title, subtitle, backPath, backState, backLabel = "Back" }) => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="mb-4">
       {backPath && (
-        <button onClick={() => navigate(backPath)}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.5rem" }}>
+        <button
+          type="button"
+          onClick={() => navigate(backPath, backState ? { state: backState } : undefined)}
+          className="ss-back-link border-0 bg-transparent p-0 mb-2"
+        >
           <FaChevronLeft style={{ fontSize: "0.7rem" }} /> {backLabel}
         </button>
       )}
-      {subtitle && (
-        <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
-          {subtitle}
-        </p>
-      )}
-      <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-        {title}
-      </h2>
+      {subtitle && <p className="ss-section-label mb-1">{subtitle}</p>}
+      <h2 className="ss-page-title mb-0">{title}</h2>
     </div>
   );
 };

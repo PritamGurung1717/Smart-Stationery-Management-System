@@ -6,6 +6,8 @@ import {
   FaTruck, FaMapMarkerAlt, FaClock, FaBan, FaChevronLeft, FaSave
 } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
+import LoadingSpinner from "../../components/admin/shared/LoadingSpinner.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -86,13 +88,13 @@ const OrderTimeline = ({ timeline, currentStatus }) => {
         const entry = historyMap[step.key];
         return (
           <div key={step.key} style={{ display:"flex", gap:"1rem", marginBottom: idx < FLOW_STEPS.length-1 ? "1.5rem" : 0, position:"relative", zIndex:1 }}>
-            <div style={{ width:44, height:44, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.95rem", background: isDone ? (isCurrent ? "#111" : "#374151") : "#fff", color: isDone ? "#fff" : "#d1d5db", border: isDone ? "none" : "2px solid #e5e7eb" }}>
+            <div style={{ width:44, height:44, borderRadius:"50%", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.95rem", background: isDone ? (isCurrent ? "#1D4ED8" : "#60A5FA") : "#fff", color: isDone ? "#fff" : "#d1d5db", border: isDone ? "none" : "2px solid #e5e7eb" }}>
               {step.icon}
             </div>
             <div style={{ paddingTop:"0.6rem" }}>
               <div style={{ fontWeight: isCurrent ? 700 : isDone ? 600 : 400, color: isDone ? "#1f2937" : "#9ca3af", fontSize:"0.9rem" }}>
                 {step.label}
-                {isCurrent && <span style={{ marginLeft:"0.5rem", background:"#111", color:"#fff", borderRadius:20, fontSize:"0.6rem", padding:"0.1rem 0.5rem", fontWeight:600 }}>Current</span>}
+                {isCurrent && <span style={{ marginLeft:"0.5rem", background:"#1D4ED8", color:"#fff", borderRadius:20, fontSize:"0.6rem", padding:"0.1rem 0.5rem", fontWeight:600 }}>Current</span>}
               </div>
               {entry && (
                 <div style={{ fontSize:"0.75rem", color:"#6b7280", marginTop:"0.15rem" }}>
@@ -169,17 +171,10 @@ function AdminOrderDetails() {
     window.open(`${API}/orders/${order.id}/invoice?token=${token}`, "_blank");
   };
 
-  const card = { border:"1px solid #e5e7eb", padding:"1.5rem", background:"#fff", marginBottom:"1rem" };
-
   if (loading) {
     return (
       <AdminLayout activeTab="orders">
-        <div className="d-flex align-items-center justify-content-center" style={{ minHeight:"60vh" }}>
-          <div className="text-center">
-            <div className="spinner-border text-dark mb-3" style={{ width:36, height:36, borderWidth:3 }} role="status" />
-            <p className="text-muted small">Loading order…</p>
-          </div>
-        </div>
+        <LoadingSpinner message="Loading order…" />
       </AdminLayout>
     );
   }
@@ -191,7 +186,7 @@ function AdminOrderDetails() {
           <div className="text-center">
             <p className="fw-semibold text-danger mb-3">{error || "Order not found"}</p>
             <button onClick={() => navigate("/admin-dashboard", { state:{ tab:"orders" } })}
-              className="btn btn-dark rounded-0 fw-semibold px-4">
+              className="btn landing-btn-primary fw-semibold px-4">
               Back to Orders
             </button>
           </div>
@@ -205,25 +200,22 @@ function AdminOrderDetails() {
       <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg:"", type:"success" })} />
 
       <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-        <div>
-          <button onClick={() => navigate("/admin-dashboard", { state:{ tab:"orders" } })}
-            style={{ background:"none", border:"none", cursor:"pointer", color:"#6b7280", fontSize:"0.875rem", display:"inline-flex", alignItems:"center", gap:"0.4rem", padding:0, marginBottom:"0.5rem" }}>
-            <FaChevronLeft style={{ fontSize:"0.7rem" }} /> Back to Orders
-          </button>
-          <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize:"0.65rem", letterSpacing:"0.1em" }}>ORDERS</p>
-          <h2 className="fw-bold mb-0" style={{ fontSize:"clamp(1.4rem,3vw,1.9rem)", letterSpacing:"-0.02em" }}>
-            Order ORD-{order.id}
-          </h2>
-          <p className="text-muted small mb-0">
-            Placed on {new Date(order.orderDate).toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" })}
-          </p>
-        </div>
-        <button onClick={handleInvoice} className="btn btn-outline-dark rounded-0 fw-semibold d-flex align-items-center gap-2">
+        <PageHeader
+          subtitle="ORDERS"
+          title={`Order ORD-${order.id}`}
+          backPath="/admin-dashboard"
+          backState={{ tab: "orders" }}
+          backLabel="Back to Orders"
+        />
+        <button type="button" onClick={handleInvoice} className="btn ss-btn-outline fw-semibold d-flex align-items-center gap-2 align-self-start">
           <FaFileInvoice /> Download Invoice
         </button>
       </div>
+      <p className="text-muted small mb-4" style={{ marginTop: "-1rem" }}>
+        Placed on {new Date(order.orderDate).toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" })}
+      </p>
 
-      <div className="d-flex align-items-center gap-3 mb-4 p-3" style={{ background:"#fff", border:"1px solid #e5e7eb" }}>
+      <div className="ss-card d-flex align-items-center gap-3 mb-4 p-3 flex-wrap">
         <span className="fw-semibold small text-muted text-uppercase" style={{ letterSpacing:"0.07em", whiteSpace:"nowrap" }}>Update Status</span>
         <select value={newStatus} onChange={e => setNewStatus(e.target.value)}
           className="form-select form-select-sm rounded-0" style={{ maxWidth:200, borderColor:"#e5e7eb" }}>
@@ -232,7 +224,7 @@ function AdminOrderDetails() {
           ))}
         </select>
         <button onClick={handleStatusUpdate} disabled={updatingStatus || newStatus === order.orderStatus}
-          className="btn btn-dark btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+          className="btn landing-btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
           {updatingStatus
             ? <><span className="spinner-border spinner-border-sm" /> Updating…</>
             : <><FaSave style={{ fontSize:"0.75rem" }} /> Apply</>}
@@ -244,7 +236,7 @@ function AdminOrderDetails() {
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 320px", gap:"1rem", alignItems:"start" }}>
         <div>
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <h6 className="fw-bold mb-3">Order Items</h6>
             <div className="d-flex flex-column gap-2">
               {(order.products || []).map((item, idx) => (
@@ -277,7 +269,7 @@ function AdminOrderDetails() {
             </div>
           </div>
 
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h6 className="fw-bold mb-0">Order Tracking</h6>
               <StatusBadge status={order.orderStatus} />
@@ -287,7 +279,7 @@ function AdminOrderDetails() {
         </div>
 
         <div>
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <h6 className="fw-bold mb-3">Order Summary</h6>
             {[
               { label:"Order ID",   value:`ORD-${order.id}` },
@@ -305,7 +297,7 @@ function AdminOrderDetails() {
             ))}
           </div>
 
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <h6 className="fw-bold mb-3">
               <FaMapMarkerAlt className="me-1" style={{ color:"#ef4444" }} />Shipping Address
             </h6>

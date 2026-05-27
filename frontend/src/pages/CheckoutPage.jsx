@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -35,25 +36,22 @@ const CheckoutPage = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/users/cart");
       const cartData = res.data.cart?.items ? res.data.cart : { items: [] };
-      
-      // Enrich cart items with product details
+
       if (cartData.items?.length) {
         const enrichedItems = await Promise.all(cartData.items.map(async (item) => {
-          // If product is already an object with name, use it
           if (item.product && typeof item.product === "object" && item.product.name) {
             return item;
           }
-          // Otherwise fetch product details by ID
           try {
             const productId = typeof item.product === "object" ? item.product.id : item.product;
             const productRes = await axios.get(`http://localhost:5000/api/products/${productId}`);
-            return { 
-              ...item, 
+            return {
+              ...item,
               productDetails: productRes.data.product || { name: `Product #${productId}`, id: productId }
             };
           } catch {
-            return { 
-              ...item, 
+            return {
+              ...item,
               productDetails: { name: `Product #${item.product}`, id: item.product }
             };
           }
@@ -103,7 +101,6 @@ const CheckoutPage = () => {
 
       const orderId = res.data.order.id || res.data.order._id;
 
-      // Redirect to payment page for Khalti, otherwise go to order details
       if (paymentMethod === "khalti") {
         navigate(`/payment/${orderId}`);
       } else {
@@ -117,136 +114,172 @@ const CheckoutPage = () => {
 
   if (loadingCart) return (
     <SharedLayout>
-      <div className="text-center py-5 text-muted">Loading checkout…</div>
+      <div className="text-center py-5">
+        <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status" />
+        <p style={{ color: "#4B5563" }}>Loading checkout…</p>
+      </div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate("/cart")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Cart
+          </button>
 
-        <button onClick={() => navigate("/cart")}
-          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
-          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-        </button>
+          <p className="ss-section-label">CHECKOUT</p>
+          <h1 className="ss-page-title mb-4">Checkout</h1>
 
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
-          className="mb-4">Checkout</h1>
-
-        <div className="row g-4 align-items-start">
-          {/* Left */}
-          <div className="col-lg-8">
-            {/* Order summary */}
-            <div className="border rounded-3 bg-white p-4 mb-4">
-              <h5 className="fw-bold mb-4">Order Summary</h5>
-              {cart.items.length === 0 ? (
-                <p className="text-muted small">Your cart is empty. <button onClick={() => navigate("/products")} className="btn btn-link p-0 small fw-semibold text-dark">Shop now</button></p>
-              ) : (
-                <>
-                  {cart.items.map((item, idx) => {
-                    const productName = item.productDetails?.name || 
-                                       (typeof item.product === "object" ? item.product.name : null) || 
-                                       `Product #${item.product}`;
-                    return (
-                      <div key={item._id || idx} className="d-flex justify-content-between align-items-center py-2 border-bottom small">
-                        <div>
-                          <div className="fw-semibold">{productName}</div>
-                          <div className="text-muted">Qty: {item.quantity} × ₹{item.price}</div>
+          <div className="row g-4 align-items-start">
+            <div className="col-lg-8">
+              <div className="ss-card mb-4">
+                <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Order Summary</h5>
+                {cart.items.length === 0 ? (
+                  <p className="small mb-0" style={{ color: "#4B5563" }}>
+                    Your cart is empty.{" "}
+                    <button type="button" onClick={() => navigate("/products")} className="landing-view-all p-0 border-0 bg-transparent">Shop now</button>
+                  </p>
+                ) : (
+                  <>
+                    {cart.items.map((item, idx) => {
+                      const productName = item.productDetails?.name ||
+                        (typeof item.product === "object" ? item.product.name : null) ||
+                        `Product #${item.product}`;
+                      return (
+                        <div key={item._id || idx} className="d-flex justify-content-between align-items-center py-2 border-bottom small">
+                          <div>
+                            <div className="fw-semibold" style={{ color: "#111" }}>{productName}</div>
+                            <div style={{ color: "#4B5563" }}>Qty: {item.quantity} × ₹{item.price}</div>
+                          </div>
+                          <div className="fw-bold" style={{ color: "#111" }}>₹{item.price * item.quantity}</div>
                         </div>
-                        <div className="fw-bold">₹{item.price * item.quantity}</div>
+                      );
+                    })}
+                    <div className="mt-3">
+                      <div className="d-flex justify-content-between mb-1 small" style={{ color: "#4B5563" }}><span>Subtotal</span><span>₹{subtotal}</span></div>
+                      {discount > 0 && (
+                        <div className="d-flex justify-content-between mb-1 small" style={{ color: "#16A34A" }}>
+                          <span>Institute Discount (10%)</span><span>-₹{discount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem", color: "#111" }}>
+                        <span>Total</span><span>₹{total.toFixed(2)}</span>
                       </div>
-                    );
-                  })}
-                  <div className="mt-3">
-                    <div className="d-flex justify-content-between text-muted mb-1 small"><span>Subtotal</span><span>₹{subtotal}</span></div>
-                    {discount > 0 && <div className="d-flex justify-content-between text-success mb-1 small"><span>Institute Discount (10%)</span><span>-₹{discount.toFixed(2)}</span></div>}
-                    <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="ss-card mb-4">
+                <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Shipping Address</h5>
+                <div className="row g-3 mb-3">
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">Full Name *</label>
+                    <input type="text" className="form-control" placeholder="Recipient's full name"
+                      value={contactDetails.fullName}
+                      onChange={e => setContactDetails({ ...contactDetails, fullName: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
                   </div>
-                </>
-              )}
-            </div>
-
-            {/* Shipping */}
-            <div className="border rounded-3 bg-white p-4 mb-4">
-              <h5 className="fw-bold mb-4">Shipping Address</h5>
-
-              {/* Contact Details */}
-              <div className="row g-3 mb-3">
-                <div className="col-6">
-                  <label className="form-label fw-semibold small">Full Name *</label>
-                  <input type="text" className="form-control" placeholder="Recipient's full name"
-                    value={contactDetails.fullName}
-                    onChange={e => setContactDetails({ ...contactDetails, fullName: e.target.value })} />
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">Phone Number *</label>
+                    <input type="tel" className="form-control" placeholder="+977 98XXXXXXXX"
+                      value={contactDetails.phone}
+                      onChange={e => setContactDetails({ ...contactDetails, phone: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                  </div>
                 </div>
-                <div className="col-6">
-                  <label className="form-label fw-semibold small">Phone Number *</label>
-                  <input type="tel" className="form-control" placeholder="+977 98XXXXXXXX"
-                    value={contactDetails.phone}
-                    onChange={e => setContactDetails({ ...contactDetails, phone: e.target.value })} />
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small">Full Address *</label>
+                  <input type="text" className="form-control" placeholder="Street address, apartment, suite..."
+                    value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })}
+                    style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                </div>
+                <div className="row g-3 mb-3">
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">City *</label>
+                    <input type="text" className="form-control" placeholder="City" value={shippingAddress.city}
+                      onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">State *</label>
+                    <input type="text" className="form-control" placeholder="State" value={shippingAddress.state}
+                      onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                  </div>
+                </div>
+                <div className="row g-3">
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">ZIP Code *</label>
+                    <input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode}
+                      onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label fw-semibold small">Country</label>
+                    <input type="text" className="form-control" value={shippingAddress.country}
+                      onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })}
+                      style={{ borderColor: "#E5E7EB", borderRadius: 8 }} />
+                  </div>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <label className="form-label fw-semibold small">Full Address *</label>
-                <input type="text" className="form-control" placeholder="Street address, apartment, suite..."
-                  value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
-              </div>
-              <div className="row g-3 mb-3">
-                <div className="col-6"><label className="form-label fw-semibold small">City *</label>
-                  <input type="text" className="form-control" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} /></div>
-                <div className="col-6"><label className="form-label fw-semibold small">State *</label>
-                  <input type="text" className="form-control" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} /></div>
-              </div>
-              <div className="row g-3">
-                <div className="col-6"><label className="form-label fw-semibold small">ZIP Code *</label>
-                  <input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} /></div>
-                <div className="col-6"><label className="form-label fw-semibold small">Country</label>
-                  <input type="text" className="form-control" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} /></div>
+              <div className="ss-card">
+                <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Payment Method</h5>
+                {[["cod", "Cash on Delivery (COD)"], ["esewa", "eSewa"], ["khalti", "Khalti"]].map(([val, lbl]) => (
+                  <label key={val} className={`ss-payment-option ${paymentMethod === val ? "selected" : ""}`}>
+                    <input type="radio" name="paymentMethod" value={val} checked={paymentMethod === val}
+                      onChange={e => setPaymentMethod(e.target.value)} />
+                    {lbl}
+                  </label>
+                ))}
               </div>
             </div>
 
-            {/* Payment */}
-            <div className="border rounded-3 bg-white p-4">
-              <h5 className="fw-bold mb-4">Payment Method</h5>
-              {[["cod","Cash on Delivery (COD)"],["esewa","eSewa"],["khalti","Khalti"]].map(([val, lbl]) => (
-                <label key={val} className="d-flex align-items-center gap-3 p-3 rounded-3 mb-2"
-                  style={{ border: `1.5px solid ${paymentMethod === val ? "#111" : "#e5e7eb"}`, cursor: "pointer", fontWeight: paymentMethod === val ? 600 : 400 }}>
-                  <input type="radio" name="paymentMethod" value={val} checked={paymentMethod === val}
-                    onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
-                  {lbl}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Right */}
-          <div className="col-lg-4">
-            <div className="border rounded-3 bg-white p-4" style={{ position: "sticky", top: 80 }}>
-              <h5 className="fw-bold mb-4">Complete Order</h5>
-              {user?.role === "institute" && (
-                <div className="alert alert-info small py-2 mb-3">Institute bulk order — 10% discount applied.</div>
-              )}
-              <div className="small mb-3">
-                <div className="d-flex justify-content-between text-muted mb-1"><span>Items</span><span>{cart.items.length}</span></div>
-                <div className="d-flex justify-content-between text-muted mb-1"><span>Subtotal</span><span>₹{subtotal}</span></div>
-                {discount > 0 && <div className="d-flex justify-content-between text-success mb-1"><span>Discount</span><span>-₹{discount.toFixed(2)}</span></div>}
-                <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem" }}><span>Total</span><span>₹{total.toFixed(2)}</span></div>
+            <div className="col-lg-4">
+              <div className="ss-card" style={{ position: "sticky", top: 80 }}>
+                <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Complete Order</h5>
+                {user?.role === "institute" && (
+                  <div className="alert small py-2 mb-3" style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+                    Institute bulk order — 10% discount applied.
+                  </div>
+                )}
+                <div className="small mb-3">
+                  <div className="d-flex justify-content-between mb-1" style={{ color: "#4B5563" }}><span>Items</span><span>{cart.items.length}</span></div>
+                  <div className="d-flex justify-content-between mb-1" style={{ color: "#4B5563" }}><span>Subtotal</span><span>₹{subtotal}</span></div>
+                  {discount > 0 && (
+                    <div className="d-flex justify-content-between mb-1" style={{ color: "#16A34A" }}>
+                      <span>Discount</span><span>-₹{discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-1" style={{ fontSize: "1.05rem", color: "#111" }}>
+                    <span>Total</span><span>₹{total.toFixed(2)}</span>
+                  </div>
+                </div>
+                <button type="button" onClick={handlePlaceOrder}
+                  disabled={loading || cart.items.length === 0 || !contactDetails.fullName || !contactDetails.phone || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
+                  className={`landing-btn-primary w-100 mb-2 ${(loading || cart.items.length === 0) ? "opacity-50" : ""}`}
+                  style={{ justifyContent: "center" }}>
+                  {loading
+                    ? "Placing Order…"
+                    : paymentMethod === "khalti"
+                    ? "Place Order & Pay with Khalti"
+                    : "Place Order"}
+                </button>
+                <button type="button" onClick={() => navigate("/cart")} className="landing-btn-outline w-100"
+                  style={{ color: "#111", borderColor: "#E5E7EB", padding: "0.65rem", borderRadius: 8 }}>
+                  Back to Cart
+                </button>
+                <p className="text-center mt-3 mb-0" style={{ fontSize: "0.78rem", color: "#9CA3AF" }}>
+                  By placing your order, you agree to our Terms of Service.
+                </p>
               </div>
-              <button onClick={handlePlaceOrder}
-                disabled={loading || cart.items.length === 0 || !contactDetails.fullName || !contactDetails.phone || !shippingAddress.address || !shippingAddress.city || !shippingAddress.zipCode}
-                className={`btn btn-dark fw-bold w-100 mb-2 ${(loading || cart.items.length === 0) ? "opacity-50" : ""}`}>
-                {loading
-                  ? "Placing Order…"
-                  : paymentMethod === "khalti"
-                  ? "Place Order & Pay with Khalti"
-                  : "Place Order"}
-              </button>
-              <button onClick={() => navigate("/cart")} className="btn btn-outline-secondary fw-semibold w-100">Back to Cart</button>
-              <p className="text-muted text-center mt-3 mb-0" style={{ fontSize: "0.78rem" }}>By placing your order, you agree to our Terms of Service.</p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </SharedLayout>
   );
 };

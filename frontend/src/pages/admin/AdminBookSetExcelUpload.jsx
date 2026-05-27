@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft, FaFileExcel, FaDownload, FaUpload } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -136,20 +137,16 @@ function AdminBookSetExcelUpload() {
     <AdminLayout activeTab="book-sets">
       <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
 
-      <div className="mb-4">
-        <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-sets" } })}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.5rem" }}>
-          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Book Sets
-        </button>
-        <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>BULK UPLOAD</p>
-        <h2 className="fw-bold mb-2" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-          Upload Book Sets via Excel (Admin)
-        </h2>
-        <p className="text-muted">Create multiple book sets at once using an Excel file with pricing</p>
-      </div>
+      <PageHeader
+        subtitle="BULK UPLOAD"
+        title="Upload Book Sets via Excel"
+        backPath="/admin-dashboard"
+        backState={{ tab: "book-sets" }}
+        backLabel="Back to Book Sets"
+      />
+      <p className="text-muted mb-4" style={{ marginTop: "-0.75rem" }}>Create multiple book sets at once using an Excel file with pricing</p>
 
-      {/* Instructions */}
-      <div className="bg-white border p-4 mb-4">
+      <div className="ss-card p-4 mb-4">
         <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
           <FaFileExcel className="text-success" /> Instructions
         </h5>
@@ -181,7 +178,7 @@ function AdminBookSetExcelUpload() {
           )}
         </div>
         <button onClick={handleUpload} disabled={!file || uploading}
-          className="btn btn-dark rounded-0 fw-semibold d-flex align-items-center gap-2">
+          className="btn landing-btn-primary fw-semibold d-flex align-items-center gap-2">
           {uploading ? (
             <>
               <span className="spinner-border spinner-border-sm" />
@@ -215,7 +212,7 @@ function AdminBookSetExcelUpload() {
             )}
           </div>
           <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-sets" } })}
-            className="btn btn-dark btn-sm rounded-0">
+            className="btn landing-btn-primary btn-sm rounded-0">
             View All Book Sets
           </button>
         </div>

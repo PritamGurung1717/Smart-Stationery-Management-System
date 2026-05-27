@@ -4,6 +4,7 @@ import { FaShoppingCart, FaBook, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -45,108 +46,103 @@ const BookSetDetails = () => {
   };
 
   if (loading) return (
-    <SharedLayout>
+    <SharedLayout activeLink="School Sets">
       <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
         <div className="text-center">
-          <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
-            <span className="visually-hidden">Loading…</span>
-          </div>
-          <p className="text-muted">Loading…</p>
+          <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status" />
+          <p style={{ color: "#4B5563" }}>Loading…</p>
         </div>
       </div>
     </SharedLayout>
   );
 
   if (error || !bookSet) return (
-    <SharedLayout>
-      <div style={{ maxWidth: 700, margin: "4rem auto" }} className="px-3 text-center">
+    <SharedLayout activeLink="School Sets">
+      <div className="ss-page-inner text-center" style={{ marginTop: "4rem" }}>
         <p className="text-danger mb-4">{error || "Book set not found"}</p>
-        <button onClick={() => navigate("/book-sets")} className="btn btn-dark fw-bold">Back to Book Sets</button>
+        <button type="button" onClick={() => navigate("/book-sets")} className="landing-btn-primary">Back to Book Sets</button>
       </div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout activeLink="School Sets">
-      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-5">
+      <section style={{ background: "#F3F4F6", paddingBottom: "2.5rem" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate("/book-sets")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.75rem" }} /> Back to Book Sets
+          </button>
 
-        <button onClick={() => navigate("/book-sets")}
-          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-4 text-decoration-none">
-          <FaChevronLeft style={{ fontSize: "0.75rem" }} /> Back to Book Sets
-        </button>
-
-        {/* Header card */}
-        <div className="border rounded-3 p-4 mb-4 d-flex justify-content-between align-items-start flex-wrap gap-4">
-          <div>
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>SCHOOL SET</p>
-            <h1 className="fw-bold mb-2" style={{ fontSize: "clamp(1.5rem,3vw,2.25rem)", letterSpacing: "-0.02em" }}>{bookSet.school_name}</h1>
-            <div className="d-flex gap-2 flex-wrap">
-              <span className="badge text-bg-dark" style={{ fontSize: "0.72rem", letterSpacing: "0.08em" }}>Grade {bookSet.grade}</span>
-              <span className="badge bg-light text-dark border" style={{ fontSize: "0.72rem" }}>
-                <FaBook style={{ marginRight: "0.3rem", fontSize: "0.65rem" }} />{bookSet.items.length} Books
-              </span>
-              <span className="badge bg-light text-dark border" style={{ fontSize: "0.72rem" }}>
-                Added {new Date(bookSet.created_at).toLocaleDateString()}
-              </span>
+          <div className="ss-card mb-4 d-flex justify-content-between align-items-start flex-wrap gap-4">
+            <div>
+              <p className="ss-section-label">SCHOOL SET</p>
+              <h1 className="ss-page-title mb-2" style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)" }}>{bookSet.school_name}</h1>
+              <div className="d-flex gap-2 flex-wrap">
+                <span className="ss-badge-blue">Grade {bookSet.grade}</span>
+                <span style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.72rem", fontWeight: 600, padding: "0.25rem 0.6rem", borderRadius: 4, border: "1px solid #E5E7EB" }}>
+                  <FaBook style={{ marginRight: "0.3rem", fontSize: "0.65rem" }} />{bookSet.items.length} Books
+                </span>
+                <span style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.72rem", fontWeight: 600, padding: "0.25rem 0.6rem", borderRadius: 4, border: "1px solid #E5E7EB" }}>
+                  Added {new Date(bookSet.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+            <div className="text-end">
+              <div className="small mb-1" style={{ color: "#4B5563" }}>Total Price</div>
+              <div className="fw-bold mb-3" style={{ fontSize: "2.5rem", lineHeight: 1, color: "#111" }}>₹{bookSet.total_price?.toFixed(2)}</div>
+              <button type="button" onClick={handleAddSetToCart} className="landing-btn-primary">
+                <FaShoppingCart /> Add Complete Set to Cart
+              </button>
             </div>
           </div>
-          <div className="text-end">
-            <div className="text-muted small mb-1">Total Price</div>
-            <div className="fw-bold mb-3" style={{ fontSize: "2.5rem", lineHeight: 1 }}>₹{bookSet.total_price?.toFixed(2)}</div>
-            <button onClick={handleAddSetToCart} className="btn btn-dark fw-bold d-flex align-items-center gap-2">
+
+          <div className="ss-card overflow-hidden p-0">
+            <div className="ss-table-head">
+              <h5 className="mb-0 fw-bold">📚 Books in this Set</h5>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 align-middle">
+                <thead style={{ background: "#F3F4F6" }}>
+                  <tr>
+                    <th className="text-center">#</th>
+                    <th>Book Name</th>
+                    <th>Subject</th>
+                    <th>Author</th>
+                    <th>Publisher</th>
+                    <th className="text-center">Year</th>
+                    <th className="text-end">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookSet.items.map((item, i) => (
+                    <tr key={i}>
+                      <td className="text-center fw-semibold" style={{ color: "#6B7280" }}>{i + 1}</td>
+                      <td className="fw-semibold" style={{ color: "#111" }}>{item.title}</td>
+                      <td className="small" style={{ color: "#4B5563" }}>{item.subject_name || "—"}</td>
+                      <td className="small" style={{ color: "#4B5563" }}>{item.author}</td>
+                      <td className="small" style={{ color: "#4B5563" }}>{item.publisher}</td>
+                      <td className="text-center small" style={{ color: "#6B7280" }}>{item.publication_year}</td>
+                      <td className="text-end fw-bold" style={{ color: "#111" }}>₹{item.price?.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot style={{ background: "#F3F4F6", borderTop: "2px solid #E5E7EB" }}>
+                  <tr>
+                    <td colSpan={6} className="text-end fw-bold py-3" style={{ color: "#111" }}>Total Amount:</td>
+                    <td className="text-end fw-bold py-3" style={{ fontSize: "1.25rem", color: "#1D4ED8" }}>₹{bookSet.total_price?.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-center mt-4">
+            <button type="button" onClick={handleAddSetToCart} className="landing-btn-primary px-4">
               <FaShoppingCart /> Add Complete Set to Cart
             </button>
           </div>
         </div>
-
-        {/* Books table */}
-        <div className="border rounded-3 overflow-hidden">
-          <div className="bg-dark text-white px-4 py-3">
-            <h5 className="mb-0 fw-bold">📚 Books in this Set</h5>
-          </div>
-          <div className="table-responsive">
-            <table className="table table-hover mb-0 align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th className="text-center">#</th>
-                  <th>Book Name</th>
-                  <th>Subject</th>
-                  <th>Author</th>
-                  <th>Publisher</th>
-                  <th className="text-center">Year</th>
-                  <th className="text-end">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookSet.items.map((item, i) => (
-                  <tr key={i}>
-                    <td className="text-center text-muted fw-semibold">{i + 1}</td>
-                    <td className="fw-semibold">{item.title}</td>
-                    <td className="text-muted small">{item.subject_name || "—"}</td>
-                    <td className="text-muted small">{item.author}</td>
-                    <td className="text-muted small">{item.publisher}</td>
-                    <td className="text-center text-muted small">{item.publication_year}</td>
-                    <td className="text-end fw-bold">₹{item.price?.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="table-light border-top border-dark border-2">
-                <tr>
-                  <td colSpan={6} className="text-end fw-bold py-3">Total Amount:</td>
-                  <td className="text-end fw-bold py-3" style={{ fontSize: "1.25rem" }}>₹{bookSet.total_price?.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {/* Bottom action */}
-        <div className="d-flex justify-content-center mt-4">
-          <button onClick={handleAddSetToCart} className="btn btn-dark fw-bold px-4 d-flex align-items-center gap-2">
-            <FaShoppingCart /> Add Complete Set to Cart
-          </button>
-        </div>
-      </div>
+      </section>
     </SharedLayout>
   );
 };

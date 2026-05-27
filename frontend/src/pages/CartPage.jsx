@@ -5,6 +5,7 @@ import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
+import "../styles/landing.css";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -32,12 +33,9 @@ const CartPage = () => {
       const res = await axios.get("http://localhost:5000/api/users/cart");
       const cartData = res.data.cart || { items: [] };
 
-      // Enrich items with product details since product is stored as integer ID
       if (cartData.items?.length) {
         const enriched = await Promise.all(cartData.items.map(async item => {
-          // If product is already an object with name, use it
           if (item.product && typeof item.product === "object" && item.product.name) return item;
-          // Otherwise fetch product details by ID
           try {
             const pid = typeof item.product === "object" ? item.product.id : item.product;
             const pr = await axios.get(`http://localhost:5000/api/products/${pid}`);
@@ -97,152 +95,162 @@ const CartPage = () => {
     navigate("/checkout");
   };
 
+  const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
+
   if (loading) return (
     <SharedLayout>
-      <div className="text-center py-5 text-muted">Loading cart…</div>
+      <div className="text-center py-5">
+        <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status" />
+        <p style={{ color: "#4B5563" }}>Loading cart…</p>
+      </div>
     </SharedLayout>
   );
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate("/products")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Continue Shopping
+          </button>
 
-        <button onClick={() => navigate("/products")}
-          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
-          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-        </button>
+          <p className="ss-section-label">CART</p>
+          <h1 className="ss-page-title mb-4">Shopping Cart</h1>
 
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
-          className="mb-4">Shopping Cart</h1>
-
-        {cart.items.length === 0 ? (
-          <div className="border rounded-3 text-center bg-white py-5">
-            <div style={{ fontSize: "3.5rem" }} className="mb-3">🛒</div>
-            <h3 className="fw-bold mb-1">Your cart is empty</h3>
-            <p className="text-muted mb-4">Looks like you haven't added anything yet.</p>
-            <button onClick={() => navigate("/products")} className="btn btn-dark px-4 fw-bold">Browse Products</button>
-          </div>
-        ) : (
-          <div className="row g-4 align-items-start">
-            {/* Left col */}
-            <div className="col-lg-8">
-              {/* Cart items card */}
-              <div className="border rounded-3 bg-white mb-4 overflow-hidden">
-                <div className="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-                  <h5 className="fw-bold mb-0">Cart Items ({cart.items.length})</h5>
-                  <button onClick={clearCart} className="btn btn-outline-danger btn-sm fw-semibold">Clear Cart</button>
-                </div>
-                {/* Header row */}
-                <div className="d-none d-md-grid px-4 py-2 bg-light border-bottom"
-                  style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem", fontSize: "0.78rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  <span>Product</span><span className="text-center">Price</span><span className="text-center">Quantity</span><span className="text-center">Total</span><span></span>
-                </div>
-                {cart.items.map(item => (
-                  <div key={item.product?.id || item.product}
-                    className="px-4 py-3 border-top d-grid align-items-center"
-                    style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem" }}>
-                    <div className="d-flex align-items-center gap-2">
-                      {(item.product?.image || item.product?.image_url) && (
-                        <img src={(() => { const u = item.product.image || item.product.image_url; return u.startsWith("http") ? u : `http://localhost:5000${u}`; })()} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover" }} />
-                      )}
-                      <div>
-                        <div className="fw-semibold small">{item.product?.name || item.name || `Product #${item.product}`}</div>
-                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>{item.product?.category || ""}</div>
+          {cart.items.length === 0 ? (
+            <div className="ss-card text-center py-5">
+              <div style={{ fontSize: "3.5rem" }} className="mb-3">🛒</div>
+              <h3 className="fw-bold mb-1" style={{ color: "#111" }}>Your cart is empty</h3>
+              <p className="mb-4" style={{ color: "#4B5563" }}>Looks like you haven't added anything yet.</p>
+              <button type="button" onClick={() => navigate("/products")} className="landing-btn-primary px-4">Browse Products</button>
+            </div>
+          ) : (
+            <div className="row g-4 align-items-start">
+              <div className="col-lg-8">
+                <div className="ss-card mb-4 p-0 overflow-hidden">
+                  <div className="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+                    <h5 className="fw-bold mb-0" style={{ color: "#111" }}>Cart Items ({cart.items.length})</h5>
+                    <button type="button" onClick={clearCart} className="btn btn-sm fw-semibold"
+                      style={{ color: "#DC2626", border: "1px solid #FECACA", background: "#FEF2F2", borderRadius: 8 }}>
+                      Clear Cart
+                    </button>
+                  </div>
+                  <div className="d-none d-md-grid px-4 py-2 border-bottom"
+                    style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem", fontSize: "0.78rem", fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", background: "#F9FAFB" }}>
+                    <span>Product</span><span className="text-center">Price</span><span className="text-center">Quantity</span><span className="text-center">Total</span><span />
+                  </div>
+                  {cart.items.map(item => (
+                    <div key={item.product?.id || item.product}
+                      className="px-4 py-3 border-top d-grid align-items-center"
+                      style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem" }}>
+                      <div className="d-flex align-items-center gap-2">
+                        {(item.product?.image || item.product?.image_url) && (
+                          <img src={(() => { const u = item.product.image || item.product.image_url; return u.startsWith("http") ? u : `http://localhost:5000${u}`; })()} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover", border: "1px solid #E5E7EB" }} />
+                        )}
+                        <div>
+                          <div className="fw-semibold small" style={{ color: "#111" }}>{item.product?.name || item.name || `Product #${item.product}`}</div>
+                          <div style={{ fontSize: "0.78rem", color: "#9CA3AF" }}>{item.product?.category || ""}</div>
+                        </div>
+                      </div>
+                      <div className="text-center fw-semibold small" style={{ color: "#111" }}>₹{fmt(item.price)}</div>
+                      <div className="d-flex align-items-center justify-content-center gap-2">
+                        <button type="button" className="ss-qty-btn" onClick={() => updateQuantity(item.product?.id || item.product, item.quantity - 1)}>−</button>
+                        <span className="fw-bold" style={{ minWidth: 20, textAlign: "center", color: "#111" }}>{item.quantity}</span>
+                        <button type="button" className="ss-qty-btn" onClick={() => updateQuantity(item.product?.id || item.product, item.quantity + 1)}>+</button>
+                      </div>
+                      <div className="text-center fw-bold" style={{ color: "#111" }}>₹{fmt(item.price * item.quantity)}</div>
+                      <div className="text-center">
+                        <button type="button" onClick={() => removeFromCart(item.product?.id || item.product)}
+                          className="btn btn-link p-0 small fw-semibold text-decoration-none" style={{ color: "#DC2626" }}>Remove</button>
                       </div>
                     </div>
-                    <div className="text-center fw-semibold small">₹{fmt(item.price)}</div>
-                    <div className="d-flex align-items-center justify-content-center gap-2">
-                      <button onClick={() => updateQuantity(item.product?.id || item.product, item.quantity - 1)}
-                        className="btn btn-outline-secondary btn-sm" style={{ width: 28, height: 28, padding: 0, lineHeight: 1 }}>−</button>
-                      <span className="fw-bold" style={{ minWidth: 20, textAlign: "center" }}>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product?.id || item.product, item.quantity + 1)}
-                        className="btn btn-outline-secondary btn-sm" style={{ width: 28, height: 28, padding: 0, lineHeight: 1 }}>+</button>
+                  ))}
+                </div>
+
+                <div className="ss-card">
+                  <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Shipping Address</h5>
+                  <div className="row g-3 mb-3">
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">Full Name *</label>
+                      <input type="text" className="form-control" placeholder="Recipient's full name"
+                        value={contactDetails.fullName}
+                        onChange={e => setContactDetails({ ...contactDetails, fullName: e.target.value })}
+                        style={inp} />
                     </div>
-                    <div className="text-center fw-bold">₹{fmt(item.price * item.quantity)}</div>
-                    <div className="text-center">
-                      <button onClick={() => removeFromCart(item.product?.id || item.product)}
-                        className="btn btn-link p-0 text-danger small fw-semibold text-decoration-none">Remove</button>
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">Phone Number *</label>
+                      <input type="tel" className="form-control" placeholder="+977 98XXXXXXXX"
+                        value={contactDetails.phone}
+                        onChange={e => setContactDetails({ ...contactDetails, phone: e.target.value })}
+                        style={inp} />
                     </div>
                   </div>
-                ))}
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small">Full Address *</label>
+                    <input type="text" className="form-control" placeholder="Street address, apartment, suite…"
+                      value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })}
+                      style={inp} />
+                  </div>
+                  <div className="row g-3 mb-3">
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">City *</label>
+                      <input type="text" className="form-control" placeholder="City"
+                        value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })}
+                        style={inp} />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">State</label>
+                      <input type="text" className="form-control" placeholder="State"
+                        value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })}
+                        style={inp} />
+                    </div>
+                  </div>
+                  <div className="row g-3">
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">ZIP Code *</label>
+                      <input type="text" className="form-control" placeholder="ZIP Code"
+                        value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })}
+                        style={inp} />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label fw-semibold small">Country</label>
+                      <input type="text" className="form-control" placeholder="Country"
+                        value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })}
+                        style={inp} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Shipping address */}
-              <div className="border rounded-3 bg-white p-4">
-                <h5 className="fw-bold mb-4">Shipping Address</h5>
-
-                {/* Contact Details */}
-                <div className="row g-3 mb-3">
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">Full Name *</label>
-                    <input type="text" className="form-control" placeholder="Recipient's full name"
-                      value={contactDetails.fullName}
-                      onChange={e => setContactDetails({ ...contactDetails, fullName: e.target.value })} />
+              <div className="col-lg-4">
+                <div className="ss-card" style={{ position: "sticky", top: 80 }}>
+                  <h5 className="fw-bold mb-4" style={{ color: "#111" }}>Order Summary</h5>
+                  <div className="d-flex justify-content-between mb-2 small" style={{ color: "#4B5563" }}><span>Subtotal</span><span>₹{fmt(subtotal)}</span></div>
+                  <div className="d-flex justify-content-between mb-2 small"><span style={{ color: "#4B5563" }}>Shipping</span><span className="fw-semibold" style={{ color: "#16A34A" }}>Free</span></div>
+                  {discount > 0 && (
+                    <div className="d-flex justify-content-between mb-2 small" style={{ color: "#16A34A" }}><span>Bulk Discount (10%)</span><span>-₹{fmt(discount.toFixed(2))}</span></div>
+                  )}
+                  <div className="d-flex justify-content-between fw-bold border-top pt-3 mt-2" style={{ fontSize: "1.1rem", color: "#111" }}>
+                    <span>Total</span><span>₹{fmt(total.toFixed(2))}</span>
                   </div>
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">Phone Number *</label>
-                    <input type="tel" className="form-control" placeholder="+977 98XXXXXXXX"
-                      value={contactDetails.phone}
-                      onChange={e => setContactDetails({ ...contactDetails, phone: e.target.value })} />
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold small">Full Address *</label>
-                  <input type="text" className="form-control" placeholder="Street address, apartment, suite…"
-                    value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
-                </div>
-                <div className="row g-3 mb-3">
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">City *</label>
-                    <input type="text" className="form-control" placeholder="City"
-                      value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">State</label>
-                    <input type="text" className="form-control" placeholder="State"
-                      value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} />
-                  </div>
-                </div>
-                <div className="row g-3">
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">ZIP Code *</label>
-                    <input type="text" className="form-control" placeholder="ZIP Code"
-                      value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small">Country</label>
-                    <input type="text" className="form-control" placeholder="Country"
-                      value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} />
+                  {user?.role === "institute" && (
+                    <div className="alert small py-2 mt-3 mb-0" style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+                      Institute discount of 10% applied on all orders.
+                    </div>
+                  )}
+                  <div className="d-flex flex-column gap-2 mt-4">
+                    <button type="button" onClick={proceedToCheckout} className="landing-btn-primary w-100" style={{ justifyContent: "center" }}>Proceed to Checkout</button>
+                    <button type="button" onClick={() => navigate("/products")} className="landing-btn-outline w-100"
+                      style={{ color: "#111", borderColor: "#E5E7EB", padding: "0.65rem", borderRadius: 8, justifyContent: "center" }}>
+                      Continue Shopping
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Right col — Order summary */}
-            <div className="col-lg-4">
-              <div className="border rounded-3 bg-white p-4" style={{ position: "sticky", top: 80 }}>
-                <h5 className="fw-bold mb-4">Order Summary</h5>
-                <div className="d-flex justify-content-between mb-2 small text-secondary"><span>Subtotal</span><span>₹{fmt(subtotal)}</span></div>
-                <div className="d-flex justify-content-between mb-2 small"><span className="text-secondary">Shipping</span><span className="text-success fw-semibold">Free</span></div>
-                {discount > 0 && (
-                  <div className="d-flex justify-content-between mb-2 small text-success"><span>Bulk Discount (10%)</span><span>-₹{fmt(discount.toFixed(2))}</span></div>
-                )}
-                <div className="d-flex justify-content-between fw-bold border-top pt-3 mt-2" style={{ fontSize: "1.1rem" }}>
-                  <span>Total</span><span>₹{fmt(total.toFixed(2))}</span>
-                </div>
-                {user?.role === "institute" && (
-                  <div className="alert alert-info small py-2 mt-3 mb-0">Institute discount of 10% applied on all orders.</div>
-                )}
-                <div className="d-flex flex-column gap-2 mt-4">
-                  <button onClick={proceedToCheckout} className="btn btn-dark fw-bold w-100">Proceed to Checkout</button>
-                  <button onClick={() => navigate("/products")} className="btn btn-outline-secondary fw-semibold w-100">Continue Shopping</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
     </SharedLayout>
   );
 };

@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaHeart, FaShoppingBag, FaShoppingCart,
-  FaBook, FaRunning, FaPencilAlt, FaGraduationCap,
-  FaStar, FaChevronRight, FaSearch, FaTimes
+  FaChevronRight, FaSearch, FaTimes,
+  FaShieldAlt, FaUndo, FaLock, FaHeadset, FaGift,
+  FaTruck, FaUsers, FaSchool
 } from "react-icons/fa";
 import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 
@@ -297,13 +299,13 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
         style={{ width: "100%", maxWidth: 440, height: CARD_H, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", zIndex: 1, overflow: "hidden" }}>
 
         {/* Accent bar */}
-        <div style={{ height: 4, background: "linear-gradient(90deg,#111 0%,#555 100%)", flexShrink: 0 }} />
+        <div style={{ height: 4, background: "linear-gradient(90deg,#1D4ED8 0%,#2563EB 100%)", flexShrink: 0 }} />
 
         {/* Header — brand + subtitle + close */}
         <div className="d-flex justify-content-between align-items-start px-4 pt-3 pb-0" style={{ flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.4rem", color: "#111", letterSpacing: "-0.01em" }}>
-              smartstationery.
+            <div className="landing-brand landing-brand-serif" style={{ fontSize: "1.4rem" }}>
+              <span className="brand-smart">smart</span><span className="brand-stationery">stationery.</span>
             </div>
             <p className="text-muted mb-0" style={{ fontSize: "0.8rem" }}>
               {mode === "login" ? "Welcome back" : mode === "forgot" ? "Reset your password" : mode === "google-role" ? "One last step" : regStep === 1 ? "Create your account" : "Set up your credentials"}
@@ -320,7 +322,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
             {["login","register"].map(m => (
               <button key={m} onClick={() => handleSwitchMode(m)}
                 className="btn flex-fill fw-semibold rounded-0"
-                style={{ background: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#111" : "transparent", color: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#fff" : "#6b7280", border: "none", fontSize: "0.88rem", padding: "0.5rem", transition: "all 0.15s" }}>
+                style={{ background: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#1D4ED8" : "transparent", color: (mode === m || (mode === "forgot" && m === "login") || (mode === "google-role" && m === "login")) ? "#fff" : "#6b7280", border: "none", fontSize: "0.88rem", padding: "0.5rem", transition: "all 0.15s" }}>
                 {m === "login" ? "Sign In" : "Sign Up"}
               </button>
             ))}
@@ -354,8 +356,8 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                   </div>
                 </div>
                 <button type="submit" disabled={loading}
-                  className={`btn btn-dark w-100 fw-bold mt-3 ${loading ? "opacity-75" : ""}`}
-                  style={{ borderRadius: 8, padding: "0.6rem" }}>
+                  className={`btn w-100 fw-bold mt-3 ${loading ? "opacity-75" : ""}`}
+                  style={{ borderRadius: 8, padding: "0.6rem", background: "#1D4ED8", color: "#fff", border: "none" }}>
                   {loading ? "Signing in…" : "Sign In"}
                 </button>
                 <p className="text-center mt-2 mb-0 small">
@@ -389,7 +391,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                       required placeholder="you@example.com" style={inp} autoFocus />
                   </div>
                   <button type="submit" disabled={loading}
-                    className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                    className={`btn landing-btn-primary w-100 fw-bold border-0 ${loading ? "opacity-75" : ""}`}
                     style={{ borderRadius: 8, padding: "0.6rem" }}>
                     {loading ? "Sending OTP…" : "Send OTP"}
                   </button>
@@ -444,7 +446,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                       Back
                     </button>
                     <button type="submit" disabled={loading || forgotOtp.length < 6 || !forgotNewPw || forgotNewPw !== forgotConfirmPw}
-                      className={`btn btn-dark fw-bold flex-fill ${loading ? "opacity-75" : ""}`}
+                      className={`btn landing-btn-primary fw-bold flex-fill border-0 ${loading ? "opacity-75" : ""}`}
                       style={{ borderRadius: 8 }}>
                       {loading ? "Resetting…" : "Reset Password"}
                     </button>
@@ -473,7 +475,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                 {[["personal","Personal","Students & parents"],["institute","Institute","Schools & colleges"]].map(([r, label, sub]) => (
                   <div key={r} onClick={() => setGoogleRole(r)}
                     className="flex-fill text-center p-3 rounded-3"
-                    style={{ border: `2px solid ${googleRole === r ? "#111" : "#e5e7eb"}`, cursor: "pointer", background: googleRole === r ? "#f9fafb" : "#fff", transition: "all 0.15s" }}>
+                    style={{ border: `2px solid ${googleRole === r ? "#1D4ED8" : "#e5e7eb"}`, cursor: "pointer", background: googleRole === r ? "#EFF6FF" : "#fff", transition: "all 0.15s" }}>
                     <div className="fw-semibold small">{label}</div>
                     <div className="text-muted" style={{ fontSize: "0.7rem" }}>{sub}</div>
                   </div>
@@ -487,7 +489,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
               )}
 
               <button onClick={handleGoogleRoleSubmit} disabled={googleLoading}
-                className={`btn btn-dark w-100 fw-bold ${googleLoading ? "opacity-75" : ""}`}
+                className={`btn landing-btn-primary w-100 fw-bold border-0 ${googleLoading ? "opacity-75" : ""}`}
                 style={{ borderRadius: 8, padding: "0.6rem" }}>
                 {googleLoading ? (
                   <><span className="spinner-border spinner-border-sm me-2" />Creating account…</>
@@ -518,14 +520,14 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                     {[["personal","Personal","Students & parents"],["institute","Institute","Schools & colleges"]].map(([r, label, sub]) => (
                       <div key={r} onClick={() => setRegForm(p => ({ ...p, role: r }))}
                         className="flex-fill text-center p-3 rounded-3"
-                        style={{ border: `2px solid ${regForm.role === r ? "#111" : "#e5e7eb"}`, cursor: "pointer", background: regForm.role === r ? "#f9fafb" : "#fff", transition: "all 0.15s" }}>
+                        style={{ border: `2px solid ${regForm.role === r ? "#1D4ED8" : "#e5e7eb"}`, cursor: "pointer", background: regForm.role === r ? "#EFF6FF" : "#fff", transition: "all 0.15s" }}>
                         <div className="fw-semibold small">{label}</div>
                         <div className="text-muted" style={{ fontSize: "0.7rem" }}>{sub}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="btn btn-dark w-100 fw-bold" style={{ borderRadius: 8, padding: "0.6rem" }}>
+                <button type="submit" className="btn landing-btn-primary w-100 fw-bold border-0" style={{ borderRadius: 8, padding: "0.6rem" }}>
                   Continue →
                 </button>
                 <p className="text-center mt-3 mb-0 small text-muted">
@@ -567,7 +569,7 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
                   required placeholder="••••••••" style={inp} />
               </div>
               <button type="submit" disabled={loading}
-                className={`btn btn-dark w-100 fw-bold ${loading ? "opacity-75" : ""}`}
+                className={`btn landing-btn-primary w-100 fw-bold border-0 ${loading ? "opacity-75" : ""}`}
                 style={{ borderRadius: 8, padding: "0.6rem" }}>
                 {loading ? "Creating Account…" : "Create Account"}
               </button>
@@ -582,58 +584,124 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
 };
 
 
-/* ─── Ticker ────────────────────────────────────────────────── */
-const TICKER_ITEMS = ["✓ 100% Authentic Products","📦 Same Day Fulfillment","👥 15K+ Happy Students","🏫 50+ Schools Covered","🚚 Free Delivery above ₹500","❤️ Donate & Share"];
-const Ticker = () => {
+/* ─── Brand ─────────────────────────────────────────────────── */
+const BrandLogo = ({ className = "", light = false, serif = false }) => (
+  <span className={`landing-brand ${serif ? "landing-brand-serif" : ""} ${className}`}>
+    {serif ? (
+      <span style={light ? { color: "#fff" } : { color: "#111" }}>smartstationery.</span>
+    ) : (
+      <>
+        <span className="brand-smart" style={light ? { color: "#fff" } : undefined}>smart</span>
+        <span className="brand-stationery" style={light ? { color: "#93C5FD" } : undefined}>stationery.</span>
+      </>
+    )}
+  </span>
+);
+
+/* ─── Feature bar ───────────────────────────────────────────── */
+const TICKER_ITEMS = [
+  { icon: <FaShieldAlt style={{ color: "#16A34A" }} />, text: "100% Authentic Products" },
+  { icon: <FaShoppingBag style={{ color: "#F59E0B" }} />, text: "Same Day Fulfillment" },
+  { icon: <FaUsers style={{ color: "#60A5FA" }} />, text: "15K+ Happy Students" },
+  { icon: <FaSchool style={{ color: "#A78BFA" }} />, text: "50+ Schools Covered" },
+  { icon: <FaTruck style={{ color: "#38BDF8" }} />, text: "Free Delivery above ₹500" },
+  { icon: <FaHeart style={{ color: "#F87171" }} />, text: "Donate & Share" },
+];
+
+const FeatureBar = () => {
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
   return (
-    <div className="overflow-hidden text-white" style={{ background: "#111", whiteSpace: "nowrap", padding: "0.55rem 0", fontSize: "0.8rem", letterSpacing: "0.03em" }}>
-      <div style={{ display: "inline-block", animation: "ticker 28s linear infinite" }}>
-        {items.map((t, i) => <span key={i} style={{ marginRight: "3.5rem" }}>{t}</span>)}
+    <div className="landing-ticker" aria-hidden>
+      <div className="landing-ticker-track">
+        {items.map((item, i) => (
+          <span key={`${item.text}-${i}`} className="landing-ticker-item">
+            {item.icon}
+            {item.text}
+          </span>
+        ))}
       </div>
-      <style>{`@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
     </div>
   );
 };
 
-/* ─── Public Navbar ─────────────────────────────────────────── */
-const PublicNavbar = ({ onLogin, onRegister }) => {
+/* ─── Public Navbar (guest — Login / Sign Up only; icons after login) ── */
+const NAV_LINKS = ["Home", "Collections", "School Sets", "Donate"];
+
+const PublicNavbar = ({ onLogin, onRegister, activeLink = "Home" }) => {
   const [searchOpen, setSearchOpen] = useState(false);
+
   return (
-    <nav className="bg-white border-bottom sticky-top" style={{ zIndex: 1000 }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", height: 56 }} className="px-3 d-flex align-items-center justify-content-between">
-        {/* Left nav links */}
-        <div className="d-flex gap-4 align-items-center">
-          {["Home","Collections","School Sets","Donate"].map(label => (
-            <button key={label} onClick={label === "Home" ? undefined : onLogin}
-              className="btn btn-link p-0 text-decoration-none"
-              style={{ fontSize: "0.9rem", color: label === "Home" ? "#111" : "#6b7280", fontWeight: label === "Home" ? 700 : 500, borderBottom: label === "Home" ? "2px solid #111" : "none", paddingBottom: label === "Home" ? "2px" : 0 }}>
-              {label}
-            </button>
-          ))}
+    <nav className="landing-nav">
+      <div className="landing-nav-inner">
+        <div className="landing-nav-left">
+          <div className="landing-nav-links d-none d-lg-flex">
+            {NAV_LINKS.map(label => (
+              <button
+                key={label}
+                type="button"
+                onClick={label === "Home" ? undefined : onLogin}
+                className={`landing-nav-link ${activeLink === label ? "active" : ""}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-        {/* Brand */}
-        <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.35rem", fontWeight: 400, letterSpacing: "-0.01em", color: "#111" }}>
-          smartstationery.
-        </span>
-        {/* Right */}
-        <div className="d-flex align-items-center gap-3">
+
+        <div className="landing-nav-center">
+          <BrandLogo serif />
+        </div>
+
+        <div className="landing-nav-right">
           {searchOpen ? (
-            <form onSubmit={e => { e.preventDefault(); onLogin(); }} className="d-flex align-items-center gap-2">
-              <input autoFocus placeholder="Search products..." className="border-0 border-bottom border-dark outline-0"
-                style={{ outline: "none", fontSize: "0.9rem", padding: "0.2rem 0.4rem", width: 180 }} />
-              <button type="button" onClick={() => setSearchOpen(false)} className="btn btn-link p-0 text-secondary"><FaTimes /></button>
-            </form>
+            <div className="landing-nav-search-wrap d-flex align-items-center gap-1">
+              <form
+                className="landing-search"
+                style={{ width: 200 }}
+                onSubmit={e => { e.preventDefault(); onLogin(); setSearchOpen(false); }}
+              >
+                <input autoFocus type="search" placeholder="Search products…" />
+                <FaSearch className="landing-search-icon" />
+              </form>
+              <button type="button" className="landing-icon-btn" style={{ width: 32, height: 32 }} onClick={() => setSearchOpen(false)}>
+                <FaTimes />
+              </button>
+            </div>
           ) : (
-            <button onClick={() => setSearchOpen(true)} className="btn btn-link p-0 text-dark" style={{ fontSize: "1.05rem" }}><FaSearch /></button>
+            <button type="button" className="landing-nav-search-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+              <FaSearch />
+            </button>
           )}
-          <button onClick={onLogin} className="btn btn-outline-dark rounded-pill fw-semibold" style={{ fontSize: "0.85rem", padding: "0.4rem 1.1rem" }}>Login</button>
-          <button onClick={onRegister} className="btn btn-dark rounded-pill fw-semibold" style={{ fontSize: "0.85rem", padding: "0.4rem 1.1rem" }}>Sign Up</button>
+          <button type="button" className="landing-btn-login-pill" onClick={onLogin}>Login</button>
+          <button type="button" className="landing-btn-signup-pill" onClick={onRegister}>Sign Up</button>
         </div>
       </div>
     </nav>
   );
 };
+
+/* ─── Value proposition bar ─────────────────────────────────── */
+const VALUE_PROPS = [
+  { icon: <FaShieldAlt />, title: "Top Quality Products", sub: "Carefully selected" },
+  { icon: <FaUndo />, title: "Easy Returns", sub: "7 days return policy" },
+  { icon: <FaLock />, title: "Secure Payments", sub: "100% protected" },
+  { icon: <FaHeadset />, title: "Customer Support", sub: "We're here to help" },
+  { icon: <FaGift />, title: "Rewards & Offers", sub: "Save more every time" },
+];
+
+const ValueBar = () => (
+  <section className="landing-value-bar">
+    <div className="landing-value-inner">
+      {VALUE_PROPS.map(v => (
+        <div key={v.title} className="landing-value-item">
+          <div className="landing-value-icon">{v.icon}</div>
+          <div className="landing-value-title">{v.title}</div>
+          <div className="landing-value-sub">{v.sub}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+);
 
 /* ─── Guest toast ───────────────────────────────────────────── */
 const GuestToast = ({ onClose, onSignUp }) => (
@@ -648,56 +716,57 @@ const GuestToast = ({ onClose, onSignUp }) => (
 /* ─── Product Card (guest) — uses shared ProductCard ────────── */
 // (removed inline definition — using shared component below)
 
-const CATS = [
-  { id: "book",        icon: <FaBook />,         label: "Books",        count: "5,000+" },
-  { id: "sports",      icon: <FaRunning />,      label: "Sports",       count: "1,200+" },
-  { id: "stationery",  icon: <FaPencilAlt />,    label: "Stationery",   count: "3,500+" },
-  { id: "electronics", icon: <FaGraduationCap />, label: "School Sets", count: "50+ Schools" },
-  { id: "donation",    icon: <FaHeart />,        label: "Donation Box", count: "500+ Items" },
+const SIDEBAR_CATS = [
+  { id: "all", label: "All Products" },
+  { id: "book", label: "Books" },
+  { id: "stationery", label: "Stationery" },
+  { id: "electronics", label: "School Sets" },
+  { id: "sports", label: "Sports" },
+  { id: "others", label: "Others" },
 ];
 
 /* ─── Footer ────────────────────────────────────────────────── */
 const Footer = ({ onLogin }) => (
-  <footer className="bg-white border-top" style={{ padding: "4rem 0 2rem" }}>
-    <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-      <div className="row g-4 mb-4">
-        <div className="col-md-4">
-          <h6 className="fw-bold mb-3">Contact</h6>
-          <p className="text-muted small mb-0" style={{ lineHeight: 1.8 }}>
+  <footer className="landing-footer">
+    <div className="landing-footer-inner">
+      <div className="landing-footer-grid">
+        <div>
+          <p className="landing-footer-col-tagline">
+            Everything for every student — textbooks, stationery, sports gear, and complete school sets.
+          </p>
+          <p className="landing-footer-col-contact">
             Kathmandu, Nepal<br />
             +977 9815127051<br />
             stationerymanagementsystem25@gmail.com
           </p>
         </div>
-        <div className="col-md-2 col-6">
-          <h6 className="fw-bold mb-3">Shop</h6>
-          {["Books","Stationery","Sports Items","School Sets","New Arrivals"].map(l => (
-            <button key={l} onClick={onLogin} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
+        <div>
+          <h6>Shop</h6>
+          {["Books", "Stationery", "Sports Items", "School Sets", "New Arrivals"].map(l => (
+            <button key={l} type="button" onClick={onLogin} className="landing-footer-link">{l}</button>
           ))}
         </div>
-        <div className="col-md-3 col-6">
-          <h6 className="fw-bold mb-3">Quick Links</h6>
-          {["Login","Register","Donate","FAQs","Contact Us"].map(l => (
-            <button key={l} onClick={onLogin} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
+        <div>
+          <h6>Quick Links</h6>
+          {["Login", "Register", "Donate", "FAQs", "Contact Us"].map(l => (
+            <button key={l} type="button" onClick={onLogin} className="landing-footer-link">{l}</button>
           ))}
         </div>
-        <div className="col-md-3 col-6">
-          <h6 className="fw-bold mb-3">About</h6>
-          {["About Us","Privacy Policy","Terms of Service","Help Center"].map(l => (
-            <button key={l} onClick={onLogin} className="btn btn-link p-0 d-block text-muted text-decoration-none small mb-1">{l}</button>
+        <div>
+          <h6>About</h6>
+          {["About Us", "Privacy Policy", "Terms of Service", "Help Center"].map(l => (
+            <button key={l} type="button" onClick={onLogin} className="landing-footer-link">{l}</button>
           ))}
         </div>
       </div>
-      <div className="border-top pt-4">
-        <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem,10vw,7rem)", fontWeight: 400, color: "#f0f0f0", margin: "0 0 1rem", letterSpacing: "-0.02em", lineHeight: 1 }}>
-          smartstationery.
-        </p>
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span className="text-muted small">© 2025 SmartStationery. All rights reserved.</span>
-          <div className="d-flex gap-3">
-            <button onClick={onLogin} className="btn btn-link p-0 text-muted small text-decoration-none">Privacy</button>
-            <button onClick={onLogin} className="btn btn-link p-0 text-muted small text-decoration-none">Terms</button>
-          </div>
+      <p className="landing-footer-wordmark" aria-hidden>
+        <span className="wordmark-smart">smart</span><span className="wordmark-stationery">stationery.</span>
+      </p>
+      <div className="landing-footer-bottom">
+        <span>© 2025 SmartStationery. All rights reserved.</span>
+        <div className="d-flex gap-3">
+          <button type="button" onClick={onLogin} className="landing-footer-link" style={{ margin: 0 }}>Privacy</button>
+          <button type="button" onClick={onLogin} className="landing-footer-link" style={{ margin: 0 }}>Terms</button>
         </div>
       </div>
     </div>
@@ -727,102 +796,100 @@ const LandingPage = ({ setUser }) => {
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
-    setProducts(cat === "all" ? allProducts : allProducts.filter(p => p.category === cat));
+    if (cat === "all") {
+      setProducts(allProducts);
+      return;
+    }
+    if (cat === "others") {
+      const known = ["book", "stationery", "electronics", "sports", "art"];
+      setProducts(allProducts.filter(p => !known.includes((p.category || "").toLowerCase())));
+      return;
+    }
+    setProducts(allProducts.filter(p => (p.category || "").toLowerCase() === cat || (p.category || "").toLowerCase() === cat + "s"));
   };
 
   const handleGuestAction = () => { setShowToast(true); setTimeout(() => setShowToast(false), 4000); };
   const openLogin = () => setAuthMode("login");
   const openRegister = () => setAuthMode("register");
   const closeAuth = () => setAuthMode(null);
-  const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
 
   return (
-    <div style={{ fontFamily: "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div className="landing-page">
       <PublicNavbar onLogin={openLogin} onRegister={openRegister} />
-      <Ticker />
+      <FeatureBar />
 
       <main style={{ flex: 1 }}>
-        {/* Hero — full-height, custom gradient: inline CSS required */}
-        <section className="position-relative overflow-hidden" style={{ height: "92vh", minHeight: 560 }}>
-          <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80" alt="Library"
-            className="position-absolute top-0 start-0 w-100 h-100" style={{ objectFit: "cover", objectPosition: "center" }} />
-          <div className="position-absolute top-0 start-0 w-100 h-100"
-            style={{ background: "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 60%, rgba(0,0,0,0.1) 100%)" }} />
-          <div className="position-relative h-100 d-flex flex-column justify-content-center px-3" style={{ zIndex: 1, maxWidth: 1200, margin: "0 auto" }}>
-            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem, 10vw, 7.5rem)", fontWeight: 400, color: "#fff", lineHeight: 0.95, margin: 0, letterSpacing: "-0.02em" }}>
-              smart<br />stationery.
+        {/* Hero */}
+        <section className="landing-hero">
+          <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80" alt="Bookshelf library" />
+          <div className="landing-hero-overlay" />
+          <div className="landing-hero-content">
+            <h1>
+              <span className="hero-smart">smart</span><br />
+              <span className="hero-stationery">stationery.</span>
             </h1>
-            <p className="fw-semibold mb-1" style={{ color: "rgba(255,255,255,0.95)", fontSize: "1rem", marginTop: "1.5rem" }}>Everything For Every Student.</p>
-            <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.9rem", maxWidth: 360, margin: "0 0 2.25rem", lineHeight: 1.65 }}>
+            <p className="landing-hero-tagline">Everything For Every Student.</p>
+            <p className="landing-hero-desc">
               From textbooks to sports gear, stationery to complete school sets — your one stop destination.
             </p>
-            <div className="d-flex gap-3 flex-wrap">
-              <button onClick={openRegister} className="btn btn-light fw-bold rounded-pill d-inline-flex align-items-center gap-2 shadow"
-                style={{ padding: "0.8rem 2rem" }}>
-                Get Started <FaChevronRight style={{ fontSize: "0.75rem" }} />
+            <div className="landing-hero-actions">
+              <button type="button" onClick={openRegister} className="landing-btn-primary">
+                Shop Now <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
-              <button onClick={openLogin} className="btn fw-bold rounded-pill d-inline-flex align-items-center gap-2"
-                style={{ padding: "0.8rem 2rem", background: "transparent", color: "#fff", border: "2px solid rgba(255,255,255,0.7)" }}>
+              <button type="button" onClick={openLogin} className="landing-btn-outline">
                 Login
               </button>
             </div>
           </div>
         </section>
 
-        {/* Categories */}
-        <section className="py-5 bg-white">
-          <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATEGORIES</p>
-            <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Shop by Category</h2>
-            {/* 5-col grid — Bootstrap doesn't have col-5, use inline grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-              {CATS.map(cat => (
-                <button key={cat.id} onClick={() => handleCategorySelect(cat.id)}
-                  className="btn border-0 text-start"
-                  style={{ background: selectedCategory === cat.id ? "#f9fafb" : "#fff", padding: "2rem 1.5rem", borderRadius: 0, transition: "background 0.2s" }}>
-                  <div style={{ fontSize: "1.3rem", color: "#111", marginBottom: "1.5rem" }}>{cat.icon}</div>
-                  <div className="fw-bold" style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>{cat.label}</div>
-                  <div className="text-muted" style={{ fontSize: "0.8rem" }}>{cat.count}</div>
+        <ValueBar />
+
+        {/* Shop: sidebar + products */}
+        <section className="landing-shop">
+          <div className="landing-shop-inner">
+            <aside className="landing-sidebar">
+              <h3>Shop by Category</h3>
+              {SIDEBAR_CATS.map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className={`landing-cat-btn ${selectedCategory === cat.id ? "active" : ""}`}
+                >
+                  {cat.label}
                 </button>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Products */}
-        <section className="py-5" style={{ background: "#fafafa" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-            <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CURATED</p>
-            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-              <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Featured Products</h2>
-              <div className="d-flex gap-2">
-                {FILTER_CATS.map(c => (
-                  <button key={c} onClick={() => handleCategorySelect(c === "All" ? "all" : c.toLowerCase())}
-                    className={`btn btn-sm fw-semibold rounded-pill ${(selectedCategory === "all" && c === "All") || selectedCategory === c.toLowerCase() ? "btn-dark" : "btn-outline-dark"}`}>
-                    {c}
-                  </button>
-                ))}
+            </aside>
+            <div className="landing-products-panel">
+              <div className="landing-products-header">
+                <h2>Popular Picks</h2>
+                <button type="button" onClick={openLogin} className="landing-view-all">
+                  View all products <FaChevronRight style={{ fontSize: "0.7rem" }} />
+                </button>
               </div>
-            </div>
-            {loading ? (
-              <div className="text-center py-5">
-                <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
-                  <span className="visually-hidden">Loading…</span>
-                </div>
-              </div>
-            ) : (
-              <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
-                {products.slice(0, 10).map(p => (
-                  <div key={p.id} className="col">
-                    <ProductCard product={p} onGuestAction={handleGuestAction} onView={setSelectedProduct} isGuest={true} />
+              {loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border" style={{ width: 36, height: 36, borderWidth: 3, color: "#1D4ED8" }} role="status">
+                    <span className="visually-hidden">Loading…</span>
                   </div>
-                ))}
-              </div>
-            )}
-            <div className="text-center mt-4">
-              <button onClick={openLogin} className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-                Login to see all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
-              </button>
+                </div>
+              ) : products.length === 0 ? (
+                <p className="text-center py-5" style={{ color: "#4B5563" }}>No products in this category yet.</p>
+              ) : (
+                <div className="landing-product-grid">
+                  {products.slice(0, 12).map(p => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      variant="landing"
+                      onGuestAction={handleGuestAction}
+                      onView={setSelectedProduct}
+                      isGuest
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -847,7 +914,7 @@ const LandingPage = ({ setUser }) => {
                     </div>
                   ))}
                 </div>
-                <button onClick={openRegister} className="btn btn-dark rounded-pill fw-bold">Sign up to Donate or Request</button>
+                <button type="button" onClick={openRegister} className="landing-btn-primary">Sign up to Donate or Request</button>
               </div>
               <div className="col-md-6">
                 <p className="text-uppercase fw-bold small text-muted mb-3" style={{ letterSpacing: "0.1em" }}>RECENTLY AVAILABLE</p>
@@ -904,7 +971,7 @@ const LandingPage = ({ setUser }) => {
                     <p className="text-muted mb-3" style={{ fontSize: "0.8rem" }}>📚 {s.items?.length || 0} books included</p>
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="fw-bold">₹{s.total_price}</span>
-                      <button onClick={handleGuestAction} className="btn btn-dark btn-sm fw-semibold d-flex align-items-center gap-1">
+                      <button type="button" onClick={handleGuestAction} className="landing-btn-primary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}>
                         <FaShoppingCart style={{ fontSize: "0.7rem" }} /> Add to Cart
                       </button>
                     </div>
@@ -915,33 +982,36 @@ const LandingPage = ({ setUser }) => {
           </div>
         </section>
 
-        {/* CTA — dark bg, custom font: inline CSS required */}
-        <section className="py-5 text-white text-center" style={{ background: "#111" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-            <p className="text-uppercase fw-bold small mb-3" style={{ color: "#9ca3af", letterSpacing: "0.1em" }}>JOIN US</p>
-            <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(2.5rem,6vw,4.5rem)", fontWeight: 400, margin: "0 0 1.5rem", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+        {/* CTA */}
+        <section className="py-5 text-white text-center" style={{ background: "#111111" }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+            <p className="text-uppercase fw-bold small mb-3" style={{ color: "#9CA3AF", letterSpacing: "0.1em" }}>JOIN US</p>
+            <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontWeight: 400, margin: "0 0 1.5rem", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
               Your school supplies,<br />sorted.
             </h2>
-            <p className="mb-5 mx-auto lh-lg" style={{ color: "#9ca3af", fontSize: "1rem", maxWidth: 480 }}>
+            <p className="mb-4 mx-auto lh-lg" style={{ color: "#D1D5DB", fontSize: "1rem", maxWidth: 480 }}>
               Join 15,000+ students and parents. Get complete school sets, donate unused books, and request hard-to-find items.
             </p>
             <div className="d-flex gap-3 justify-content-center flex-wrap">
-              <button onClick={openRegister} className="btn btn-light fw-bold rounded-pill" style={{ padding: "0.85rem 2.5rem" }}>Create Free Account</button>
-              <button onClick={openLogin} className="btn fw-bold rounded-pill"
-                style={{ padding: "0.85rem 2.5rem", background: "transparent", color: "#fff", border: "2px solid rgba(255,255,255,0.4)" }}>Login</button>
+              <button type="button" onClick={openRegister} className="landing-btn-primary" style={{ padding: "0.85rem 2rem" }}>
+                Create Free Account
+              </button>
+              <button type="button" onClick={openLogin} className="landing-btn-outline" style={{ padding: "0.85rem 2rem" }}>
+                Login
+              </button>
             </div>
           </div>
         </section>
 
         {/* Stats */}
-        <section className="py-5" style={{ background: "#fafafa" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-            <div className="row g-4 text-center">
-              {[["15K+","Happy Students"],["50+","Schools Covered"],["500+","Items Donated"],["5,000+","Products Listed"]].map(([n,l]) => (
+        <section className="py-5" style={{ background: "#F3F4F6" }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+            <div className="row g-3 text-center">
+              {[["15K+", "Happy Students"], ["50+", "Schools Covered"], ["500+", "Items Donated"], ["5,000+", "Products Listed"]].map(([n, l]) => (
                 <div key={l} className="col-6 col-md-3">
-                  <div className="bg-white border p-4">
-                    <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, color: "#111", marginBottom: "0.5rem" }}>{n}</div>
-                    <div className="text-muted small fw-medium">{l}</div>
+                  <div className="bg-white p-4" style={{ border: "1px solid #E5E7EB", borderRadius: 8 }}>
+                    <div style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, color: "#1D4ED8", marginBottom: "0.35rem" }}>{n}</div>
+                    <div className="small fw-medium" style={{ color: "#4B5563" }}>{l}</div>
                   </div>
                 </div>
               ))}

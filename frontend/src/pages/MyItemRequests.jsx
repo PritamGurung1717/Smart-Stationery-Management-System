@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPlus, FaBoxOpen, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft } from "react-icons/fa";
+import { FaPlus, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import confirm from "../utils/confirm.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -16,8 +17,13 @@ const STATUS_BADGE = {
   cancelled: { cls: "text-secondary bg-light",                  icon: <FaBan />,    label: "Cancelled" },
 };
 
+const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
+
 const MyItemRequests = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const backPath = user?.role === "institute" ? "/institute-dashboard" : "/dashboard";
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,7 +73,7 @@ const MyItemRequests = () => {
     const ok = await confirm("Are you sure you want to cancel this request?", {
       title: "Cancel Request",
       confirmText: "Yes, Cancel",
-      confirmColor: "#dc2626",
+      cancelColor: "#dc2626",
     });
     if (!ok) return;
     try {
@@ -85,169 +91,164 @@ const MyItemRequests = () => {
   };
 
   const stats = [
-    { label: "Total",    value: requests.length,                                      color: "#4f46e5" },
-    { label: "Pending",  value: requests.filter(r => r.status === "pending").length,  color: "#f59e0b" },
-    { label: "Approved", value: requests.filter(r => r.status === "approved").length, color: "#16a34a" },
-    { label: "Rejected", value: requests.filter(r => r.status === "rejected").length, color: "#ef4444" },
+    { label: "Total",    value: requests.length,                                      color: "#1D4ED8" },
+    { label: "Pending",  value: requests.filter(r => r.status === "pending").length,  color: "#F59E0B" },
+    { label: "Approved", value: requests.filter(r => r.status === "approved").length, color: "#16A34A" },
+    { label: "Rejected", value: requests.filter(r => r.status === "rejected").length, color: "#EF4444" },
   ];
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-5">
-
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
-          <div>
-            <button onClick={() => navigate("/dashboard")}
-              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
-              <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-            </button>
-            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1.1 }} className="mb-0">
-              My Item Requests
-            </h1>
-          </div>
-          <button onClick={() => setShowForm(true)}
-            className="btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2">
-            <FaPlus /> New Request
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate(backPath)} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
           </button>
-        </div>
 
-        {error   && <div className="alert alert-danger small py-2">{error}</div>}
-        {success && <div className="alert alert-success small py-2">✓ {success}</div>}
+          <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
+            <div>
+              <p className="ss-section-label">{user?.role === "institute" ? "INSTITUTE" : "ACCOUNT"}</p>
+              <h1 className="ss-page-title mb-0">My Item Requests</h1>
+            </div>
+            <button type="button" onClick={() => setShowForm(true)}
+              className="landing-btn-primary border-0 d-flex align-items-center gap-2">
+              <FaPlus /> New Request
+            </button>
+          </div>
 
-        {/* Stats row */}
-        <div className="row g-3 mb-4">
-          {stats.map(s => (
-            <div key={s.label} className="col-6 col-md-3">
-              <div className="border rounded-3 text-center p-3">
-                <div className="fw-bold" style={{ fontSize: "2rem", color: s.color }}>{s.value}</div>
-                <div className="text-muted small fw-medium">{s.label}</div>
+          {error && <div className="alert alert-danger small py-2">{error}</div>}
+          {success && <div className="alert alert-success small py-2">{success}</div>}
+
+          <div className="row g-3 mb-4">
+            {stats.map(s => (
+              <div key={s.label} className="col-6 col-md-3">
+                <div className="ss-stat-tile">
+                  <div className="fw-bold" style={{ fontSize: "2rem", color: s.color }}>{s.value}</div>
+                  <div className="small fw-medium" style={{ color: "#4B5563" }}>{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border mb-3" style={{ width: 36, height: 36, borderWidth: 3, color: "#1D4ED8" }} role="status" />
+              <p className="small mb-0" style={{ color: "#4B5563" }}>Loading requests…</p>
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="ss-empty-state">
+              <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
+              <h3 className="fw-bold mb-1" style={{ color: "#111" }}>No Requests Yet</h3>
+              <p className="mb-4" style={{ color: "#4B5563" }}>Can't find what you need? Submit a request!</p>
+              <button type="button" onClick={() => setShowForm(true)} className="landing-btn-primary border-0">Submit First Request</button>
+            </div>
+          ) : (
+            <div className="ss-card p-0 overflow-hidden">
+              <div className="table-responsive">
+                <table className="table table-hover mb-0 align-middle">
+                  <thead>
+                    <tr className="ss-table-head">
+                      {["#","Item Name","Category","Qty","Status","Admin Remark","Date","Action"].map(h => (
+                        <th key={h} className="fw-bold small py-3 border-0">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map((req, idx) => {
+                      const ss = STATUS_BADGE[req.status] || STATUS_BADGE.pending;
+                      return (
+                        <tr key={req.id}>
+                          <td className="small" style={{ color: "#4B5563" }}>{idx + 1}</td>
+                          <td>
+                            <div className="fw-semibold small" style={{ color: "#111" }}>{req.item_name}</div>
+                            {req.description && (
+                              <div style={{ fontSize: "0.75rem", color: "#4B5563" }}>
+                                {req.description.substring(0, 60)}{req.description.length > 60 ? "…" : ""}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <span className="ss-badge-blue text-capitalize">{req.category}</span>
+                          </td>
+                          <td className="fw-semibold">{req.quantity_requested}</td>
+                          <td>
+                            <span className={`badge ${ss.cls} d-inline-flex align-items-center gap-1`} style={{ fontSize: "0.72rem" }}>
+                              {ss.icon} {ss.label}
+                            </span>
+                          </td>
+                          <td className="small" style={{ maxWidth: 180, color: "#4B5563" }}>
+                            {req.admin_remark || "—"}
+                          </td>
+                          <td className="small text-nowrap" style={{ color: "#4B5563" }}>{new Date(req.created_at).toLocaleDateString()}</td>
+                          <td>
+                            {req.status === "pending" && (
+                              <button type="button" onClick={() => handleCancel(req.id)} disabled={cancelling === req.id}
+                                className="btn btn-outline-danger btn-sm fw-semibold">
+                                {cancelling === req.id ? "…" : "Cancel"}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
+          )}
         </div>
+      </section>
 
-        {/* Content */}
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
-              <span className="visually-hidden">Loading…</span>
-            </div>
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="text-center py-5 border rounded-3">
-            <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
-            <h3 className="fw-bold mb-1">No Requests Yet</h3>
-            <p className="text-muted mb-4">Can't find what you need? Submit a request!</p>
-            <button onClick={() => setShowForm(true)} className="btn btn-dark fw-bold">Submit First Request</button>
-          </div>
-        ) : (
-          <div className="border rounded-3 overflow-hidden">
-            <table className="table table-hover mb-0 align-middle">
-              <thead className="table-light">
-                <tr>
-                  {["#","Item Name","Category","Qty","Status","Admin Remark","Date","Action"].map(h => (
-                    <th key={h} className="fw-bold small text-dark py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((req, idx) => {
-                  const ss = STATUS_BADGE[req.status] || STATUS_BADGE.pending;
-                  return (
-                    <tr key={req.id}>
-                      <td className="text-muted small">{idx + 1}</td>
-                      <td>
-                        <div className="fw-semibold small">{req.item_name}</div>
-                        {req.description && (
-                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>
-                            {req.description.substring(0, 60)}{req.description.length > 60 ? "…" : ""}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span className="badge bg-light text-dark border fw-semibold text-capitalize" style={{ fontSize: "0.72rem" }}>
-                          {req.category}
-                        </span>
-                      </td>
-                      <td className="fw-semibold">{req.quantity_requested}</td>
-                      <td>
-                        <span className={`badge ${ss.cls} d-inline-flex align-items-center gap-1`} style={{ fontSize: "0.72rem" }}>
-                          {ss.icon} {ss.label}
-                        </span>
-                      </td>
-                      <td className="text-muted small" style={{ maxWidth: 180 }}>
-                        {req.admin_remark || <span className="text-secondary">—</span>}
-                      </td>
-                      <td className="text-muted small text-nowrap">{new Date(req.created_at).toLocaleDateString()}</td>
-                      <td>
-                        {req.status === "pending" && (
-                          <button onClick={() => handleCancel(req.id)} disabled={cancelling === req.id}
-                            className="btn btn-outline-danger btn-sm fw-semibold">
-                            {cancelling === req.id ? "…" : "Cancel"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* New Request Modal — Bootstrap modal structure */}
       {showForm && (
         <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)", zIndex: 3000 }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content rounded-3 border-0 shadow-lg">
               <div className="modal-header border-bottom">
-                <h5 className="modal-title fw-bold">Request Unavailable Item</h5>
-                <button onClick={() => { setShowForm(false); setFormErrors({}); }} className="btn-close" />
+                <h5 className="modal-title fw-bold" style={{ color: "#111" }}>Request Unavailable Item</h5>
+                <button type="button" onClick={() => { setShowForm(false); setFormErrors({}); }} className="btn-close" />
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-                  <div className="alert alert-info small py-2 mb-3">
-                    💡 Can't find what you need? Fill in the details and we'll try to add it!
+                  <div className="alert small py-2 mb-3" style={{ background: "#EFF6FF", borderColor: "#BFDBFE", color: "#1D4ED8" }}>
+                    Can't find what you need? Fill in the details and we'll try to add it!
                   </div>
                   <div className="row g-3 mb-3">
                     <div className="col-8">
                       <label className="form-label fw-semibold small">Item Name <span className="text-danger">*</span></label>
                       <input name="item_name" value={form.item_name} onChange={handleChange}
                         placeholder="e.g. Advanced Physics Book Grade 12"
-                        className={`form-control ${formErrors.item_name ? "is-invalid" : ""}`} />
+                        className={`form-control ${formErrors.item_name ? "is-invalid" : ""}`} style={inp} />
                       {formErrors.item_name && <div className="invalid-feedback">{formErrors.item_name}</div>}
                     </div>
                     <div className="col-4">
                       <label className="form-label fw-semibold small">Qty <span className="text-danger">*</span></label>
                       <input type="number" name="quantity_requested" value={form.quantity_requested}
                         onChange={handleChange} min={1}
-                        className={`form-control ${formErrors.quantity_requested ? "is-invalid" : ""}`} />
+                        className={`form-control ${formErrors.quantity_requested ? "is-invalid" : ""}`} style={inp} />
                       {formErrors.quantity_requested && <div className="invalid-feedback">{formErrors.quantity_requested}</div>}
                     </div>
                   </div>
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">Category <span className="text-danger">*</span></label>
                     <select name="category" value={form.category} onChange={handleChange}
-                      className={`form-select ${formErrors.category ? "is-invalid" : ""}`}>
+                      className={`form-select ${formErrors.category ? "is-invalid" : ""}`} style={inp}>
                       <option value="">Select category</option>
                       {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                     </select>
                     {formErrors.category && <div className="invalid-feedback">{formErrors.category}</div>}
                   </div>
                   <div>
-                    <label className="form-label fw-semibold small">Description <span className="text-muted">(optional)</span></label>
+                    <label className="form-label fw-semibold small">Description <span style={{ color: "#9CA3AF" }}>(optional)</span></label>
                     <textarea name="description" value={form.description} onChange={handleChange}
                       rows={3} placeholder="Edition, brand, specifications…"
-                      className="form-control" style={{ resize: "none" }} />
+                      className="form-control" style={{ ...inp, resize: "none" }} />
                   </div>
                 </div>
                 <div className="modal-footer border-top">
                   <button type="button" onClick={() => { setShowForm(false); setFormErrors({}); }}
-                    className="btn btn-light border fw-semibold">Cancel</button>
+                    className="ss-btn-outline px-3 py-2">Cancel</button>
                   <button type="submit" disabled={submitting}
-                    className={`btn btn-dark fw-bold ${submitting ? "opacity-75" : ""}`}>
+                    className={`landing-btn-primary border-0 ${submitting ? "opacity-75" : ""}`}>
                     {submitting ? "Submitting…" : "Submit Request"}
                   </button>
                 </div>

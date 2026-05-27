@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft, FaTrash, FaBook, FaToggleOn, FaToggleOff } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 import Toast from "../../components/admin/shared/Toast";
 import ConfirmModal from "../../components/admin/shared/ConfirmModal";
 import LoadingSpinner from "../../components/admin/shared/LoadingSpinner";
@@ -84,19 +85,17 @@ function AdminBookSetDetails() {
         message={`Delete "${bookSet.school_name} — Grade ${bookSet.grade}"? This cannot be undone.`}
         onConfirm={handleDelete} onCancel={() => setDeleteModal(false)} loading={acting} danger />
 
-      {/* Header */}
       <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
-          <button onClick={() => navigate("/admin-dashboard", { state: { tab: "book-sets" } })}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.5rem" }}>
-            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-          </button>
-          <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>SCHOOL SET</p>
-          <h2 className="fw-bold mb-1" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-            {bookSet.school_name}
-          </h2>
-          <div className="d-flex gap-2 flex-wrap">
-            <span className="badge text-bg-dark" style={{ fontSize: "0.72rem" }}>Grade {bookSet.grade}</span>
+          <PageHeader
+            subtitle="SCHOOL SET"
+            title={bookSet.school_name}
+            backPath="/admin-dashboard"
+            backState={{ tab: "book-sets" }}
+            backLabel="Back to Book Sets"
+          />
+          <div className="d-flex gap-2 flex-wrap" style={{ marginTop: "-0.5rem" }}>
+            <span className="badge text-bg-primary" style={{ fontSize: "0.72rem" }}>Grade {bookSet.grade}</span>
             <span className="badge bg-light text-dark border" style={{ fontSize: "0.72rem" }}>
               <FaBook style={{ marginRight: "0.3rem", fontSize: "0.65rem" }} />{bookSet.items?.length} Books
             </span>
@@ -111,16 +110,16 @@ function AdminBookSetDetails() {
             <div className="fw-bold" style={{ fontSize: "1.75rem", lineHeight: 1 }}>₹{bookSet.total_price?.toFixed(2)}</div>
           </div>
           <button onClick={() => navigate(`/admin/book-sets/${id}/edit`)}
-            className="btn btn-dark rounded-0 fw-semibold">
+            className="btn landing-btn-primary fw-semibold">
             Edit
           </button>
           <button onClick={handleToggleActive} disabled={acting}
-            className={`btn rounded-0 fw-semibold d-flex align-items-center gap-1 ${bookSet.is_active ? "btn-outline-warning" : "btn-outline-success"}`}>
+            className={`btn fw-semibold d-flex align-items-center gap-1 ${bookSet.is_active ? "btn-outline-warning" : "btn-outline-success"}`}>
             {bookSet.is_active ? <FaToggleOff /> : <FaToggleOn />}
             {bookSet.is_active ? "Deactivate" : "Activate"}
           </button>
           <button onClick={() => setDeleteModal(true)}
-            className="btn btn-outline-danger rounded-0 fw-semibold d-flex align-items-center gap-1">
+            className="btn btn-outline-danger fw-semibold d-flex align-items-center gap-1">
             <FaTrash style={{ fontSize: "0.75rem" }} /> Delete
           </button>
         </div>
@@ -128,7 +127,7 @@ function AdminBookSetDetails() {
 
       {/* Books table — same as user view */}
       <div style={{ border: "1px solid #e5e7eb", overflow: "hidden" }}>
-        <div className="px-4 py-3" style={{ background: "#111" }}>
+        <div className="px-4 py-3 ss-table-head">
           <h5 className="mb-0 fw-bold text-white">📚 Books in this Set</h5>
         </div>
         <div className="table-responsive">
@@ -157,7 +156,7 @@ function AdminBookSetDetails() {
                 </tr>
               ))}
             </tbody>
-            <tfoot style={{ background: "#f9fafb", borderTop: "2px solid #111" }}>
+            <tfoot style={{ background: "#f9fafb", borderTop: "2px solid #1D4ED8" }}>
               <tr>
                 <td colSpan={6} className="text-end fw-bold py-3 px-3">Total Amount:</td>
                 <td className="text-end fw-bold py-3 px-3" style={{ fontSize: "1.1rem" }}>₹{bookSet.total_price?.toFixed(2)}</td>

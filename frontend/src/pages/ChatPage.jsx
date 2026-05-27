@@ -4,6 +4,11 @@ import axios from "axios";
 import { FaPaperPlane, FaPaperclip, FaSearch, FaTimes, FaFileAlt, FaFileCsv, FaCircle, FaPlus } from "react-icons/fa";
 import { connectSocket } from "../services/socketService";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
+
+const SS_BLUE = "#1D4ED8";
+const SS_GRAY_100 = "#F3F4F6";
+const SS_GRAY_200 = "#E5E7EB";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -48,7 +53,8 @@ const MessageBubble = ({ msg, isMine }) => (
   <div style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start", marginBottom: 8 }}>
     <div style={{
       maxWidth: "70%", padding: "10px 14px", borderRadius: isMine ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-      background: isMine ? "#111" : "#f3f4f6", color: isMine ? "#fff" : "#111",
+      background: isMine ? SS_BLUE : "#fff", color: isMine ? "#fff" : "#111",
+      border: isMine ? "none" : `1px solid ${SS_GRAY_200}`,
       boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
     }}>
       {msg.message_text && <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.message_text}</p>}
@@ -70,11 +76,12 @@ const ConvItem = ({ conv, active, onClick, isAdmin }) => {
   return (
     <button onClick={onClick}
       style={{
-        width: "100%", textAlign: "left", border: "none", background: active ? "#f3f4f6" : "transparent",
-        padding: "12px 16px", cursor: "pointer", borderBottom: "1px solid #f3f4f6",
+        width: "100%", textAlign: "left", border: "none", background: active ? "#EFF6FF" : "transparent",
+        padding: "12px 16px", cursor: "pointer", borderBottom: `1px solid ${SS_GRAY_200}`,
+        borderLeft: active ? `3px solid ${SS_BLUE}` : "3px solid transparent",
         display: "flex", alignItems: "center", gap: 12, transition: "background 0.15s",
       }}>
-      <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#111", color: "#fff",
+      <div style={{ width: 42, height: 42, borderRadius: "50%", background: SS_BLUE, color: "#fff",
         display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0, fontSize: "1rem" }}>
         {initials}
       </div>
@@ -150,7 +157,7 @@ const NewChatModal = ({ show, onClose, onSelectInstitute }) => {
                 style={{ width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "12px 24px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#111", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: SS_BLUE, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0 }}>
                   {(inst.instituteInfo?.schoolName || inst.name || "I").charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -408,22 +415,22 @@ export default function ChatPage({ embedded = false }) {
   }, {});
 
   const containerStyle = embedded
-    ? { display: "flex", height: "100%", background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #e5e7eb" }
+    ? { display: "flex", height: "100%", background: "#fff", borderRadius: 12, overflow: "hidden", border: `1px solid ${SS_GRAY_200}` }
     : { display: "flex", height: "calc(100vh - 64px)", background: "#fff" };
 
   return (
     <div style={containerStyle}>
       {/* ── Sidebar ── */}
       {(isAdmin || conversations.length > 1) && (
-        <div style={{ width: 300, borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ padding: "16px", borderBottom: "1px solid #e5e7eb" }}>
+        <div style={{ width: 300, borderRight: `1px solid ${SS_GRAY_200}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div style={{ padding: "16px", borderBottom: `1px solid ${SS_GRAY_200}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <h6 style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem" }}>
                 {isAdmin ? "Institute Chats" : "Messages"}
               </h6>
               {isAdmin && (
                 <button onClick={() => setShowNewChatModal(true)}
-                  style={{ background: "#111", color: "#fff", border: "none", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ background: SS_BLUE, color: "#fff", border: "none", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   title="Start new chat">
                   <FaPlus size={12} />
                 </button>
@@ -469,8 +476,8 @@ export default function ChatPage({ embedded = false }) {
         ) : (
           <>
             {/* Header */}
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", gap: 12, background: "#fff" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#111", color: "#fff",
+            <div style={{ padding: "14px 20px", borderBottom: `1px solid ${SS_GRAY_200}`, display: "flex", alignItems: "center", gap: 12, background: "#fff" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: SS_BLUE, color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "1rem" }}>
                 {otherName.charAt(0).toUpperCase()}
               </div>
@@ -484,7 +491,7 @@ export default function ChatPage({ embedded = false }) {
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", background: "#fafafa" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", background: SS_GRAY_100 }}>
               {loadingMsgs ? (
                 <div style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>Loading messages...</div>
               ) : messages.length === 0 ? (
@@ -519,7 +526,7 @@ export default function ChatPage({ embedded = false }) {
 
             {/* Input */}
             <form onSubmit={sendMessage}
-              style={{ padding: "12px 16px", borderTop: "1px solid #e5e7eb", display: "flex", gap: 10, alignItems: "flex-end", background: "#fff" }}>
+              style={{ padding: "12px 16px", borderTop: `1px solid ${SS_GRAY_200}`, display: "flex", gap: 10, alignItems: "flex-end", background: "#fff" }}>
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: "none" }}
                 accept=".jpg,.jpeg,.png,.pdf,.csv" />
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
@@ -532,12 +539,12 @@ export default function ChatPage({ embedded = false }) {
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message..."
                 rows={1}
-                style={{ flex: 1, border: "1px solid #e5e7eb", borderRadius: 22, padding: "10px 16px",
+                style={{ flex: 1, border: `1px solid ${SS_GRAY_200}`, borderRadius: 22, padding: "10px 16px",
                   fontSize: "0.9rem", outline: "none", resize: "none", lineHeight: 1.5,
                   maxHeight: 120, overflowY: "auto", fontFamily: "inherit" }}
               />
               <button type="submit" disabled={!text.trim() || sending}
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: "50%",
+                style={{ background: text.trim() ? SS_BLUE : SS_GRAY_200, color: "#fff", border: "none", borderRadius: "50%",
                   width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
                   cursor: text.trim() ? "pointer" : "not-allowed", opacity: text.trim() ? 1 : 0.5, flexShrink: 0 }}>
                 <FaPaperPlane size={15} />

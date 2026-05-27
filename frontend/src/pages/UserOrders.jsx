@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBox, FaSearch, FaEye, FaFileInvoice, FaTimes, FaCheckCircle, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 
 const STATUS_CONFIG = {
   pending:          { cls: "text-warning-emphasis bg-warning-subtle",  dot: "#f59e0b", label: "Pending" },
-  confirmed:        { cls: "text-primary-emphasis bg-primary-subtle",  dot: "#3b82f6", label: "Confirmed" },
+  confirmed:        { cls: "text-primary-emphasis bg-primary-subtle",  dot: "#1d4ed8", label: "Confirmed" },
   preparing:        { cls: "text-purple bg-purple-subtle",             dot: "#8b5cf6", label: "Preparing" },
   shipped:          { cls: "text-success-emphasis bg-success-subtle",  dot: "#10b981", label: "Shipped" },
   out_for_delivery: { cls: "text-success-emphasis bg-success-subtle",  dot: "#10b981", label: "Out for Delivery" },
-  delivered:        { cls: "text-success-emphasis bg-success-subtle",  dot: "#059669", label: "Delivered" },
+  delivered:        { cls: "text-success-emphasis bg-success-subtle",  dot: "#16a34a", label: "Delivered" },
   cancelled:        { cls: "text-danger-emphasis bg-danger-subtle",    dot: "#ef4444", label: "Cancelled" },
 };
 
@@ -97,154 +98,167 @@ const UserOrders = () => {
   );
 
   const stats = [
-    { label: "Total",     value: total,                                                                              color: "#111" },
+    { label: "Total",     value: total,                                                                              color: "#111111" },
     { label: "Pending",   value: orders.filter(o => o.orderStatus === "pending").length,                            color: "#f59e0b" },
-    { label: "Shipped",   value: orders.filter(o => ["shipped","out_for_delivery"].includes(o.orderStatus)).length, color: "#3b82f6" },
-    { label: "Delivered", value: orders.filter(o => o.orderStatus === "delivered").length,                          color: "#059669" },
+    { label: "Shipped",   value: orders.filter(o => ["shipped","out_for_delivery"].includes(o.orderStatus)).length, color: "#1D4ED8" },
+    { label: "Delivered", value: orders.filter(o => o.orderStatus === "delivered").length,                          color: "#16A34A" },
   ];
 
   return (
     <SharedLayout activeLink="Orders">
-      <div style={{ maxWidth: 1000, margin: "0 auto" }} className="px-3 py-4">
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate("/dashboard")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Dashboard
+          </button>
 
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-          <div>
-            <button onClick={() => navigate("/dashboard")}
-              className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-2 text-decoration-none">
-              <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
+          <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+            <div>
+              <p className="ss-section-label">ACCOUNT</p>
+              <h1 className="ss-page-title mb-1">My Orders</h1>
+              <p className="small mb-0" style={{ color: "#4B5563" }}>{total} order{total !== 1 ? "s" : ""} total</p>
+            </div>
+            <button type="button" onClick={() => navigate("/products")} className="landing-btn-primary border-0">
+              Browse Products
             </button>
-            <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1.1 }} className="mb-1">My Orders</h1>
-            <p className="text-muted small mb-0">{total} order{total !== 1 ? "s" : ""} total</p>
           </div>
-          <button onClick={() => navigate("/products")} className="btn btn-dark fw-semibold">Browse Products</button>
-        </div>
 
-        {/* Stats */}
-        <div className="row g-3 mb-4">
-          {stats.map(s => (
-            <div key={s.label} className="col-6 col-md-3">
-              <div className="border rounded-3 bg-white text-center p-3">
-                <div className="fw-bold" style={{ fontSize: "1.75rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
-                <div className="text-muted small mt-1">{s.label}</div>
+          <div className="row g-3 mb-4">
+            {stats.map(s => (
+              <div key={s.label} className="col-6 col-md-3">
+                <div className="ss-stat-tile">
+                  <div className="fw-bold" style={{ fontSize: "1.75rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div className="small mt-1" style={{ color: "#4B5563" }}>{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="d-flex gap-3 mb-4 flex-wrap align-items-center">
+            <div className="landing-search flex-grow-1" style={{ minWidth: 220, maxWidth: 420 }}>
+              <input
+                type="search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by order ID or product…"
+              />
+              <FaSearch className="landing-search-icon" />
+            </div>
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              className="form-select" style={{ width: "auto", minWidth: 160, borderColor: "#E5E7EB", borderRadius: 999, padding: "0.55rem 2rem 0.55rem 1rem" }}>
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="preparing">Preparing</option>
+              <option value="shipped">Shipped</option>
+              <option value="out_for_delivery">Out for Delivery</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border mb-3" style={{ width: 36, height: 36, borderWidth: 3, color: "#1D4ED8" }} role="status">
+                <span className="visually-hidden">Loading…</span>
+              </div>
+              <p className="small mb-0" style={{ color: "#4B5563" }}>Loading orders…</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="ss-empty-state">
+              <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
+              <h4 className="fw-bold mb-1" style={{ color: "#111" }}>No orders found</h4>
+              <p className="mb-4 small" style={{ color: "#4B5563" }}>
+                {statusFilter !== "all" ? `No ${statusFilter} orders.` : "You haven't placed any orders yet."}
+              </p>
+              <button type="button" onClick={() => navigate("/products")} className="landing-btn-primary border-0">
+                Browse Products
+              </button>
+            </div>
+          ) : (
+            <div className="ss-card p-0 overflow-hidden">
+              <div className="table-responsive">
+                <table className="table table-hover ss-orders-table mb-0">
+                  <thead>
+                    <tr className="ss-table-head">
+                      <th>Order ID</th>
+                      <th>Date</th>
+                      <th className="ss-td-items">Items</th>
+                      <th>Amount</th>
+                      <th className="ss-td-status">Status</th>
+                      <th className="ss-td-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(order => (
+                      <tr key={order.id}>
+                        <td className="fw-semibold text-nowrap" style={{ color: "#111" }}>ORD-{order.id}</td>
+                        <td className="text-muted small text-nowrap">
+                          {new Date(order.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="ss-td-items small">
+                          {(order.products || []).slice(0, 2).map((p, i) => (
+                            <div key={i}>{p.productName} <span className="text-muted">×{p.quantity}</span></div>
+                          ))}
+                          {(order.products || []).length > 2 && (
+                            <div className="text-muted" style={{ fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>
+                          )}
+                        </td>
+                        <td className="text-nowrap">
+                          <div className="fw-bold small" style={{ color: "#111" }}>₹{order.totalAmount}</div>
+                          {order.discount > 0 && (
+                            <div style={{ fontSize: "0.72rem", color: "#16A34A" }}>−₹{order.discount} off</div>
+                          )}
+                        </td>
+                        <td className="ss-td-status"><StatusBadge status={order.orderStatus} /></td>
+                        <td className="ss-td-actions">
+                          <div className="ss-orders-actions">
+                            <button type="button" onClick={() => navigate(`/orders/${order.id}`)} className="ss-btn-outline btn-sm">
+                              Details
+                            </button>
+                            <button type="button" onClick={() => handleInvoice(order.id)} className="ss-btn-outline btn-sm">
+                              Invoice
+                            </button>
+                            {order.orderStatus === "pending" && (
+                              <button type="button" onClick={() => handleCancel(order.id)} className="btn btn-outline-danger btn-sm fw-semibold">
+                                Cancel
+                              </button>
+                            )}
+                            {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") && (
+                              <button type="button" onClick={() => handleConfirmDelivery(order.id)} className="btn btn-outline-success btn-sm fw-semibold">
+                                Received
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        {/* Filters */}
-        <div className="d-flex gap-2 mb-4 flex-wrap">
-          <div className="position-relative flex-grow-1" style={{ minWidth: 200 }}>
-            <FaSearch className="position-absolute text-muted" style={{ left: 11, top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem" }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by order ID or product…"
-              className="form-control ps-4" />
-          </div>
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="form-select" style={{ width: "auto" }}>
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="preparing">Preparing</option>
-            <option value="shipped">Shipped</option>
-            <option value="out_for_delivery">Out for Delivery</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-
-        {/* Orders list */}
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status">
-              <span className="visually-hidden">Loading…</span>
-            </div>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="border rounded-3 bg-white text-center py-5">
-            <div style={{ fontSize: "3rem" }} className="mb-3">📦</div>
-            <h4 className="fw-bold mb-1">No orders found</h4>
-            <p className="text-muted mb-4 small">{statusFilter !== "all" ? `No ${statusFilter} orders.` : "You haven't placed any orders yet."}</p>
-            <button onClick={() => navigate("/products")} className="btn btn-dark fw-semibold">Browse Products</button>
-          </div>
-        ) : (
-          <div className="border rounded-3 overflow-hidden">
-            <table className="table table-hover mb-0 align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th className="fw-bold small text-dark py-3">Order ID</th>
-                  <th className="fw-bold small text-dark py-3">Date</th>
-                  <th className="fw-bold small text-dark py-3">Items</th>
-                  <th className="fw-bold small text-dark py-3">Amount</th>
-                  <th className="fw-bold small text-dark py-3">Status</th>
-                  <th className="fw-bold small text-dark py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(order => (
-                  <tr key={order.id}>
-                    <td className="fw-semibold small">ORD-{order.id}</td>
-                    <td className="text-muted small text-nowrap">
-                      {new Date(order.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="small text-secondary" style={{ maxWidth: 200 }}>
-                      {(order.products || []).slice(0, 2).map((p, i) => (
-                        <div key={i}>{p.productName} <span className="text-muted">×{p.quantity}</span></div>
-                      ))}
-                      {(order.products || []).length > 2 && (
-                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>+{order.products.length - 2} more</div>
-                      )}
-                    </td>
-                    <td>
-                      <div className="fw-bold small">Rs.{order.totalAmount}</div>
-                      {order.discount > 0 && <div className="text-success" style={{ fontSize: "0.72rem" }}>−Rs.{order.discount} off</div>}
-                    </td>
-                    <td><StatusBadge status={order.orderStatus} /></td>
-                    <td>
-                      <div className="d-flex flex-wrap gap-1">
-                        <button onClick={() => navigate(`/orders/${order.id}`)} className="btn btn-outline-secondary btn-sm fw-semibold">
-                          Details
-                        </button>
-                        <button onClick={() => handleInvoice(order.id)} className="btn btn-outline-secondary btn-sm fw-semibold">
-                          Invoice
-                        </button>
-                        {order.orderStatus === "pending" && (
-                          <button onClick={() => handleCancel(order.id)} className="btn btn-outline-danger btn-sm fw-semibold">
-                            Cancel
-                          </button>
-                        )}
-                        {(order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") && (
-                          <button onClick={() => handleConfirmDelivery(order.id)} className="btn btn-outline-success btn-sm fw-semibold">
-                            Received
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              className="btn btn-outline-secondary btn-sm">
-              <FaChevronLeft style={{ fontSize: "0.75rem" }} />
-            </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button key={i} onClick={() => setPage(i + 1)}
-                className={`btn btn-sm ${page === i + 1 ? "btn-dark" : "btn-outline-secondary"}`}>
-                {i + 1}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
+              <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="ss-btn-outline btn-sm">
+                <FaChevronLeft style={{ fontSize: "0.75rem" }} />
               </button>
-            ))}
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className="btn btn-outline-secondary btn-sm">
-              <FaChevronRight style={{ fontSize: "0.75rem" }} />
-            </button>
-          </div>
-        )}
-      </div>
+              {[...Array(totalPages)].map((_, i) => (
+                <button key={i} type="button" onClick={() => setPage(i + 1)}
+                  className={`btn btn-sm ${page === i + 1 ? "ss-pagination-active" : "ss-btn-outline"}`}>
+                  {i + 1}
+                </button>
+              ))}
+              <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="ss-btn-outline btn-sm">
+                <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
     </SharedLayout>
   );
 };

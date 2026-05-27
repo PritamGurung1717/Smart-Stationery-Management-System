@@ -3,122 +3,121 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FaHeart, FaShoppingBag, FaShoppingCart,
-  FaBook, FaRunning, FaPencilAlt, FaGraduationCap,
-  FaStar, FaChevronRight, FaPaperPlane
+  FaChevronRight, FaPaperPlane,
+  FaShieldAlt, FaUndo, FaLock, FaHeadset, FaGift
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import { getAuthHeaders } from "../utils/auth.js";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 const Hero = ({ navigate }) => (
-  <section className="position-relative overflow-hidden" style={{ height: "92vh", minHeight: 560 }}>
-    <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80"
-      alt="Library" className="position-absolute top-0 start-0 w-100 h-100"
-      style={{ objectFit: "cover", objectPosition: "center" }} />
-    <div className="position-absolute top-0 start-0 w-100 h-100"
-      style={{ background: "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 60%, rgba(0,0,0,0.1) 100%)" }} />
-    <div className="position-relative h-100 d-flex flex-column justify-content-center px-3"
-      style={{ zIndex: 1, maxWidth: 1200, margin: "0 auto" }}>
-      <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "clamp(4rem, 10vw, 7.5rem)", fontWeight: 400, color: "#fff", lineHeight: 0.95, margin: 0, letterSpacing: "-0.02em" }}>
-        smart<br />stationery.
+  <section className="landing-hero">
+    <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600&q=80" alt="Bookshelf library" />
+    <div className="landing-hero-overlay" />
+    <div className="landing-hero-content">
+      <h1>
+        <span className="hero-smart">smart</span><br />
+        <span className="hero-stationery">stationery.</span>
       </h1>
-      <p className="fw-semibold mb-1" style={{ color: "rgba(255,255,255,0.95)", fontSize: "1rem", marginTop: "1.5rem" }}>
-        Everything For Every Student.
-      </p>
-      <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.9rem", maxWidth: 360, margin: "0 0 2.25rem", lineHeight: 1.65 }}>
+      <p className="landing-hero-tagline">Everything For Every Student.</p>
+      <p className="landing-hero-desc">
         From textbooks to sports gear, stationery to complete school sets — your one stop destination for all educational needs.
       </p>
-      <button onClick={() => navigate("/products")}
-        className="btn btn-light fw-bold rounded-pill d-inline-flex align-items-center gap-2 shadow"
-        style={{ padding: "0.8rem 2rem", width: "fit-content" }}>
-        Shop Now <FaChevronRight style={{ fontSize: "0.75rem" }} />
-      </button>
+      <div className="landing-hero-actions">
+        <button type="button" onClick={() => navigate("/products")} className="landing-btn-primary">
+          Shop Now <FaChevronRight style={{ fontSize: "0.75rem" }} />
+        </button>
+      </div>
     </div>
   </section>
 );
 
-/* ─── Categories ────────────────────────────────────────────── */
-const CATS = [
-  { id: "book",        icon: <FaBook />,         label: "Books",        count: "5,000+" },
-  { id: "sports",      icon: <FaRunning />,      label: "Sports",       count: "1,200+" },
-  { id: "stationery",  icon: <FaPencilAlt />,    label: "Stationery",   count: "3,500+" },
-  { id: "electronics", icon: <FaGraduationCap />, label: "School Sets", count: "50+ Schools" },
-  { id: "donation",    icon: <FaHeart />,        label: "Donation Box", count: "500+ Items" },
+const VALUE_PROPS = [
+  { icon: <FaShieldAlt />, title: "Top Quality Products", sub: "Carefully selected" },
+  { icon: <FaUndo />, title: "Easy Returns", sub: "7 days return policy" },
+  { icon: <FaLock />, title: "Secure Payments", sub: "100% protected" },
+  { icon: <FaHeadset />, title: "Customer Support", sub: "We're here to help" },
+  { icon: <FaGift />, title: "Rewards & Offers", sub: "Save more every time" },
 ];
 
-const Categories = ({ selected, onSelect, navigate }) => (
-  <section className="py-5 bg-white">
-    <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-      <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CATEGORIES</p>
-      <div className="d-flex justify-content-between align-items-end mb-4">
-        <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Shop by Category</h2>
-        <button onClick={() => navigate("/products")} className="btn btn-link text-muted text-decoration-none fw-medium p-0">View all categories</button>
-      </div>
-      {/* 5-col grid — Bootstrap has no col-5, use inline grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "1px", background: "#e5e7eb", border: "1px solid #e5e7eb" }}>
-        {CATS.map(cat => (
-          <button key={cat.id}
-            onClick={() => cat.id === "donation" ? navigate("/donations") : onSelect(cat.id)}
-            className="btn border-0 text-start"
-            style={{ background: selected === cat.id ? "#f9fafb" : "#fff", padding: "2rem 1.5rem", borderRadius: 0, transition: "background 0.2s" }}>
-            <div style={{ fontSize: "1.3rem", color: "#111", marginBottom: "1.5rem" }}>{cat.icon}</div>
-            <div className="fw-bold" style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>{cat.label}</div>
-            <div className="text-muted" style={{ fontSize: "0.8rem" }}>{cat.count}</div>
-          </button>
-        ))}
-      </div>
+const ValueBar = () => (
+  <section className="landing-value-bar">
+    <div className="landing-value-inner">
+      {VALUE_PROPS.map(v => (
+        <div key={v.title} className="landing-value-item">
+          <div className="landing-value-icon">{v.icon}</div>
+          <div className="landing-value-title">{v.title}</div>
+          <div className="landing-value-sub">{v.sub}</div>
+        </div>
+      ))}
     </div>
   </section>
 );
 
-/* ─── Featured Products ─────────────────────────────────────── */
-const FeaturedProducts = ({ products, selected, onSelect, quantities, onQtyChange, onCart, onWishlist, isInWishlist, navigate, onView, ratings = {} }) => {
-  const FILTER_CATS = ["All", "Books", "Sports", "Stationery"];
-  return (
-    <section className="py-5" style={{ background: "#fafafa" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>CURATED</p>
-        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-          <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Featured Products</h2>
-          <div className="d-flex gap-2">
-            {FILTER_CATS.map(c => (
-              <button key={c} onClick={() => onSelect(c === "All" ? "all" : c.toLowerCase())}
-                className={`btn btn-sm fw-semibold rounded-pill ${(selected === "all" && c === "All") || selected === c.toLowerCase() ? "btn-dark" : "btn-outline-dark"}`}>
-                {c}
-              </button>
-            ))}
-          </div>
+const SIDEBAR_CATS = [
+  { id: "all", label: "All Products" },
+  { id: "book", label: "Books" },
+  { id: "stationery", label: "Stationery" },
+  { id: "electronics", label: "School Sets" },
+  { id: "sports", label: "Sports" },
+  { id: "others", label: "Others" },
+];
+
+/* ─── Popular Picks (sidebar + grid) ────────────────────────── */
+const PopularPicks = ({ products, selected, onSelect, onCart, onWishlist, isInWishlist, navigate, onView, ratings = {} }) => (
+  <section className="landing-shop">
+    <div className="landing-shop-inner">
+      <aside className="landing-sidebar">
+        <h3>Shop by Category</h3>
+        {SIDEBAR_CATS.map(cat => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => onSelect(cat.id)}
+            className={`landing-cat-btn ${selected === cat.id ? "active" : ""}`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </aside>
+      <div className="landing-products-panel">
+        <div className="landing-products-header">
+          <h2>Popular Picks</h2>
+          <button type="button" onClick={() => navigate("/products")} className="landing-view-all">
+            View all products <FaChevronRight style={{ fontSize: "0.7rem" }} />
+          </button>
         </div>
         {products.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            <FaShoppingBag style={{ fontSize: "3rem" }} className="mb-3 d-block mx-auto" />
+          <div className="text-center py-5" style={{ color: "#4B5563" }}>
+            <FaShoppingBag style={{ fontSize: "3rem", color: "#9CA3AF" }} className="mb-3 d-block mx-auto" />
             <p>No products found</p>
           </div>
         ) : (
-          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
-            {products.slice(0, 10).map(p => (
-              <div key={p.id} className="col">
-                <ProductCard product={p} onCart={onCart} onWishlist={onWishlist}
-                  inWishlist={isInWishlist(p.id)} onView={onView} rating={ratings[p.id]} />
-              </div>
+          <div className="landing-product-grid">
+            {products.slice(0, 12).map(p => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                variant="landing"
+                onCart={onCart}
+                onWishlist={onWishlist}
+                inWishlist={isInWishlist(p.id)}
+                onView={onView}
+                rating={ratings[p.id]}
+              />
             ))}
           </div>
         )}
-        <div className="text-center mt-4">
-          <button onClick={() => navigate("/products")}
-            className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-            View all products <FaChevronRight style={{ fontSize: "0.75rem" }} />
-          </button>
-        </div>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 /* ─── Book Sets ─────────────────────────────────────────────── */
 const BookSetsSection = ({ navigate }) => {
@@ -169,7 +168,7 @@ const BookSetsSection = ({ navigate }) => {
                 {schools.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <button onClick={handleSearch} className="btn btn-dark fw-bold btn-sm">Search Sets</button>
+            <button type="button" onClick={handleSearch} className="landing-btn-primary" style={{ padding: "0.45rem 1rem", fontSize: "0.85rem" }}>Search Sets</button>
           </div>
           <div className="col-md-8">
             {sets.length === 0 ? (
@@ -182,7 +181,7 @@ const BookSetsSection = ({ navigate }) => {
                     onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
                     <p className="fw-bold mb-1" style={{ fontSize: "1rem", lineHeight: 1.3 }}>{s.school_name}</p>
-                    <span className="badge text-bg-dark mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>Grade {s.grade}</span>
+                    <span className="mb-2 d-inline-block" style={{ fontSize: "0.65rem", letterSpacing: "0.08em", background: "#EFF6FF", color: "#1D4ED8", padding: "0.2rem 0.5rem", borderRadius: 4, fontWeight: 600 }}>Grade {s.grade}</span>
                     <p className="text-muted mb-3" style={{ fontSize: "0.8rem" }}>📚 {s.items?.length || 0} books included</p>
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="fw-bold">₹{s.total_price}</span>
@@ -193,9 +192,8 @@ const BookSetsSection = ({ navigate }) => {
               </div>
             )}
             <div className="text-center mt-4">
-              <button onClick={() => navigate("/book-sets")}
-                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-                View all school sets <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              <button type="button" onClick={() => navigate("/book-sets")} className="landing-view-all">
+                View all school sets <FaChevronRight style={{ fontSize: "0.7rem" }} />
               </button>
             </div>
           </div>
@@ -228,14 +226,14 @@ const RequestSection = () => {
   };
 
   return (
-    <section className="py-5" style={{ background: "#fafafa" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>REQUEST</p>
-        <h2 className="fw-bold mb-2" style={{ fontSize: "clamp(2rem,5vw,3.5rem)", letterSpacing: "-0.03em" }}>Can't Find Something?</h2>
-        <p className="text-muted mb-5 lh-base" style={{ fontSize: "1.05rem", maxWidth: 560 }}>
+    <section className="py-5" style={{ background: "#F3F4F6" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
+        <p className="text-uppercase fw-bold small mb-1" style={{ letterSpacing: "0.1em", color: "#4B5563" }}>REQUEST</p>
+        <h2 className="fw-bold mb-2" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>Can't Find Something?</h2>
+        <p className="mb-5 lh-base" style={{ fontSize: "1.05rem", maxWidth: 560, color: "#4B5563" }}>
           Tell us what you're looking for and we'll source it for you. From rare textbooks to specific sports gear.
         </p>
-        <div className="border rounded-3 bg-white p-4" style={{ maxWidth: 560 }}>
+        <div className="rounded-3 bg-white p-4" style={{ maxWidth: 560, border: "1px solid #E5E7EB" }}>
           <h5 className="fw-bold mb-4">Submit a Request</h5>
           {done && <div className="alert alert-success small py-2 mb-3">✓ Request submitted! We'll respond within 24 hours.</div>}
           <form onSubmit={handleSubmit}>
@@ -266,7 +264,8 @@ const RequestSection = () => {
                 className="form-control" style={{ resize: "vertical" }} />
             </div>
             <button type="submit" disabled={submitting}
-              className={`btn btn-dark fw-bold w-100 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}>
+              className={`landing-btn-primary w-100 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}
+              style={{ justifyContent: "center" }}>
               <FaPaperPlane /> {submitting ? "Submitting…" : "Submit Request"}
             </button>
             <p className="text-center text-muted mt-2 mb-0 small">Usually responds within 24 hours</p>
@@ -310,12 +309,10 @@ const DonationSectionNew = ({ navigate }) => {
               ))}
             </div>
             <div className="d-flex gap-2 flex-wrap">
-              <button onClick={() => navigate("/donations/create")}
-                className="btn btn-dark rounded-pill fw-bold d-flex align-items-center gap-2">
+              <button type="button" onClick={() => navigate("/donations/create")} className="landing-btn-primary">
                 🎁 Donate Items
               </button>
-              <button onClick={() => navigate("/donations")}
-                className="btn btn-outline-dark rounded-pill fw-bold d-flex align-items-center gap-2">
+              <button type="button" onClick={() => navigate("/donations")} className="landing-btn-outline" style={{ color: "#111", borderColor: "#111" }}>
                 Browse Donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
@@ -354,9 +351,8 @@ const DonationSectionNew = ({ navigate }) => {
               })}
             </div>
             <div className="text-center mt-3">
-              <button onClick={() => navigate("/donations")}
-                className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
-                View all donations <FaChevronRight style={{ fontSize: "0.75rem" }} />
+              <button type="button" onClick={() => navigate("/donations")} className="landing-view-all">
+                View all donations <FaChevronRight style={{ fontSize: "0.7rem" }} />
               </button>
             </div>
           </div>
@@ -372,7 +368,6 @@ const Dashboard = ({ setUser }) => {
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [quantities, setQuantities] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -391,7 +386,6 @@ const Dashboard = ({ setUser }) => {
         if (!mounted) return;
         const prods = prodRes.data.products || [];
         setAllProducts(prods); setProducts(prods);
-        const q = {}; prods.forEach(p => { q[p.id] = 1; }); setQuantities(q);
         // Fetch ratings for all products
         if (prods.length) {
           const ids = prods.map(p => p.id).join(",");
@@ -454,16 +448,25 @@ const Dashboard = ({ setUser }) => {
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
-    setProducts(cat === "all" ? allProducts : allProducts.filter(p => p.category === cat));
+    if (cat === "all") {
+      setProducts(allProducts);
+      return;
+    }
+    if (cat === "others") {
+      const known = ["book", "stationery", "electronics", "sports", "art"];
+      setProducts(allProducts.filter(p => !known.includes((p.category || "").toLowerCase())));
+      return;
+    }
+    setProducts(allProducts.filter(p => (p.category || "").toLowerCase() === cat || (p.category || "").toLowerCase() === cat + "s"));
   };
 
   if (loading) return (
-    <div className="d-flex align-items-center justify-content-center bg-white" style={{ minHeight: "100vh" }}>
+    <div className="d-flex align-items-center justify-content-center landing-page" style={{ minHeight: "100vh" }}>
       <div className="text-center">
-        <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+        <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status">
           <span className="visually-hidden">Loading…</span>
         </div>
-        <p className="text-muted">Loading…</p>
+        <p style={{ color: "#4B5563" }}>Loading…</p>
       </div>
     </div>
   );
@@ -471,18 +474,19 @@ const Dashboard = ({ setUser }) => {
   return (
     <SharedLayout activeLink="Home">
       <Hero navigate={navigate} />
-      <Categories selected={selectedCategory} onSelect={handleCategorySelect} navigate={navigate} />
-      <FeaturedProducts
-        products={products} selected={selectedCategory} onSelect={handleCategorySelect}
-        quantities={quantities}
-        onQtyChange={(id, v) => {
-          const n = parseInt(v) || 1;
-          const p = allProducts.find(x => x.id === id);
-          setQuantities(q => ({ ...q, [id]: p ? Math.min(n, p.stock_quantity) : n }));
-        }}
-        onCart={addToCart} onWishlist={toggleWishlist} isInWishlist={isInWishlist} navigate={navigate}
-        onView={setSelectedProduct} ratings={ratings}
-      />      <BookSetsSection navigate={navigate} />
+      <ValueBar />
+      <PopularPicks
+        products={products}
+        selected={selectedCategory}
+        onSelect={handleCategorySelect}
+        onCart={addToCart}
+        onWishlist={toggleWishlist}
+        isInWishlist={isInWishlist}
+        navigate={navigate}
+        onView={setSelectedProduct}
+        ratings={ratings}
+      />
+      <BookSetsSection navigate={navigate} />
       <RequestSection />
       <DonationSectionNew navigate={navigate} />
       {selectedProduct && (

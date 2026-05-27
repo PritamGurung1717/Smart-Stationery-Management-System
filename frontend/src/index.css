@@ -3,25 +3,38 @@
 
 /* Root Variables */
 :root {
-  --bs-body-bg: hsl(0, 0%, 100%);
-  --bs-body-color: hsl(0, 0%, 8%);
-  --primary: hsl(0, 0%, 8%);
-  --secondary: hsl(0, 0%, 96%);
-  --muted: hsl(0, 0%, 96%);
-  --accent: hsl(0, 0%, 96%);
-  --destructive: hsl(0, 84%, 60%);
-  --border: hsl(0, 0%, 90%);
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #111111;
+  --primary: #1d4ed8;
+  --primary-hover: #2563eb;
+  --secondary: #f3f4f6;
+  --muted: #f3f4f6;
+  --accent: #eff6ff;
+  --destructive: #dc2626;
+  --border: #e5e7eb;
   --radius: 0.5rem;
   --shadow-soft: 0 1px 3px rgba(0,0,0,0.04);
   --shadow-card: 0 4px 12px rgba(0,0,0,0.06);
   --shadow-elevated: 0 12px 40px rgba(0,0,0,0.1);
 
-  /* Category colors */
-  --category-books: hsl(220, 70%, 50%);
-  --category-sports: hsl(145, 65%, 40%);
-  --category-stationery: hsl(280, 60%, 55%);
-  --category-school: hsl(35, 90%, 50%);
-  --category-donate: hsl(340, 75%, 55%);
+  /* Smart Stationery brand */
+  --ss-black: #111111;
+  --ss-white: #ffffff;
+  --ss-blue: #1d4ed8;
+  --ss-blue-hover: #2563eb;
+  --ss-gray-100: #f3f4f6;
+  --ss-gray-200: #e5e7eb;
+  --ss-gray-400: #9ca3af;
+  --ss-gray-600: #4b5563;
+  --ss-success: #16a34a;
+
+  /* Category tag colors (functional — use sparingly) */
+  --category-books: #2563eb;
+  --category-sports: #16a34a;
+  --category-stationery: #4b5563;
+  --category-art: #9333ea;
+  --category-school: #f59e0b;
+  --category-donate: #f59e0b;
 }
 
 /* Dark Mode */

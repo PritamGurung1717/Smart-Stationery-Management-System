@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaSave, FaTrash, FaImage, FaExclamationTriangle } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
@@ -24,14 +25,14 @@ const Toast = ({ msg, type, onClose }) => {
 const DeleteModal = ({ name, onConfirm, onCancel, loading }) => (
   <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
     style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-    <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 420, width: "90%" }}>
+    <div className="ss-card p-4 shadow" style={{ maxWidth: 420, width: "90%" }}>
       <h5 className="fw-bold mb-2">Delete Product</h5>
       <p className="text-muted mb-1">Are you sure you want to delete:</p>
       <p className="fw-semibold mb-3">"{name}"?</p>
       <p className="text-muted small mb-4">This action cannot be undone.</p>
       <div className="d-flex gap-2 justify-content-end">
-        <button className="btn btn-outline-dark rounded-0" onClick={onCancel} disabled={loading}>Cancel</button>
-        <button className="btn btn-danger rounded-0 fw-semibold" onClick={onConfirm} disabled={loading}>
+        <button className="btn ss-btn-outline rounded-0" onClick={onCancel} disabled={loading}>Cancel</button>
+        <button className="btn btn-danger fw-semibold" onClick={onConfirm} disabled={loading}>
           {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <FaTrash className="me-1" />}
           Delete
         </button>
@@ -174,7 +175,7 @@ const EditProduct = () => {
     <AdminLayout activeTab="products">
       <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
         <div className="text-center">
-          <div className="spinner-border text-dark mb-3" style={{ width: 36, height: 36, borderWidth: 3 }} role="status" />
+          <div className="spinner-border mb-3" style={{ width: 36, height: 36, borderWidth: 3 }} role="status" />
           <p className="text-muted small">Loading product…</p>
         </div>
       </div>
@@ -188,7 +189,7 @@ const EditProduct = () => {
           <FaExclamationTriangle style={{ fontSize: "2.5rem", color: "#ef4444" }} className="mb-3 d-block mx-auto" />
           <h5 className="fw-bold mb-2">Failed to load product</h5>
           <p className="text-muted mb-4">{loadError}</p>
-          <button onClick={() => navigate("/admin-dashboard")} className="btn btn-dark rounded-0 fw-semibold px-4">
+          <button onClick={() => navigate("/admin-dashboard")} className="btn landing-btn-primary fw-semibold px-4">
             Back to Dashboard
           </button>
         </div>
@@ -210,19 +211,19 @@ const EditProduct = () => {
           onConfirm={handleDelete} onCancel={() => setShowDeleteModal(false)} />
       )}
 
-      {/* Page title */}
-      <div className="mb-4">
-        <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>PRODUCTS</p>
-        <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-          Edit Product <span className="text-muted fw-normal" style={{ fontSize: "0.75em" }}>#{id}</span>
-        </h2>
-      </div>
+      <PageHeader
+        subtitle="PRODUCTS"
+        title={`Edit Product #${id}`}
+        backPath="/admin-dashboard"
+        backState={{ tab: "products" }}
+        backLabel="Back to Products"
+      />
         <form onSubmit={handleSubmit}>
           <div className="row g-4">
 
             {/* Left — main fields */}
             <div className="col-lg-8">
-              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card mb-3">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>BASIC INFORMATION</p>
                 </div>
@@ -292,7 +293,7 @@ const EditProduct = () => {
             {/* Right — image + status */}
             <div className="col-lg-4">
               {/* Image */}
-              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card mb-3">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
                     <FaImage className="me-1" />PRODUCT IMAGE
@@ -353,7 +354,7 @@ const EditProduct = () => {
               </div>
 
               {/* Status */}
-              <div className="bg-white" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>PRODUCT STATUS</p>
                 </div>
@@ -381,16 +382,16 @@ const EditProduct = () => {
           <div className="d-flex justify-content-between align-items-center mt-4 pt-4" style={{ borderTop: "1px solid #e5e7eb" }}>
             <div className="d-flex gap-2">
               <button type="button" onClick={() => navigate("/admin-dashboard")}
-                className="btn btn-outline-dark rounded-0 px-4" disabled={saving || deleting}>
+                className="btn ss-btn-outline px-4" disabled={saving || deleting}>
                 Cancel
               </button>
               <button type="button" onClick={() => setShowDeleteModal(true)}
-                className="btn btn-outline-danger rounded-0 px-4 d-flex align-items-center gap-1" disabled={saving || deleting}>
+                className="btn btn-outline-danger px-4 d-flex align-items-center gap-1" disabled={saving || deleting}>
                 <FaTrash style={{ fontSize: "0.8rem" }} /> Delete
               </button>
             </div>
             <button type="submit" disabled={saving || deleting}
-              className="btn btn-dark rounded-0 fw-bold px-5 d-flex align-items-center gap-2">
+              className="btn landing-btn-primary fw-bold px-5 d-flex align-items-center gap-2">
               {saving
                 ? <><span className="spinner-border spinner-border-sm" /> Saving…</>
                 : <><FaSave style={{ fontSize: "0.85rem" }} /> Update Product</>}

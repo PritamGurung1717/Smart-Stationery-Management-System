@@ -15,19 +15,18 @@ function AddBookSet() {
   const navigate = useNavigate();
   const { toast, showToast, clearToast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+
   const {
     formData,
     handleFieldChange,
     handleItemChange,
     addItem,
     removeItem,
-    validateForm
+    validateForm,
   } = useBookSetForm(null, false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm(showToast)) return;
 
     setLoading(true);
@@ -47,13 +46,17 @@ function AddBookSet() {
   return (
     <AdminLayout activeTab="book-sets">
       <Toast msg={toast.msg} type={toast.type} onClose={clearToast} />
-      
-      <PageHeader 
-        title="Create New Book Set"
+
+      <PageHeader
         subtitle="BOOK SETS"
+        title="Create new book set"
         backPath="/admin-dashboard"
-        backLabel="Back"
+        backState={{ tab: "book-sets" }}
+        backLabel="Back to Book Sets"
       />
+      <p className="text-muted mb-4" style={{ marginTop: "-0.75rem", fontSize: "0.9rem" }}>
+        Add a school grade bundle with books, authors, and prices for the catalogue.
+      </p>
 
       <BookSetForm
         formData={formData}

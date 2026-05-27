@@ -6,6 +6,7 @@ import {
   FaUser, FaEnvelope, FaPhone
 } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -40,14 +41,14 @@ const ConfirmModal = ({ show, onConfirm, onCancel, loading }) => {
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-      <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 420, width: "90%" }}>
+      <div className="ss-card p-4 shadow" style={{ maxWidth: 420, width: "90%" }}>
         <h5 className="fw-bold mb-2">Delete Donation</h5>
         <p className="text-muted mb-4" style={{ fontSize: "0.9rem" }}>
           Permanently delete this donation? This cannot be undone.
         </p>
         <div className="d-flex gap-2 justify-content-end">
-          <button className="btn btn-outline-dark rounded-0" onClick={onCancel} disabled={loading}>Cancel</button>
-          <button className="btn btn-danger rounded-0 fw-semibold" onClick={onConfirm} disabled={loading}>
+          <button className="btn ss-btn-outline rounded-0" onClick={onCancel} disabled={loading}>Cancel</button>
+          <button className="btn btn-danger fw-semibold" onClick={onConfirm} disabled={loading}>
             {loading && <span className="spinner-border spinner-border-sm me-1" />}
             <FaTrash className="me-1" /> Delete
           </button>
@@ -106,7 +107,7 @@ function AdminDonationDetails() {
   if (loading) return (
     <AdminLayout activeTab="donations">
       <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
-        <div className="spinner-border text-dark" style={{ width: 36, height: 36, borderWidth: 3 }} role="status" />
+        <div className="spinner-border" style={{ width: 36, height: 36, borderWidth: 3 }} role="status" />
       </div>
     </AdminLayout>
   );
@@ -116,7 +117,7 @@ function AdminDonationDetails() {
       <div className="text-center py-5">
         <p className="text-danger fw-semibold mb-3">{error || "Donation not found"}</p>
         <button onClick={() => navigate("/admin-dashboard", { state: { tab: "donations" } })}
-          className="btn btn-dark rounded-0 px-4">Back</button>
+          className="btn landing-btn-primary px-4">Back</button>
       </div>
     </AdminLayout>
   );
@@ -137,20 +138,16 @@ function AdminDonationDetails() {
       <ConfirmModal show={showDeleteModal} onConfirm={handleDelete}
         onCancel={() => setShowDeleteModal(false)} loading={deleting} />
 
-      {/* Back + header */}
       <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-        <div>
-          <button onClick={() => navigate("/admin-dashboard", { state: { tab: "donations" } })}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: 0, marginBottom: "0.5rem" }}>
-            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Donations
-          </button>
-          <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>DONATIONS</p>
-          <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-            {donation.title}
-          </h2>
-        </div>
-        <button onClick={() => setShowDeleteModal(true)}
-          className="btn btn-outline-danger rounded-0 fw-semibold d-flex align-items-center gap-1">
+        <PageHeader
+          subtitle="DONATIONS"
+          title={donation.title}
+          backPath="/admin-dashboard"
+          backState={{ tab: "donations" }}
+          backLabel="Back to Donations"
+        />
+        <button type="button" onClick={() => setShowDeleteModal(true)}
+          className="btn btn-outline-danger fw-semibold d-flex align-items-center gap-1 align-self-start">
           <FaTrash style={{ fontSize: "0.75rem" }} /> Delete Donation
         </button>
       </div>
@@ -173,7 +170,7 @@ function AdminDonationDetails() {
               {imgs.map((img, i) => (
                 <img key={i} src={img.startsWith("http") ? img : `http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
                   style={{ width: 72, height: 72, objectFit: "cover", cursor: "pointer", flexShrink: 0,
-                    border: i === imgIdx ? "2px solid #111" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
+                    border: i === imgIdx ? "2px solid #1D4ED8" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
               ))}
             </div>
           )}
@@ -266,7 +263,7 @@ function AdminDonationDetails() {
 
           {/* Admin delete action */}
           <button onClick={() => setShowDeleteModal(true)}
-            className="btn btn-outline-danger rounded-0 fw-bold w-100 d-flex align-items-center justify-content-center gap-2">
+            className="btn btn-outline-danger fw-bold w-100 d-flex align-items-center justify-content-center gap-2">
             <FaTrash /> Delete This Donation
           </button>
         </div>

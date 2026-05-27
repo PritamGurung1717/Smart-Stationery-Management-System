@@ -23,7 +23,7 @@ function EditBookSet() {
     school_name: "",
     grade: "",
     is_active: true,
-    items: []
+    items: [],
   });
 
   useEffect(() => {
@@ -39,7 +39,7 @@ function EditBookSet() {
         school_name: bookSet.school_name,
         grade: bookSet.grade,
         is_active: bookSet.is_active,
-        items: bookSet.items.map(item => ({
+        items: bookSet.items.map((item) => ({
           product_id: item.product_id,
           title: item.title,
           author: item.author,
@@ -48,7 +48,7 @@ function EditBookSet() {
           isbn: item.isbn || "",
           price: item.price,
           subject_name: item.subject_name || "",
-        }))
+        })),
       });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load book set");
@@ -59,20 +59,20 @@ function EditBookSet() {
 
   const handleFieldChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
     newItems[index][field] = value;
-    setFormData(prev => ({ ...prev, items: newItems }));
+    setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
   const addItem = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       items: [
         ...prev.items,
@@ -84,8 +84,8 @@ function EditBookSet() {
           isbn: "",
           price: "",
           subject_name: "",
-        }
-      ]
+        },
+      ],
     }));
   };
 
@@ -94,16 +94,15 @@ function EditBookSet() {
       showToast("At least one book is required", "error");
       return;
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      items: prev.items.filter((_, i) => i !== index)
+      items: prev.items.filter((_, i) => i !== index),
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
+
     if (!formData.school_name.trim()) {
       showToast("School name is required", "error");
       return;
@@ -117,11 +116,15 @@ function EditBookSet() {
       return;
     }
 
-    // Validate items
     for (let i = 0; i < formData.items.length; i++) {
       const item = formData.items[i];
-      if (!item.title.trim() || !item.author.trim() || !item.publisher.trim() || 
-          !item.publication_year || !item.price) {
+      if (
+        !item.title.trim() ||
+        !item.author.trim() ||
+        !item.publisher.trim() ||
+        !item.publication_year ||
+        !item.price
+      ) {
         showToast(`Book ${i + 1}: All required fields must be filled`, "error");
         return;
       }
@@ -145,28 +148,35 @@ function EditBookSet() {
     }
   };
 
-  if (loading) return (
-    <AdminLayout activeTab="book-sets">
-      <LoadingSpinner />
-    </AdminLayout>
-  );
+  if (loading) {
+    return (
+      <AdminLayout activeTab="book-sets">
+        <LoadingSpinner message="Loading book set…" />
+      </AdminLayout>
+    );
+  }
 
-  if (error) return (
-    <AdminLayout activeTab="book-sets">
-      <ErrorMessage error={error} />
-    </AdminLayout>
-  );
+  if (error) {
+    return (
+      <AdminLayout activeTab="book-sets">
+        <ErrorMessage error={error} backPath="/admin-dashboard" backState={{ tab: "book-sets" }} />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout activeTab="book-sets">
       <Toast msg={toast.msg} type={toast.type} onClose={clearToast} />
 
-      <PageHeader 
-        title="Edit Book Set"
+      <PageHeader
         subtitle="BOOK SETS"
+        title={`Edit — ${formData.school_name || "Book set"}`}
         backPath={`/admin/book-sets/${id}`}
-        backLabel="Back"
+        backLabel="Back to details"
       />
+      <p className="text-muted mb-4" style={{ marginTop: "-0.75rem", fontSize: "0.9rem" }}>
+        Update school details, book list, prices, and visibility.
+      </p>
 
       <BookSetForm
         formData={formData}

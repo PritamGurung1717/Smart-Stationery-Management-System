@@ -104,8 +104,6 @@ function AdminBookSetRequestDetails() {
     } finally { setActing(false); }
   };
 
-  const card = { border: "1px solid #e5e7eb", background: "#fff", marginBottom: "1rem" };
-
   if (loading) return (
     <AdminLayout activeTab="book-sets">
       <LoadingSpinner />
@@ -136,15 +134,15 @@ function AdminBookSetRequestDetails() {
       {modal.type === "reject" && (
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
           style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-          <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 440, width: "90%" }}>
+          <div className="ss-card p-4 shadow" style={{ maxWidth: 440, width: "90%" }}>
             <h5 className="fw-bold mb-3">Reject Request</h5>
             <label className="form-label fw-medium small">Rejection Reason *</label>
             <textarea value={rejectRemark} onChange={e => setRejectRemark(e.target.value)} rows={3}
               className="form-control rounded-0 mb-4" style={{ borderColor: "#e5e7eb", resize: "none" }}
               placeholder="Explain why this request is being rejected…" />
             <div className="d-flex gap-2 justify-content-end">
-              <button className="btn btn-outline-dark rounded-0" onClick={() => setModal({ show: false, type: "" })} disabled={acting}>Cancel</button>
-              <button className="btn btn-danger rounded-0 fw-semibold" onClick={handleReject} disabled={acting || !rejectRemark.trim()}>
+              <button className="btn ss-btn-outline rounded-0" onClick={() => setModal({ show: false, type: "" })} disabled={acting}>Cancel</button>
+              <button className="btn btn-danger fw-semibold" onClick={handleReject} disabled={acting || !rejectRemark.trim()}>
                 {acting ? <span className="spinner-border spinner-border-sm me-1" /> : null} Reject
               </button>
             </div>
@@ -172,11 +170,11 @@ function AdminBookSetRequestDetails() {
           {bookSet && (
             <>
               <button onClick={() => navigate(`/admin/book-sets/${bookSet._id}`)}
-                className="btn btn-dark rounded-0 fw-semibold d-flex align-items-center gap-1">
+                className="btn landing-btn-primary fw-semibold d-flex align-items-center gap-1">
                 <FaBook style={{ fontSize: "0.75rem" }} /> View Book Set
               </button>
               <button onClick={() => navigate(`/admin/book-sets/${bookSet._id}/edit`)}
-                className="btn btn-outline-primary rounded-0 fw-semibold d-flex align-items-center gap-1">
+                className="btn btn-outline-primary fw-semibold d-flex align-items-center gap-1">
                 <FaEdit style={{ fontSize: "0.75rem" }} /> Edit Book Set
               </button>
             </>
@@ -184,11 +182,11 @@ function AdminBookSetRequestDetails() {
           {request.status === "pending" && (
             <>
               <button onClick={() => setModal({ show: true, type: "approve" })}
-                className="btn btn-dark rounded-0 fw-semibold d-flex align-items-center gap-1">
+                className="btn landing-btn-primary fw-semibold d-flex align-items-center gap-1">
                 <FaCheck style={{ fontSize: "0.75rem" }} /> Approve
               </button>
               <button onClick={() => setModal({ show: true, type: "reject" })}
-                className="btn btn-outline-danger rounded-0 fw-semibold d-flex align-items-center gap-1">
+                className="btn btn-outline-danger fw-semibold d-flex align-items-center gap-1">
                 <FaTimes style={{ fontSize: "0.75rem" }} /> Reject
               </button>
             </>
@@ -207,7 +205,7 @@ function AdminBookSetRequestDetails() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", alignItems: "start" }}>
         {/* Left — book items */}
         <div>
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center" style={{ borderColor: "#e5e7eb" }}>
               <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
                 <FaBook className="me-1" />BOOK LIST ({request.items?.length || 0} items)
@@ -218,14 +216,14 @@ function AdminBookSetRequestDetails() {
                     <button onClick={() => { setEditingPrices(false); setItemPrices(request.items.map(i => i.estimated_price || 0)); }}
                       className="btn btn-outline-secondary btn-sm rounded-0">Cancel</button>
                     <button onClick={handleSavePrices} disabled={savingPrices}
-                      className="btn btn-dark btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                      className="btn landing-btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                       {savingPrices ? <span className="spinner-border spinner-border-sm" /> : <FaSave style={{ fontSize: "0.75rem" }} />}
                       Save Prices
                     </button>
                   </div>
                 ) : (
                   <button onClick={() => setEditingPrices(true)}
-                    className="btn btn-outline-primary btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                    className="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                     <FaEdit style={{ fontSize: "0.75rem" }} /> Set Prices
                   </button>
                 )
@@ -301,7 +299,7 @@ function AdminBookSetRequestDetails() {
 
         {/* Right — summary */}
         <div>
-          <div style={card}>
+          <div className="ss-card p-4 mb-3">
             <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
               <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>SUMMARY</p>
             </div>
@@ -324,7 +322,7 @@ function AdminBookSetRequestDetails() {
           </div>
 
           {request.institute && (
-            <div style={card}>
+            <div className="ss-card p-4 mb-3">
               <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                 <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>INSTITUTE</p>
               </div>

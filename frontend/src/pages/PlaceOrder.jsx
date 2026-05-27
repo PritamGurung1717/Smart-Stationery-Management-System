@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import ProductCard from "../components/ProductCard.jsx";
 import toast from "../utils/toast.js";
+import "../styles/landing.css";
 
 const PlaceOrder = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
-  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "India" });
+  const [shippingAddress, setShippingAddress] = useState({ address: "", city: "", state: "", zipCode: "", country: "Nepal" });
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [loading, setLoading] = useState(false);
 
@@ -21,14 +23,14 @@ const PlaceOrder = () => {
   const fetchProducts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/products");
-      setProducts(res.data);
+      setProducts(res.data.products || res.data || []);
     } catch (e) { console.error(e); }
   };
 
   const addToCart = (product) => {
     const existing = cart.find(i => i.productId === product.id);
     if (existing) setCart(cart.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i));
-    else setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1, image: product.image }]);
+    else setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1, image: product.image_url || product.image }]);
   };
 
   const removeFromCart = (productId) => setCart(cart.filter(i => i.productId !== productId));
@@ -39,6 +41,7 @@ const PlaceOrder = () => {
   };
 
   const total = cart.reduce((t, i) => t + i.price * i.quantity, 0);
+  const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) { toast.warning("Your cart is empty!"); return; }
@@ -59,101 +62,93 @@ const PlaceOrder = () => {
 
   return (
     <SharedLayout>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }} className="px-3 py-4">
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner">
+          <button type="button" onClick={() => navigate("/dashboard")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Dashboard
+          </button>
 
-        <button onClick={() => navigate("/dashboard")}
-          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
-          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-        </button>
+          <p className="ss-section-label">ORDER</p>
+          <h1 className="ss-page-title mb-4">Place Order</h1>
 
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "2.2rem", fontWeight: 400 }}
-          className="mb-4">Place Order</h1>
+          <div className="row g-4 align-items-start">
+            <div className="col-lg-8">
+              <h5 className="fw-bold mb-3" style={{ color: "#111" }}>Available Products</h5>
+              <div className="landing-product-grid">
+                {products.map(p => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    variant="landing"
+                    onCart={() => addToCart(p)}
+                    onView={() => {}}
+                  />
+                ))}
+              </div>
+            </div>
 
-        <div className="row g-4 align-items-start">
-          {/* Products */}
-          <div className="col-lg-8">
-            <h5 className="fw-bold mb-3">Available Products</h5>
-            <div className="row g-3">
-              {products.map(p => (
-                <div key={p.id} className="col-sm-6 col-md-4">
-                  <div className="border rounded-3 bg-white p-3 h-100">
-                    {p.image && <img src={p.image.startsWith("http") ? p.image : `http://localhost:5000${p.image}`} alt={p.name} className="rounded-2 w-100 mb-2" style={{ height: 140, objectFit: "cover" }} />}
-                    <div className="fw-bold small mb-1">{p.name}</div>
-                    <div className="text-muted" style={{ fontSize: "0.82rem" }}>{p.category}</div>
-                    <div className="fw-bold mb-1">₹{p.price}</div>
-                    <div className="text-muted mb-2" style={{ fontSize: "0.78rem" }}>Stock: {p.stock}</div>
-                    <button onClick={() => addToCart(p)} disabled={p.stock === 0}
-                      className={`btn btn-sm fw-semibold w-100 ${p.stock === 0 ? "btn-light text-muted" : "btn-dark"}`}>
-                      {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
-                    </button>
-                  </div>
+            <div className="col-lg-4">
+              <div className="ss-card mb-4">
+                <h5 className="fw-bold mb-3" style={{ color: "#111" }}>Your Cart ({cart.length})</h5>
+                {cart.length === 0 ? (
+                  <p className="small mb-0" style={{ color: "#4B5563" }}>Your cart is empty</p>
+                ) : (
+                  <>
+                    {cart.map(item => (
+                      <div key={item.productId} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                          <div className="fw-semibold small" style={{ color: "#111" }}>{item.name}</div>
+                          <div style={{ fontSize: "0.78rem", color: "#4B5563" }}>₹{item.price} × {item.quantity}</div>
+                        </div>
+                        <div className="d-flex align-items-center gap-1">
+                          <button type="button" className="ss-qty-btn" onClick={() => updateQuantity(item.productId, item.quantity - 1)}>−</button>
+                          <span className="fw-bold" style={{ minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
+                          <button type="button" className="ss-qty-btn" onClick={() => updateQuantity(item.productId, item.quantity + 1)}>+</button>
+                          <button type="button" onClick={() => removeFromCart(item.productId)}
+                            className="btn btn-link p-0 small fw-semibold text-decoration-none ms-1" style={{ color: "#DC2626" }}>×</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-end mt-2 fw-bold" style={{ color: "#111" }}>Total: ₹{total}</div>
+                  </>
+                )}
+              </div>
+
+              <div className="ss-card">
+                <h5 className="fw-bold mb-3" style={{ color: "#111" }}>Shipping Address</h5>
+                <div className="mb-2">
+                  <input type="text" className="form-control" placeholder="Full Address"
+                    value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })}
+                    style={inp} />
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="row g-2 mb-2">
+                  <div className="col-6"><input type="text" className="form-control" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} style={inp} /></div>
+                  <div className="col-6"><input type="text" className="form-control" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} style={inp} /></div>
+                </div>
+                <div className="row g-2 mb-4">
+                  <div className="col-6"><input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} style={inp} /></div>
+                  <div className="col-6"><input type="text" className="form-control" placeholder="Country" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} style={inp} /></div>
+                </div>
 
-          {/* Cart + checkout */}
-          <div className="col-lg-4">
-            <div className="border rounded-3 bg-white p-4 mb-4">
-              <h5 className="fw-bold mb-3">Your Cart ({cart.length})</h5>
-              {cart.length === 0 ? (
-                <p className="text-muted small">Your cart is empty</p>
-              ) : (
-                <>
-                  {cart.map(item => (
-                    <div key={item.productId} className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                      <div>
-                        <div className="fw-semibold small">{item.name}</div>
-                        <div className="text-muted" style={{ fontSize: "0.78rem" }}>₹{item.price} × {item.quantity}</div>
-                      </div>
-                      <div className="d-flex align-items-center gap-1">
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                          className="btn btn-outline-secondary btn-sm" style={{ width: 26, height: 26, padding: 0 }}>−</button>
-                        <span className="fw-bold" style={{ minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                          className="btn btn-outline-secondary btn-sm" style={{ width: 26, height: 26, padding: 0 }}>+</button>
-                        <button onClick={() => removeFromCart(item.productId)}
-                          className="btn btn-link p-0 text-danger small fw-semibold text-decoration-none">Remove</button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-end mt-2 fw-bold">Total: ₹{total}</div>
-                </>
-              )}
-            </div>
+                <h5 className="fw-bold mb-3" style={{ color: "#111" }}>Payment Method</h5>
+                {[["COD", "Cash on Delivery"], ["Online", "Online Payment"]].map(([val, lbl]) => (
+                  <label key={val} className={`ss-payment-option ${paymentMethod === val ? "selected" : ""}`}>
+                    <input type="radio" name="payment" value={val} checked={paymentMethod === val}
+                      onChange={e => setPaymentMethod(e.target.value)} />
+                    {lbl}
+                  </label>
+                ))}
 
-            <div className="border rounded-3 bg-white p-4">
-              <h5 className="fw-bold mb-3">Shipping Address</h5>
-              <div className="mb-2">
-                <input type="text" className="form-control" placeholder="Full Address"
-                  value={shippingAddress.address} onChange={e => setShippingAddress({ ...shippingAddress, address: e.target.value })} />
+                <button type="button" onClick={handlePlaceOrder} disabled={loading || cart.length === 0}
+                  className={`landing-btn-primary w-100 mt-3 ${(loading || cart.length === 0) ? "opacity-50" : ""}`}
+                  style={{ justifyContent: "center" }}>
+                  {loading ? "Processing…" : "Place Order"}
+                </button>
               </div>
-              <div className="row g-2 mb-2">
-                <div className="col-6"><input type="text" className="form-control" placeholder="City" value={shippingAddress.city} onChange={e => setShippingAddress({ ...shippingAddress, city: e.target.value })} /></div>
-                <div className="col-6"><input type="text" className="form-control" placeholder="State" value={shippingAddress.state} onChange={e => setShippingAddress({ ...shippingAddress, state: e.target.value })} /></div>
-              </div>
-              <div className="row g-2 mb-4">
-                <div className="col-6"><input type="text" className="form-control" placeholder="ZIP Code" value={shippingAddress.zipCode} onChange={e => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })} /></div>
-                <div className="col-6"><input type="text" className="form-control" placeholder="Country" value={shippingAddress.country} onChange={e => setShippingAddress({ ...shippingAddress, country: e.target.value })} /></div>
-              </div>
-
-              <h5 className="fw-bold mb-3">Payment Method</h5>
-              {[["COD","Cash on Delivery"],["Online","Online Payment"]].map(([val, lbl]) => (
-                <label key={val} className="d-flex align-items-center gap-2 mb-2 small" style={{ cursor: "pointer" }}>
-                  <input type="radio" name="payment" value={val} checked={paymentMethod === val}
-                    onChange={e => setPaymentMethod(e.target.value)} style={{ accentColor: "#111" }} />
-                  {lbl}
-                </label>
-              ))}
-
-              <button onClick={handlePlaceOrder} disabled={loading || cart.length === 0}
-                className={`btn btn-dark fw-bold w-100 mt-3 ${(loading || cart.length === 0) ? "opacity-50" : ""}`}>
-                {loading ? "Processing…" : "Place Order"}
-              </button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </SharedLayout>
   );
 };

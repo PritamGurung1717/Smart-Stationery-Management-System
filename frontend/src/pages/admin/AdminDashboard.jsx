@@ -2,15 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import "../../styles/landing.css";
 import {
   FaPlus, FaEdit, FaTrash, FaEye, FaChartLine,
   FaUsers, FaBox, FaShoppingCart, FaCheckCircle,
-  FaSignOutAlt, FaExclamationTriangle, FaUserCheck,
-  FaRupeeSign, FaSync, FaSearch,
+  FaExclamationTriangle, FaUserCheck,
+  FaRupeeSign, FaSync,
   FaSort, FaSortUp, FaSortDown, FaIdCard, FaGift, FaBoxOpen,
-  FaChevronRight, FaTachometerAlt, FaBell, FaCheck, FaTimes, FaComments, FaBook, FaFileExcel
+  FaChevronRight, FaBell, FaCheck, FaTimes, FaComments, FaBook, FaFileExcel
 } from "react-icons/fa";
 import ChatPage from "../ChatPage.jsx";
+import AdminPageToolbar, { SearchInput, FilterSelect, AdminFilterRow } from "../../components/admin/shared/AdminFilters.jsx";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -47,137 +49,6 @@ const ADMIN_NOTIF_LABEL = {
   admin_chat_message: "Institute Chat",
 };
 
-/* ─── Sidebar ───────────────────────────────────────────────── */
-const NAV_ITEMS = [
-  { id: "dashboard",         icon: <FaTachometerAlt />, label: "Dashboard" },
-  { id: "users",             icon: <FaUsers />,         label: "Users" },
-  { id: "products",          icon: <FaBox />,           label: "Products" },
-  { id: "orders",            icon: <FaShoppingCart />,  label: "Orders" },
-  { id: "verifications",     icon: <FaUserCheck />,     label: "Verifications" },
-  { id: "book-sets",         icon: <FaBook />,          label: "Book Sets" },
-  { id: "donations",         icon: <FaGift />,          label: "Donations" },
-  { id: "item-requests",     icon: <FaBoxOpen />,       label: "Item Requests" },
-  { id: "notifications",     icon: <FaBell />,          label: "Notifications" },
-  { id: "institute-chats",   icon: <FaComments />,      label: "Institute Chats" },
-];
-
-const Sidebar = ({ active, onTab, admin, stats, onLogout, unreadNotifs }) => (
-  <div className="d-flex flex-column bg-white border-end"
-    style={{ width: 240, minHeight: "100vh", position: "sticky", top: 0, flexShrink: 0 }}>
-    {/* Brand */}
-    <div className="px-4 py-4 border-bottom">
-      <h5 className="fw-bold mb-0" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.3rem", letterSpacing: "-0.01em" }}>
-        smart stationery.
-      </h5>
-      <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.6rem", letterSpacing: "0.12em" }}>Admin Panel</span>
-    </div>
-    {/* Admin info */}
-    <div className="px-4 py-3 border-bottom">
-      <div className="d-flex align-items-center gap-2">
-        <div className="rounded-circle bg-dark d-flex align-items-center justify-content-center flex-shrink-0"
-          style={{ width: 36, height: 36 }}>
-          <span className="text-white fw-bold" style={{ fontSize: "0.85rem" }}>
-            {admin?.name?.charAt(0)?.toUpperCase() || "A"}
-          </span>
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div className="fw-semibold small text-truncate">{admin?.name}</div>
-          <div className="text-muted" style={{ fontSize: "0.7rem" }}>Administrator</div>
-        </div>
-      </div>
-    </div>
-    {/* Nav */}
-    <nav className="flex-grow-1 py-3 px-2">
-      {NAV_ITEMS.map(item => {
-        const badge =
-          item.id === "users" ? stats.totalUsers :
-          item.id === "products" ? stats.totalProducts :
-          item.id === "orders" ? stats.totalOrders :
-          item.id === "verifications" ? (stats.pendingVerifications || null) :
-          item.id === "notifications" ? (unreadNotifs || null) :
-          item.id === "institute-chats" ? (stats.unreadChats || null) :
-          null;
-        const badgeDanger = (item.id === "verifications" && stats.pendingVerifications > 0) ||
-                            (item.id === "notifications" && unreadNotifs > 0) ||
-                            (item.id === "institute-chats" && stats.unreadChats > 0);
-        return (
-          <button key={item.id}
-            onClick={() => onTab(item.id)}
-            className="btn border-0 w-100 text-start d-flex align-items-center gap-2 mb-1"
-            style={{
-              padding: "0.6rem 0.85rem",
-              borderRadius: 8,
-              background: active === item.id ? "#111" : "transparent",
-              color: active === item.id ? "#fff" : "#374151",
-              fontSize: "0.875rem",
-              fontWeight: active === item.id ? 600 : 400,
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={e => { if (active !== item.id) e.currentTarget.style.background = "#f3f4f6"; }}
-            onMouseLeave={e => { if (active !== item.id) e.currentTarget.style.background = "transparent"; }}>
-            <span style={{ fontSize: "0.85rem", opacity: active === item.id ? 1 : 0.6 }}>{item.icon}</span>
-            <span className="flex-grow-1">{item.label}</span>
-            {badge != null && (
-              <span className={`badge rounded-pill ${badgeDanger ? "bg-danger" : active === item.id ? "bg-white text-dark" : "bg-dark text-white"}`}
-                style={{ fontSize: "0.65rem" }}>
-                {badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </nav>
-    {/* Logout */}
-    <div className="px-2 py-3 border-top">
-      <button onClick={onLogout}
-        className="btn border-0 w-100 text-start d-flex align-items-center gap-2"
-        style={{ padding: "0.6rem 0.85rem", borderRadius: 8, color: "#ef4444", fontSize: "0.875rem" }}
-        onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-        <FaSignOutAlt style={{ fontSize: "0.85rem" }} />
-        Logout
-      </button>
-    </div>
-  </div>
-);
-
-/* ─── Stat Card ─────────────────────────────────────────────── */
-const StatCard = ({ label, value, sub, icon, accent, onClick, highlight }) => (
-  <div
-    role={onClick ? "button" : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    onClick={onClick}
-    onKeyDown={onClick ? e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
-    className="bg-white p-4 h-100 d-flex flex-column"
-    style={{
-      border: highlight ? `2px solid ${accent || "#111"}` : "1px solid #e5e7eb",
-      cursor: onClick ? "pointer" : "default",
-      minHeight: 118,
-      transition: "box-shadow 0.15s, transform 0.15s",
-    }}
-    onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = "0 4px 14px rgba(0,0,0,0.06)"; }}
-    onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
-  >
-    <div className="d-flex justify-content-between align-items-start mb-auto">
-      <div className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>{label}</div>
-      <div
-        className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-        style={{
-          width: 36, height: 36, fontSize: "0.9rem",
-          color: accent || "#374151",
-          background: accent ? `${accent}14` : "#f3f4f6",
-        }}
-      >
-        {icon}
-      </div>
-    </div>
-    <div className="fw-bold mt-3" style={{ fontSize: "1.65rem", lineHeight: 1.1, letterSpacing: "-0.02em", color: accent || "#111" }}>
-      {value}
-    </div>
-    {sub && <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>{sub}</div>}
-  </div>
-);
-
 const formatRevenue = (amount) => {
   const n = Number(amount) || 0;
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -196,120 +67,65 @@ const DashboardOverview = ({ stats, onTabChange, onNavigate }) => {
     { label: "Item Requests", sub: "Review catalog requests", icon: <FaBoxOpen />, action: () => onTabChange("item-requests") },
   ];
 
-  const gridGap = 12;
+  const primaryStats = [
+    { label: "Total Users", value: stats.totalUsers, icon: <FaUsers />, tab: "users" },
+    { label: "Total Products", value: stats.totalProducts, icon: <FaBox />, tab: "products" },
+    { label: "Total Orders", value: stats.totalOrders, icon: <FaShoppingCart />, tab: "orders" },
+    { label: "Total Revenue", value: formatRevenue(stats.revenue), icon: <FaRupeeSign />, tab: "orders", green: true },
+  ];
+  const alertStats = [
+    { label: "Out of Stock", value: stats.outOfStock, icon: <FaExclamationTriangle />, tab: "products", highlight: stats.outOfStock > 0 },
+    { label: "Low Stock", value: stats.lowStock, icon: <FaExclamationTriangle />, tab: "products", highlight: stats.lowStock > 0 },
+    { label: "Pending Verifications", value: stats.pendingVerifications, icon: <FaUserCheck />, tab: "verifications", highlight: stats.pendingVerifications > 0 },
+  ];
 
   return (
     <>
-      <SectionHeader title="Dashboard Overview" sub="OVERVIEW" />
-
-      {/* Primary KPIs — responsive equal columns */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
-          gap: gridGap,
-          marginBottom: gridGap,
-        }}
-      >
-        <StatCard label="Total Users" value={stats.totalUsers} icon={<FaUsers />} sub="Registered accounts" onClick={() => onTabChange("users")} />
-        <StatCard label="Total Products" value={stats.totalProducts} icon={<FaBox />} sub="In catalogue" onClick={() => onTabChange("products")} />
-        <StatCard label="Total Orders" value={stats.totalOrders} icon={<FaShoppingCart />} sub="All time" onClick={() => onTabChange("orders")} />
-        <StatCard label="Total Revenue" value={formatRevenue(stats.revenue)} icon={<FaRupeeSign />} sub="Gross order value" accent="#16a34a" onClick={() => onTabChange("orders")} />
-      </div>
-
-      {/* Inventory & verification alerts — full-width row */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
-          gap: gridGap,
-          marginBottom: 28,
-        }}
-      >
-        <StatCard
-          label="Out of Stock"
-          value={stats.outOfStock}
-          icon={<FaExclamationTriangle />}
-          sub="Products need restocking"
-          accent={stats.outOfStock > 0 ? "#ef4444" : "#6b7280"}
-          highlight={stats.outOfStock > 0}
-          onClick={() => onTabChange("products")}
-        />
-        <StatCard
-          label="Low Stock"
-          value={stats.lowStock}
-          icon={<FaExclamationTriangle />}
-          sub="10 units or fewer"
-          accent={stats.lowStock > 0 ? "#f59e0b" : "#6b7280"}
-          highlight={stats.lowStock > 0}
-          onClick={() => onTabChange("products")}
-        />
-        <StatCard
-          label="Pending Verifications"
-          value={stats.pendingVerifications}
-          icon={<FaUserCheck />}
-          sub={stats.pendingVerifications > 0 ? "Institutes awaiting approval" : "No pending requests"}
-          accent={stats.pendingVerifications > 0 ? "#ef4444" : "#6b7280"}
-          highlight={stats.pendingVerifications > 0}
-          onClick={() => onTabChange("verifications")}
-        />
-      </div>
-
-      {/* Quick actions — 3×2 grid */}
-      <div className="mb-2">
-        <p className="text-uppercase fw-bold small text-muted mb-3" style={{ letterSpacing: "0.1em" }}>QUICK ACTIONS</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
-            gap: gridGap,
-          }}
-        >
-          {quickActions.map(a => (
-            <button
-              key={a.label}
-              type="button"
-              onClick={a.action}
-              className="btn border-0 text-start h-100"
-              style={{
-                background: a.primary ? "#111" : "#fff",
-                padding: "1.25rem 1.35rem",
-                borderRadius: 0,
-                border: a.primary ? "none" : "1px solid #e5e7eb",
-                minHeight: 88,
-                transition: "background 0.15s, box-shadow 0.15s",
-              }}
-              onMouseEnter={e => {
-                if (!a.primary) e.currentTarget.style.background = "#f9fafb";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = a.primary ? "#111" : "#fff";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              <div className="d-flex align-items-start gap-3">
-                <span
-                  className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                  style={{
-                    width: 32, height: 32, fontSize: "0.8rem",
-                    background: a.primary ? "rgba(255,255,255,0.15)" : "#f3f4f6",
-                    color: a.primary ? "#fff" : "#374151",
-                  }}
-                >
-                  {a.icon}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="fw-bold mb-1" style={{ fontSize: "0.9rem", color: a.primary ? "#fff" : "#111" }}>{a.label}</div>
-                  <div style={{ fontSize: "0.75rem", color: a.primary ? "rgba(255,255,255,0.7)" : a.alert ? "#ef4444" : "#9ca3af", lineHeight: 1.35 }}>
-                    {a.sub}
-                  </div>
-                </div>
-              </div>
+      <section className="landing-value-bar">
+        <div className="landing-stats-inner" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+          {primaryStats.map(s => (
+            <button key={s.label} type="button" onClick={() => onTabChange(s.tab)}
+              className="landing-stat-cell border-0 w-100" style={{ cursor: "pointer" }}>
+              <div style={{ fontSize: "1.2rem", color: s.green ? "#16A34A" : "#1D4ED8" }} className="mb-1">{s.icon}</div>
+              <div className="landing-stat-value" style={s.green ? { color: "#16A34A" } : undefined}>{s.value}</div>
+              <div className="landing-stat-label">{s.label}</div>
             </button>
           ))}
         </div>
-      </div>
+      </section>
+
+      <section className="landing-value-bar" style={{ paddingTop: 0 }}>
+        <div className="landing-stats-inner" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          {alertStats.map(s => (
+            <button key={s.label} type="button" onClick={() => onTabChange(s.tab)}
+              className="landing-stat-cell border-0 w-100" style={{ cursor: "pointer" }}>
+              <div style={{ fontSize: "1.2rem", color: s.highlight ? "#ef4444" : "#4B5563" }} className="mb-1">{s.icon}</div>
+              <div className={`landing-stat-value ${s.highlight ? "alert-val" : ""}`}>{s.value}</div>
+              <div className="landing-stat-label">{s.label}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-5 bg-white">
+        <div className="landing-shop-inner landing-shop-inner--full">
+          <p className="ss-section-label mb-1">QUICK ACTIONS</p>
+          <h2 className="ss-page-title mb-4">Manage the platform</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "1px", background: "#E5E7EB", border: "1px solid #E5E7EB" }}>
+            {quickActions.map(a => (
+              <button key={a.label} type="button" onClick={a.action}
+                className="btn border-0 text-start"
+                style={{ background: a.primary ? "#1D4ED8" : "#fff", padding: "1.5rem 1.25rem", borderRadius: 0, minHeight: 120 }}
+                onMouseEnter={e => { if (!a.primary) e.currentTarget.style.background = "#EFF6FF"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = a.primary ? "#1D4ED8" : "#fff"; }}>
+                <div style={{ fontSize: "1.2rem", color: a.primary ? "#fff" : "#1D4ED8", marginBottom: "0.75rem" }}>{a.icon}</div>
+                <div className="fw-bold" style={{ fontSize: "0.88rem", color: a.primary ? "#fff" : "#111", marginBottom: "0.2rem" }}>{a.label}</div>
+                <div style={{ fontSize: "0.75rem", color: a.primary ? "rgba(255,255,255,0.85)" : a.alert ? "#ef4444" : "#4B5563" }}>{a.sub}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   );
 };
@@ -318,8 +134,8 @@ const DashboardOverview = ({ stats, onTabChange, onNavigate }) => {
 const SectionHeader = ({ title, sub, action }) => (
   <div className="d-flex justify-content-between align-items-end mb-4">
     <div>
-      {sub && <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>{sub}</p>}
-      <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>{title}</h2>
+      {sub && <p className="ss-section-label mb-1">{sub}</p>}
+      <h2 className="ss-page-title mb-0">{title}</h2>
     </div>
     {action}
   </div>
@@ -335,32 +151,32 @@ const Pager = ({ current, total, onPage }) => {
   }
   return (
     <div className="d-flex justify-content-center gap-1 mt-4">
-      <button className="btn btn-sm btn-outline-dark" disabled={current === 1} onClick={() => onPage(current - 1)}>‹</button>
+      <button type="button" className="btn btn-sm ss-btn-outline" disabled={current === 1} onClick={() => onPage(current - 1)}>‹</button>
       {pages.map((p, i) =>
         p === "..." ? <span key={`e${i}`} className="btn btn-sm disabled">…</span> :
-        <button key={p} onClick={() => onPage(p)}
-          className={`btn btn-sm ${p === current ? "btn-dark" : "btn-outline-dark"}`}>{p}</button>
+        <button key={p} type="button" onClick={() => onPage(p)}
+          className={`btn btn-sm ${p === current ? "landing-btn-primary py-1 px-2" : "ss-btn-outline"}`}>{p}</button>
       )}
-      <button className="btn btn-sm btn-outline-dark" disabled={current === total} onClick={() => onPage(current + 1)}>›</button>
+      <button type="button" className="btn btn-sm ss-btn-outline" disabled={current === total} onClick={() => onPage(current + 1)}>›</button>
     </div>
   );
 };
 
 /* ─── Table Shell ───────────────────────────────────────────── */
 const TableShell = ({ heads, children, loading }) => (
-  <div className="border" style={{ borderColor: "#e5e7eb", overflowX: "auto" }}>
+  <div className="ss-card p-0" style={{ overflowX: "auto" }}>
     {loading ? (
       <div className="text-center py-5 text-muted">
-        <div className="spinner-border spinner-border-sm me-2" role="status" />
+        <div className="spinner-border spinner-border-sm me-2 text-primary" role="status" />
         Loading…
       </div>
     ) : (
       <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.875rem" }}>
-        <thead style={{ background: "#f9fafb" }}>
-          <tr>
+        <thead>
+          <tr className="ss-table-head">
             {heads.map(h => (
-              <th key={h.label || h} className="fw-semibold text-muted py-3 px-3"
-                style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap", cursor: h.onClick ? "pointer" : "default" }}
+              <th key={h.label || h} className="py-3 px-3 border-0"
+                style={{ whiteSpace: "nowrap", cursor: h.onClick ? "pointer" : "default" }}
                 onClick={h.onClick}>
                 {h.label || h} {h.sort}
               </th>
@@ -383,10 +199,6 @@ const ORDER_STATUS_OPTIONS = [
   ["delivered", "Delivered"],
   ["cancelled", "Cancelled"],
 ];
-
-const TotalCount = ({ value }) => (
-  <span className="text-muted small" style={{ whiteSpace: "nowrap" }}>Total: {value ?? 0}</span>
-);
 
 const STATUS_STYLES = {
   pending:   { bg: "#fef3c7", color: "#92400e" },
@@ -420,13 +232,13 @@ const DeleteModal = ({ show, item, onConfirm, onCancel, loading }) => {
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-      <div className="bg-white p-4 rounded-3 shadow" style={{ maxWidth: 420, width: "90%" }}>
+      <div className="ss-card p-4 shadow" style={{ maxWidth: 420, width: "90%" }}>
         <h5 className="fw-bold mb-2">Confirm Delete</h5>
         <p className="text-muted mb-1">Are you sure you want to delete:</p>
         <p className="fw-semibold mb-3">"{item}"?</p>
         <p className="text-muted small mb-4">This action cannot be undone.</p>
         <div className="d-flex gap-2 justify-content-end">
-          <button className="btn btn-outline-dark" onClick={onCancel} disabled={loading}>Cancel</button>
+          <button type="button" className="btn ss-btn-outline" onClick={onCancel} disabled={loading}>Cancel</button>
           <button className="btn btn-danger fw-semibold" onClick={onConfirm} disabled={loading}>
             {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <FaTrash className="me-1" />}
             Delete
@@ -452,7 +264,41 @@ const Toast = ({ msg, type, onClose }) => {
 };
 
 /* ─── Analytics Charts ──────────────────────────────────────── */
-const CHART_COLORS = ["#111", "#6b7280", "#d1d5db", "#374151", "#9ca3af"];
+const CHART_PALETTE = [
+  "#1D4ED8", "#16A34A", "#F59E0B", "#EF4444", "#8B5CF6",
+  "#EC4899", "#06B6D4", "#F97316", "#64748B", "#84CC16",
+];
+
+const ORDER_STATUS_CHART_COLORS = {
+  pending: "#F59E0B",
+  confirmed: "#1D4ED8",
+  preparing: "#8B5CF6",
+  processing: "#8B5CF6",
+  shipped: "#06B6D4",
+  out_for_delivery: "#0EA5E9",
+  delivered: "#16A34A",
+  cancelled: "#EF4444",
+};
+
+const STOCK_CHART_COLORS = { "In Stock": "#1D4ED8", "Low Stock": "#F59E0B", "Out of Stock": "#EF4444" };
+
+const formatChartLabel = (name) =>
+  String(name || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
+
+const chartColorFor = (name, index) =>
+  ORDER_STATUS_CHART_COLORS[name] || STOCK_CHART_COLORS[name] || CHART_PALETTE[index % CHART_PALETTE.length];
+
+const pieLegendProps = {
+  iconType: "circle",
+  iconSize: 8,
+  layout: "horizontal",
+  verticalAlign: "bottom",
+  align: "center",
+  wrapperStyle: { fontSize: "0.72rem", lineHeight: 1.4, paddingTop: 8 },
+  formatter: (value) => formatChartLabel(value),
+};
 
 const AnalyticsSection = ({ orders, products }) => {
   // Build monthly revenue from orders
@@ -486,12 +332,11 @@ const AnalyticsSection = ({ orders, products }) => {
   ];
 
   return (
-    <div className="mt-5">
-      <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>ANALYTICS</p>
-      <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Revenue & Insights</h2>
+    <div className="mt-4">
+      <p className="ss-section-label mb-1">ANALYTICS</p>
+      <h2 className="ss-page-title mb-4">Revenue &amp; insights</h2>
 
-      {/* Revenue Area Chart */}
-      <div className="bg-white p-4 mb-3" style={{ border: "1px solid #e5e7eb" }}>
+      <div className="ss-card p-4 mb-3">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <div className="fw-bold" style={{ fontSize: "1rem" }}>Monthly Revenue</div>
@@ -506,8 +351,8 @@ const AnalyticsSection = ({ orders, products }) => {
             <AreaChart data={revenueData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#111" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#111" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#1D4ED8" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -516,7 +361,7 @@ const AnalyticsSection = ({ orders, products }) => {
                 tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={v => [`₹${v.toLocaleString()}`, "Revenue"]}
                 contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.8rem" }} />
-              <Area type="monotone" dataKey="revenue" stroke="#111" strokeWidth={2} fill="url(#revGrad)" />
+              <Area type="monotone" dataKey="revenue" stroke="#1D4ED8" strokeWidth={2} fill="url(#revGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -527,52 +372,91 @@ const AnalyticsSection = ({ orders, products }) => {
       {/* Charts grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 12 }}>
         {/* Category bar */}
-        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
+        <div className="ss-card p-4">
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Products by Category</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} total products</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={catData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={catData} margin={{ top: 8, right: 8, left: -16, bottom: 48 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "#4B5563" }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                angle={-28}
+                textAnchor="end"
+                height={56}
+                tickFormatter={v => (v.length > 12 ? `${v.slice(0, 11)}…` : v)}
+              />
+              <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip
+                labelFormatter={formatChartLabel}
+                contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }}
+              />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {catData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                {catData.map((entry, i) => (
+                  <Cell key={entry.name} fill={chartColorFor(entry.name, i)} />
+                ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Order status pie */}
-        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
+        <div className="ss-card p-4">
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Order Status</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{orders.length} total orders</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={statusData} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
-                dataKey="value" paddingAngle={3}>
-                {statusData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="42%"
+                innerRadius={42}
+                outerRadius={68}
+                dataKey="value"
+                paddingAngle={2}
+                nameKey="name"
+              >
+                {statusData.map((entry, i) => (
+                  <Cell key={entry.name} fill={chartColorFor(entry.name, i)} />
+                ))}
               </Pie>
-              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+              <Tooltip
+                formatter={(value, name) => [value, formatChartLabel(name)]}
+                contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }}
+              />
+              <Legend {...pieLegendProps} />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Stock health pie */}
-        <div className="bg-white p-4" style={{ border: "1px solid #e5e7eb" }}>
+        <div className="ss-card p-4">
           <div className="fw-bold mb-1" style={{ fontSize: "0.95rem" }}>Stock Health</div>
           <div className="text-muted mb-3" style={{ fontSize: "0.78rem" }}>{products.length} products tracked</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={stockData} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
-                dataKey="value" paddingAngle={3}>
-                <Cell fill="#111" />
-                <Cell fill="#fbbf24" />
-                <Cell fill="#ef4444" />
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+              <Pie
+                data={stockData}
+                cx="50%"
+                cy="42%"
+                innerRadius={42}
+                outerRadius={68}
+                dataKey="value"
+                paddingAngle={2}
+                nameKey="name"
+              >
+                {stockData.map((entry, i) => (
+                  <Cell key={entry.name} fill={chartColorFor(entry.name, i)} />
+                ))}
               </Pie>
-              <Tooltip contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+              <Tooltip
+                formatter={(value, name) => [value, formatChartLabel(name)]}
+                contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, fontSize: "0.78rem" }}
+              />
+              <Legend {...pieLegendProps} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -976,46 +860,21 @@ const AdminDashboard = ({ setUser }) => {
   };
 
   if (loading || !admin) return (
-    <div className="d-flex align-items-center justify-content-center bg-white" style={{ minHeight: "100vh" }}>
+    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh", background: "#F3F4F6" }}>
       <div className="text-center">
-        <div className="spinner-border text-dark mb-3" style={{ width: 40, height: 40, borderWidth: 3 }} role="status">
+        <div className="spinner-border mb-3" style={{ width: 40, height: 40, borderWidth: 3, color: "#1D4ED8" }} role="status">
           <span className="visually-hidden">Loading…</span>
         </div>
-        <p className="text-muted">Loading dashboard…</p>
+        <p style={{ color: "#4B5563" }}>Loading admin dashboard…</p>
       </div>
     </div>
   );
 
-  // ── Filter bar helper ────────────────────────────────────────
-  const FilterBar = ({ children }) => (
-    <div className="d-flex flex-wrap gap-2 mb-4 p-3 bg-white" style={{ border: "1px solid #e5e7eb" }}>
-      {children}
-    </div>
-  );
-
-  const SearchInput = ({ value, onChange, onSearch, placeholder }) => (
-    <div className="d-flex" style={{ minWidth: 260 }}>
-      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        onKeyDown={e => e.key === "Enter" && onSearch()}
-        className="form-control form-control-sm border-end-0 rounded-0"
-        style={{ borderColor: "#e5e7eb" }} />
-      <button onClick={onSearch} className="btn btn-dark btn-sm rounded-0 px-3">
-        <FaSearch style={{ fontSize: "0.75rem" }} />
-      </button>
-    </div>
-  );
-
-  const FilterSelect = ({ value, onChange, options }) => (
-    <select value={value} onChange={e => onChange(e.target.value)}
-      className="form-select form-select-sm rounded-0" style={{ width: "auto", borderColor: "#e5e7eb" }}>
-      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
-  );
-
   return (
     <AdminLayout activeTab={activeTab} setUser={setUser}
+      contentClassName={activeTab === "dashboard" ? "" : undefined}
       topBar={
-        <button onClick={() => handleTabChange(activeTab)} className="btn btn-sm btn-outline-dark d-flex align-items-center gap-1">
+        <button type="button" onClick={() => handleTabChange(activeTab)} className="btn btn-sm ss-btn-outline d-flex align-items-center gap-1">
           <FaSync style={{ fontSize: "0.7rem" }} /> Refresh
         </button>
       }>
@@ -1027,38 +886,43 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── DASHBOARD TAB ── */}
           {activeTab === "dashboard" && (
             <>
+              <div className="landing-section-inner pb-2">
+                <p className="ss-section-label mb-1">OVERVIEW</p>
+                <h2 className="ss-page-title mb-0">Dashboard</h2>
+              </div>
               <DashboardOverview
                 stats={stats}
                 onTabChange={handleTabChange}
                 onNavigate={navigate}
               />
 
-              <AnalyticsSection orders={orders} products={products} />
+              <div className="landing-section-inner pb-2">
+                <AnalyticsSection orders={orders} products={products} />
+              </div>
 
-              {/* Recent Orders */}
-              <div className="mt-5">
+              <div className="landing-section-inner mt-4 pb-5">
                 <div className="d-flex justify-content-between align-items-end mb-3">
                   <div>
-                    <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>RECENT ACTIVITY</p>
-                    <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Recent Orders</h2>
+                    <p className="ss-section-label mb-1">RECENT ACTIVITY</p>
+                    <h2 className="ss-page-title mb-0">Recent orders</h2>
                   </div>
-                  <button onClick={() => handleTabChange("orders")}
-                    className="btn btn-link text-muted text-decoration-none fw-medium d-flex align-items-center gap-1 p-0">
+                  <button type="button" onClick={() => handleTabChange("orders")}
+                    className="btn btn-link text-decoration-none fw-medium d-flex align-items-center gap-1 p-0"
+                    style={{ color: "#1D4ED8" }}>
                     View all <FaChevronRight style={{ fontSize: "0.7rem" }} />
                   </button>
                 </div>
                 {orders.length === 0 ? (
-                  <div className="text-center py-4 text-muted bg-white" style={{ border: "1px solid #e5e7eb", fontSize: "0.875rem" }}>
+                  <div className="ss-card text-center py-4 text-muted" style={{ fontSize: "0.875rem" }}>
                     No orders yet
                   </div>
                 ) : (
-                  <div style={{ border: "1px solid #e5e7eb", overflowX: "auto" }}>
+                  <div className="ss-card p-0" style={{ overflowX: "auto" }}>
                     <table className="table table-hover mb-0 align-middle" style={{ fontSize: "0.875rem" }}>
-                      <thead style={{ background: "#f9fafb" }}>
-                        <tr>
+                      <thead>
+                        <tr className="ss-table-head">
                           {["Order ID","Customer","Amount","Status","Payment","Date",""].map(h => (
-                            <th key={h} className="px-3 py-3 fw-semibold text-muted"
-                              style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap" }}>
+                            <th key={h} className="px-3 py-3 border-0" style={{ whiteSpace: "nowrap" }}>
                               {h}
                             </th>
                           ))}
@@ -1084,8 +948,8 @@ const AdminDashboard = ({ setUser }) => {
                                 {o.orderDate ? new Date(o.orderDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
                               </td>
                               <td className="px-3">
-                                <button onClick={() => navigate(`/admin/orders/${o.id}`)}
-                                  className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                                <button type="button" onClick={() => navigate(`/admin/orders/${o.id}`)}
+                                  className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                                   <FaEye />
                                 </button>
                               </td>
@@ -1103,20 +967,18 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── USERS TAB ── */}
           {activeTab === "users" && (
             <>
-              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>USERS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Users Management</h2>
-                </div>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
+              <AdminPageToolbar
+                label="USERS"
+                title="Users Management"
+                total={totalItems || stats.totalUsers}
+                filters={<>
                   <SearchInput value={userSearch} onChange={setUserSearch} onSearch={() => fetchUsers(1)} placeholder="Search name, email, phone…" />
                   <FilterSelect value={userRoleFilter} onChange={v => { setUserRoleFilter(v); fetchUsers(1, v); }}
                     options={[["all","All Roles"],["admin","Admin"],["institute","Institute"],["personal","Personal"]]} />
                   <FilterSelect value={userStatusFilter} onChange={v => { setUserStatusFilter(v); fetchUsers(1, undefined, v); }}
                     options={[["all","All Status"],["active","Active"],["suspended","Suspended"]]} />
-                  <TotalCount value={totalItems || stats.totalUsers} />
-                </div>
-              </div>
+                </>}
+              />
               <TableShell loading={fetchingData} heads={["Name","Email","Role","Status","Verified","Phone","Actions"]}>
                 {users.map(u => (
                   <tr key={u.id}>
@@ -1152,12 +1014,11 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── PRODUCTS TAB ── */}
           {activeTab === "products" && (
             <>
-              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>PRODUCTS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Products Management</h2>
-                </div>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
+              <AdminPageToolbar
+                label="PRODUCTS"
+                title="Products Management"
+                total={totalItems || stats.totalProducts}
+                filters={<>
                   <SearchInput value={productSearch} onChange={setProductSearch} onSearch={() => fetchProducts(1)} placeholder="Search products…" />
                   <FilterSelect value={productCategoryFilter} onChange={v => { setProductCategoryFilter(v); fetchProducts(1, v); }}
                     options={[["all","All Categories"],["book","Books"],["stationery","Stationery"],["sports","Sports"],["electronics","Electronics"]]} />
@@ -1165,17 +1026,18 @@ const AdminDashboard = ({ setUser }) => {
                     options={[["all","All Stock"],["inStock","In Stock"],["outOfStock","Out of Stock"]]} />
                   <FilterSelect value={productSortBy} onChange={v => { setProductSortBy(v); fetchProducts(1, undefined, undefined, v); }}
                     options={[["name","Sort: Name"],["price","Sort: Price"],["stock_quantity","Sort: Stock"],["created_at","Sort: Date"]]} />
-                  <button onClick={() => { const next = productSortOrder === "asc" ? "desc" : "asc"; setProductSortOrder(next); fetchProducts(1, undefined, undefined, undefined, next); }}
-                    className="btn btn-sm btn-outline-dark rounded-0" style={{ fontSize: "0.8rem" }}>
+                  <button type="button" onClick={() => { const next = productSortOrder === "asc" ? "desc" : "asc"; setProductSortOrder(next); fetchProducts(1, undefined, undefined, undefined, next); }}
+                    className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.8rem", borderRadius: 8 }}>
                     {productSortOrder === "asc" ? "↑ Asc" : "↓ Desc"}
                   </button>
-                  <button onClick={() => navigate("/admin/add-product")}
-                    className="btn btn-dark fw-bold d-flex align-items-center gap-1">
+                </>}
+                actions={
+                  <button type="button" onClick={() => navigate("/admin/add-product")}
+                    className="btn landing-btn-primary fw-bold d-flex align-items-center gap-1">
                     <FaPlus style={{ fontSize: "0.75rem" }} /> Add Product
                   </button>
-                  <TotalCount value={totalItems || stats.totalProducts} />
-                </div>
-              </div>
+                }
+              />
               <TableShell loading={fetchingData} heads={[
                 { label: "Product", onClick: () => handleProductSort("name"), sort: getSortIcon("name") },
                 { label: "Category" },
@@ -1209,7 +1071,7 @@ const AdminDashboard = ({ setUser }) => {
                       <td className="px-3">
                         <div className="d-flex gap-1">
                           <button onClick={() => navigate(`/admin/edit-product/${p.id}`)}
-                            className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                            className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                             <FaEdit />
                           </button>
                           <button onClick={() => setDeleteModal({ show: true, id: p.id, name: p.name, type: "product" })}
@@ -1235,12 +1097,11 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── ORDERS TAB ── */}
           {activeTab === "orders" && (
             <>
-              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>ORDERS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Orders Management</h2>
-                </div>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
+              <AdminPageToolbar
+                label="ORDERS"
+                title="Orders Management"
+                total={totalItems || stats.totalOrders}
+                filters={<>
                   <SearchInput value={orderSearch} onChange={setOrderSearch} onSearch={() => fetchOrders(1)} placeholder="Search order ID, customer…" />
                   <FilterSelect value={orderStatusFilter} onChange={v => { setOrderStatusFilter(v); fetchOrders(1, v); }}
                     options={[["all","All Status"], ...ORDER_STATUS_OPTIONS]} />
@@ -1248,9 +1109,8 @@ const AdminDashboard = ({ setUser }) => {
                     options={[["all","All Types"],["regular","Regular"],["bulk","Bulk"]]} />
                   <FilterSelect value={orderPaymentFilter} onChange={v => { setOrderPaymentFilter(v); fetchOrders(1, undefined, undefined, v); }}
                     options={[["all","All Payment"],["pending","Pending"],["completed","Completed"]]} />
-                  <TotalCount value={totalItems || stats.totalOrders} />
-                </div>
-              </div>
+                </>}
+              />
               <TableShell loading={fetchingData} heads={["Order ID","Customer","Amount","Status","Payment","Type","Date","Actions"]}>
                 {orders.map(o => {
                   const customer = userNames[o.user] || `User #${o.user || "?"}`;
@@ -1275,7 +1135,7 @@ const AdminDashboard = ({ setUser }) => {
                       <td className="px-3">
                         <div className="d-flex gap-1 align-items-center">
                           <button onClick={() => navigate(`/admin/orders/${o.id}`)}
-                            className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                            className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                             <FaEye />
                           </button>
                           <select className="form-select form-select-sm rounded-0" style={{ width: 110, fontSize: "0.75rem", borderColor: "#e5e7eb" }}
@@ -1300,17 +1160,15 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── VERIFICATIONS TAB ── */}
           {activeTab === "verifications" && (
             <>
-              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>VERIFICATIONS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Institute Verifications</h2>
-                </div>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
+              <AdminPageToolbar
+                label="VERIFICATIONS"
+                title="Institute Verifications"
+                total={pendingVerifications.length}
+                filters={
                   <SearchInput value={verificationSearch} onChange={setVerificationSearch}
                     onSearch={fetchVerifications} placeholder="Search institute, contact…" />
-                  <TotalCount value={pendingVerifications.length} />
-                </div>
-              </div>
+                }
+              />
               <TableShell loading={fetchingData} heads={["Institute","Contact Person","Email","Phone","School","Status","Actions"]}>
                 {pendingVerifications.map(u => {
                   const instituteName = u.instituteVerification?.instituteName || u.instituteInfo?.schoolName || "N/A";
@@ -1353,35 +1211,33 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── BOOK SETS TAB ── */}
           {activeTab === "book-sets" && (
             <>
-              <div className="d-flex justify-content-between align-items-end mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MANAGE</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Book Sets</h2>
-                </div>
-                <div className="d-flex gap-2 align-items-center">
-                  <TotalCount value={totalItems} />
-                  <button onClick={() => navigate("/admin/book-sets/upload-excel")}
-                    className="btn btn-success btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+              <AdminPageToolbar
+                label="MANAGE"
+                title="Book Sets"
+                total={totalItems}
+                actions={<>
+                  <button type="button" onClick={() => navigate("/admin/book-sets/upload-excel")}
+                    className="btn btn-success btn-sm fw-semibold d-flex align-items-center gap-1">
                     <FaFileExcel style={{ fontSize: "0.7rem" }} /> Excel Upload
                   </button>
-                  <button onClick={() => navigate("/admin/book-sets/create")}
-                    className="btn btn-dark btn-sm rounded-0 fw-semibold d-flex align-items-center gap-1">
+                  <button type="button" onClick={() => navigate("/admin/book-sets/create")}
+                    className="btn landing-btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                     <FaPlus style={{ fontSize: "0.7rem" }} /> Create Book Set
                   </button>
-                </div>
-              </div>
+                </>}
+              />
 
               {/* Sub-tabs */}
               <div className="d-flex gap-3 mb-4 border-bottom pb-2" style={{ borderColor: "#e5e7eb" }}>
                 <button
                   onClick={() => { setBookSetSubTab("sets"); fetchBookSets(1); }}
-                  className={`btn border-0 rounded-0 fw-semibold px-0 ${bookSetSubTab === "sets" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
+                  className={`btn border-0 fw-semibold px-0 ${bookSetSubTab === "sets" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
                   style={{ paddingBottom: "0.5rem", background: "transparent" }}>
                   All Book Sets
                 </button>
                 <button
                   onClick={() => { setBookSetSubTab("requests"); fetchBookSetRequests(1); }}
-                  className={`btn border-0 rounded-0 fw-semibold px-0 ${bookSetSubTab === "requests" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
+                  className={`btn border-0 fw-semibold px-0 ${bookSetSubTab === "requests" ? "border-bottom border-dark border-3 text-dark" : "text-muted"}`}
                   style={{ paddingBottom: "0.5rem", background: "transparent" }}>
                   Institute Requests
                 </button>
@@ -1390,22 +1246,22 @@ const AdminDashboard = ({ setUser }) => {
               {/* Show Book Sets or Requests based on sub-tab */}
               {bookSetSubTab === "sets" ? (
                 <>
-                  {/* Search Filters for Book Sets */}
-                  <div className="d-flex gap-2 mb-3 flex-wrap">
-                    <input type="text" placeholder="Search by school name..." value={bookSetSchoolFilter}
-                      onChange={e => setBookSetSchoolFilter(e.target.value)}
-                      className="form-control form-control-sm" style={{ maxWidth: 250 }} />
-                    <input type="text" placeholder="Search by grade..." value={bookSetGradeFilter}
-                      onChange={e => setBookSetGradeFilter(e.target.value)}
-                      className="form-control form-control-sm" style={{ maxWidth: 150 }} />
-                    <button onClick={() => fetchBookSets(1)} className="btn btn-dark btn-sm">
-                      <FaSearch /> Search
-                    </button>
-                    <button onClick={() => { setBookSetSchoolFilter(""); setBookSetGradeFilter(""); fetchBookSets(1, "", ""); }}
-                      className="btn btn-outline-secondary btn-sm">
-                      Clear
-                    </button>
-                  </div>
+                  <AdminFilterRow
+                    filters={<>
+                      <SearchInput value={bookSetSchoolFilter} onChange={setBookSetSchoolFilter}
+                        onSearch={() => fetchBookSets(1)} placeholder="Search by school name…"
+                        style={{ maxWidth: 300 }} />
+                      <SearchInput value={bookSetGradeFilter} onChange={setBookSetGradeFilter}
+                        onSearch={() => fetchBookSets(1)} placeholder="Search by grade…"
+                        style={{ maxWidth: 200 }} />
+                    </>}
+                    actions={
+                      <button type="button" onClick={() => { setBookSetSchoolFilter(""); setBookSetGradeFilter(""); fetchBookSets(1, "", ""); }}
+                        className="btn btn-sm ss-btn-outline">
+                        Clear filters
+                      </button>
+                    }
+                  />
 
                   <TableShell loading={fetchingData} heads={["ID","School","Grade","Books","Total Price","Status","Created","Actions"]}>
                     {bookSets.map(bs => (
@@ -1426,7 +1282,7 @@ const AdminDashboard = ({ setUser }) => {
                         <td className="px-3">
                           <div className="d-flex gap-1">
                             <button onClick={() => navigate(`/admin/book-sets/${bs._id}`)}
-                              className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                              className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                               <FaEye />
                             </button>
                             <button onClick={() => navigate(`/admin/book-sets/${bs._id}/edit`)}
@@ -1447,27 +1303,21 @@ const AdminDashboard = ({ setUser }) => {
                 </>
               ) : (
                 <>
-                  {/* Search Filters for Requests */}
-                  <div className="d-flex gap-2 mb-3 flex-wrap">
-                    <input type="text" placeholder="Search by school or institute..." value={bookSetRequestSearch}
-                      onChange={e => setBookSetRequestSearch(e.target.value)}
-                      className="form-control form-control-sm" style={{ maxWidth: 300 }} />
-                    <select value={bookSetRequestStatusFilter}
-                      onChange={e => setBookSetRequestStatusFilter(e.target.value)}
-                      className="form-select form-control-sm" style={{ maxWidth: 150 }}>
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                    <button onClick={() => fetchBookSetRequests(1)} className="btn btn-dark btn-sm">
-                      <FaSearch /> Search
-                    </button>
-                    <button onClick={() => { setBookSetRequestSearch(""); setBookSetRequestStatusFilter("all"); fetchBookSetRequests(1, "", "all"); }}
-                      className="btn btn-outline-secondary btn-sm">
-                      Clear
-                    </button>
-                  </div>
+                  <AdminFilterRow
+                    filters={<>
+                      <SearchInput value={bookSetRequestSearch} onChange={setBookSetRequestSearch}
+                        onSearch={() => fetchBookSetRequests(1)} placeholder="Search school or institute…" />
+                      <FilterSelect value={bookSetRequestStatusFilter}
+                        onChange={v => { setBookSetRequestStatusFilter(v); fetchBookSetRequests(1); }}
+                        options={[["all","All Status"],["pending","Pending"],["approved","Approved"],["rejected","Rejected"]]} />
+                    </>}
+                    actions={
+                      <button type="button" onClick={() => { setBookSetRequestSearch(""); setBookSetRequestStatusFilter("all"); fetchBookSetRequests(1, "", "all"); }}
+                        className="btn btn-sm ss-btn-outline">
+                        Clear filters
+                      </button>
+                    }
+                  />
 
                   <TableShell loading={fetchingData} heads={["ID","Institute","School","Grade","Books","Total Price","Status","Date","Actions"]}>
                     {bookSetRequests.map(r => (
@@ -1488,7 +1338,7 @@ const AdminDashboard = ({ setUser }) => {
                         <td className="px-3">
                           <div className="d-flex gap-1">
                             <button onClick={() => navigate(`/admin/book-set-requests/${r._id}`)}
-                              className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                              className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                               <FaEye />
                             </button>
                             {r.status === "pending" && (
@@ -1520,13 +1370,11 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── DONATIONS TAB ── */}
           {activeTab === "donations" && (
             <>
-              <div className="d-flex justify-content-between align-items-end mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>DONATIONS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Donations Management</h2>
-                </div>
-                <TotalCount value={totalItems} />
-              </div>
+              <AdminPageToolbar
+                label="DONATIONS"
+                title="Donations Management"
+                total={totalItems}
+              />
               <TableShell loading={fetchingData} heads={["Title","Donor","Category","Condition","Status","Date","Actions"]}>
                 {donations.map(d => (
                   <tr key={d.id}>
@@ -1550,7 +1398,7 @@ const AdminDashboard = ({ setUser }) => {
                     <td className="px-3">
                       <div className="d-flex gap-1">
                         <button onClick={() => navigate(`/admin/donations/${d._id || d.id}`)}
-                          className="btn btn-sm btn-outline-dark" style={{ fontSize: "0.75rem" }}>
+                          className="btn btn-sm ss-btn-outline" style={{ fontSize: "0.75rem" }}>
                           <FaEye />
                         </button>
                         <button onClick={() => handleDeleteDonation(d.id, d.title)}
@@ -1572,17 +1420,15 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── ITEM REQUESTS TAB ── */}
           {activeTab === "item-requests" && (
             <>
-              <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>REQUESTS</p>
-                  <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Item Requests</h2>
-                </div>
-                <div className="d-flex gap-2 align-items-center">
+              <AdminPageToolbar
+                label="REQUESTS"
+                title="Item Requests"
+                total={totalItems}
+                filters={
                   <FilterSelect value={itemRequestFilter} onChange={v => { setItemRequestFilter(v); fetchItemRequests(1); }}
                     options={[["all","All Statuses"],["pending","Pending"],["approved","Approved"],["rejected","Rejected"],["cancelled","Cancelled"]]} />
-                  <TotalCount value={totalItems} />
-                </div>
-              </div>
+                }
+              />
               <TableShell loading={fetchingData} heads={["#","User","Item","Category","Qty","Description","Status","Date","Actions"]}>
                 {itemRequests.map((req, idx) => (
                   <tr key={req.id}>
@@ -1634,26 +1480,22 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── NOTIFICATIONS TAB ── */}
           {activeTab === "notifications" && (
             <>
-              <div className="d-flex justify-content-between align-items-end mb-4">
-                <div>
-                  <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>INBOX</p>
-                  <h2 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-                    <FaBell style={{ fontSize: "1.2rem" }} /> Notifications
-                    {unreadNotifs > 0 && (
-                      <span className="badge text-bg-dark" style={{ fontSize: "0.65rem" }}>{unreadNotifs}</span>
-                    )}
-                  </h2>
-                </div>
-                <div className="d-flex align-items-center gap-2">
-                  <TotalCount value={notifications.length} />
+              <AdminPageToolbar
+                label="INBOX"
+                title={<>
+                  <FaBell style={{ fontSize: "1.2rem" }} className="me-2" /> Notifications
                   {unreadNotifs > 0 && (
-                    <button onClick={markAllNotifsRead}
-                      className="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center gap-1">
-                      <FaCheck style={{ fontSize: "0.7rem" }} /> Mark all as read
-                    </button>
+                    <span className="badge text-bg-primary align-middle" style={{ fontSize: "0.65rem" }}>{unreadNotifs}</span>
                   )}
-                </div>
-              </div>
+                </>}
+                total={notifications.length}
+                actions={unreadNotifs > 0 ? (
+                  <button type="button" onClick={markAllNotifsRead}
+                    className="btn ss-btn-outline btn-sm fw-semibold d-flex align-items-center gap-1">
+                    <FaCheck style={{ fontSize: "0.7rem" }} /> Mark all as read
+                  </button>
+                ) : null}
+              />
 
               {fetchingData ? (
                 <div className="text-center py-5 text-muted">
@@ -1675,7 +1517,7 @@ const AdminDashboard = ({ setUser }) => {
                       className="bg-white d-flex gap-3 align-items-start"
                       style={{
                         padding: "1rem 1.25rem",
-                        borderLeft: n.is_read ? "3px solid transparent" : "3px solid #111",
+                        borderLeft: n.is_read ? "3px solid transparent" : "3px solid #1D4ED8",
                         background: n.is_read ? "#fff" : "#fafafa",
                         cursor: ADMIN_NOTIF_TAB[n.type] || n.metadata?.tab ? "pointer" : "default",
                         transition: "background 0.15s",
@@ -1698,7 +1540,7 @@ const AdminDashboard = ({ setUser }) => {
                               </span>
                             )}
                             {!n.is_read && (
-                              <span className="badge text-bg-dark ms-2" style={{ fontSize: "0.58rem" }}>New</span>
+                              <span className="badge text-bg-primary ms-2" style={{ fontSize: "0.58rem" }}>New</span>
                             )}
                           </span>
                           <div className="d-flex gap-1 flex-shrink-0">
@@ -1729,12 +1571,10 @@ const AdminDashboard = ({ setUser }) => {
           {/* ── INSTITUTE CHATS TAB ── */}
           {activeTab === "institute-chats" && (
             <>
-              <div className="mb-4">
-                <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>MESSAGING</p>
-                <h2 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>
-                  <FaComments style={{ fontSize: "1.2rem" }} /> Institute Chats
-                </h2>
-              </div>
+              <AdminPageToolbar
+                label="MESSAGING"
+                title={<><FaComments style={{ fontSize: "1.2rem" }} /> Institute Chats</>}
+              />
               <div style={{ height: "calc(100vh - 220px)", minHeight: 500 }}>
                 <ChatPage embedded={true} />
               </div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaGift, FaImage, FaTimes, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -68,101 +69,98 @@ const CreateDonation = () => {
     } finally { setLoading(false); }
   };
 
+  const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
+
   return (
     <SharedLayout activeLink="Donate">
-      <div style={{ maxWidth: 720, margin: "0 auto" }} className="px-3 py-5">
+      <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
+        <div className="ss-page-inner" style={{ maxWidth: 720 }}>
+          <button type="button" onClick={() => navigate("/donations")} className="ss-back-link">
+            <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Donations
+          </button>
 
-        <button onClick={() => navigate("/donations")}
-          className="btn btn-link p-0 text-secondary small d-inline-flex align-items-center gap-1 mb-3 text-decoration-none">
-          <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-        </button>
+          <p className="ss-section-label">COMMUNITY</p>
+          <h1 className="ss-page-title mb-4 d-flex align-items-center gap-2" style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)" }}>
+            <FaGift style={{ fontSize: "1.25rem", color: "#1D4ED8" }} /> Create Donation
+          </h1>
 
-        <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>COMMUNITY</p>
-        <h1 className="fw-bold mb-4 d-flex align-items-center gap-3" style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", letterSpacing: "-0.02em" }}>
-          <FaGift style={{ fontSize: "1.5rem" }} /> Create Donation
-        </h1>
+          {error && <div className="alert alert-danger small py-2">{error}</div>}
+          {success && <div className="alert alert-success small py-2">✓ {success}</div>}
 
-        {error   && <div className="alert alert-danger small py-2">{error}</div>}
-        {success && <div className="alert alert-success small py-2">✓ {success}</div>}
-
-        <form onSubmit={handleSubmit} className="d-flex flex-column gap-4">
-          {/* Title */}
-          <div>
-            <label className="form-label fw-semibold small">Title <span className="text-danger">*</span></label>
-            <input name="title" value={form.title} onChange={handleChange} maxLength={100}
-              placeholder="e.g., Mathematics Textbook Grade 10" className="form-control" />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="form-label fw-semibold small">Description <span className="text-danger">*</span></label>
-            <textarea name="description" value={form.description} onChange={handleChange} rows={4} maxLength={1000}
-              placeholder="Describe the item, its condition, and any relevant details…"
-              className="form-control" style={{ resize: "vertical" }} />
-          </div>
-
-          {/* Category + Condition */}
-          <div className="row g-3">
-            <div className="col-6">
-              <label className="form-label fw-semibold small">Category <span className="text-danger">*</span></label>
-              <select name="category" value={form.category} onChange={handleChange} className="form-select">
-                <option value="">Select Category</option>
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+          <form onSubmit={handleSubmit} className="ss-card d-flex flex-column gap-4">
+            <div>
+              <label className="form-label fw-semibold small">Title <span className="text-danger">*</span></label>
+              <input name="title" value={form.title} onChange={handleChange} maxLength={100}
+                placeholder="e.g., Mathematics Textbook Grade 10" className="form-control" style={inp} />
             </div>
-            <div className="col-6">
-              <label className="form-label fw-semibold small">Condition <span className="text-danger">*</span></label>
-              <select name="condition" value={form.condition} onChange={handleChange} className="form-select">
-                <option value="">Select Condition</option>
-                {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
-          </div>
 
-          {/* Pickup location */}
-          <div>
-            <label className="form-label fw-semibold small">Pickup Location <span className="text-danger">*</span></label>
-            <input name="pickup_location" value={form.pickup_location} onChange={handleChange} maxLength={200}
-              placeholder="e.g., Main Campus, Building A, Room 101" className="form-control" />
-          </div>
-
-          {/* Images */}
-          <div>
-            <label className="form-label fw-semibold small">Images <span className="text-danger">*</span></label>
-            <div onClick={() => document.getElementById("imgInput").click()}
-              className="border rounded-3 text-center p-4 bg-light"
-              style={{ borderStyle: "dashed", cursor: "pointer", borderColor: "#e5e7eb" }}>
-              <FaImage style={{ fontSize: "2.5rem", color: "#9ca3af" }} className="mb-2 d-block mx-auto" />
-              <p className="text-muted small mb-0">Click to upload images (max 5, 5MB each)</p>
-              <input id="imgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+            <div>
+              <label className="form-label fw-semibold small">Description <span className="text-danger">*</span></label>
+              <textarea name="description" value={form.description} onChange={handleChange} rows={4} maxLength={1000}
+                placeholder="Describe the item, its condition, and any relevant details…"
+                className="form-control" style={{ ...inp, resize: "vertical" }} />
             </div>
-            {previews.length > 0 && (
-              <div className="row g-2 mt-2">
-                {previews.map((pv, i) => (
-                  <div key={i} className="col-3 position-relative">
-                    <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 100, objectFit: "cover" }} />
-                    <button type="button" onClick={() => removeImage(i)}
-                      className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
-                      style={{ top: 8, right: 8, width: 22, height: 22, fontSize: "0.65rem" }}>
-                      <FaTimes />
-                    </button>
-                  </div>
-                ))}
+
+            <div className="row g-3">
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Category <span className="text-danger">*</span></label>
+                <select name="category" value={form.category} onChange={handleChange} className="form-select" style={inp}>
+                  <option value="">Select Category</option>
+                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
               </div>
-            )}
-          </div>
+              <div className="col-6">
+                <label className="form-label fw-semibold small">Condition <span className="text-danger">*</span></label>
+                <select name="condition" value={form.condition} onChange={handleChange} className="form-select" style={inp}>
+                  <option value="">Select Condition</option>
+                  {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+            </div>
 
-          {/* Buttons */}
-          <div className="d-flex gap-3 justify-content-end">
-            <button type="button" onClick={() => navigate("/donations")} disabled={loading}
-              className="btn btn-light border fw-semibold px-4">Cancel</button>
-            <button type="submit" disabled={loading}
-              className={`btn btn-dark fw-bold px-4 ${loading ? "opacity-75" : ""}`}>
-              {loading ? "Creating…" : "Create Donation"}
-            </button>
-          </div>
-        </form>
-      </div>
+            <div>
+              <label className="form-label fw-semibold small">Pickup Location <span className="text-danger">*</span></label>
+              <input name="pickup_location" value={form.pickup_location} onChange={handleChange} maxLength={200}
+                placeholder="e.g., Main Campus, Building A, Room 101" className="form-control" style={inp} />
+            </div>
+
+            <div>
+              <label className="form-label fw-semibold small">Images <span className="text-danger">*</span></label>
+              <div onClick={() => document.getElementById("imgInput").click()}
+                className="text-center p-4 rounded-3"
+                style={{ border: "2px dashed #E5E7EB", cursor: "pointer", background: "#F9FAFB" }}>
+                <FaImage style={{ fontSize: "2.5rem", color: "#9CA3AF" }} className="mb-2 d-block mx-auto" />
+                <p className="small mb-0" style={{ color: "#4B5563" }}>Click to upload images (max 5, 5MB each)</p>
+                <input id="imgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+              </div>
+              {previews.length > 0 && (
+                <div className="row g-2 mt-2">
+                  {previews.map((pv, i) => (
+                    <div key={i} className="col-3 position-relative">
+                      <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 100, objectFit: "cover", border: "1px solid #E5E7EB" }} />
+                      <button type="button" onClick={() => removeImage(i)}
+                        className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
+                        style={{ top: 8, right: 8, width: 22, height: 22, fontSize: "0.65rem" }}>
+                        <FaTimes />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="d-flex gap-3 justify-content-end">
+              <button type="button" onClick={() => navigate("/donations")} disabled={loading}
+                className="landing-btn-outline" style={{ color: "#111", borderColor: "#E5E7EB", padding: "0.55rem 1.25rem", borderRadius: 8 }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={loading} className={`landing-btn-primary ${loading ? "opacity-75" : ""}`}>
+                {loading ? "Creating…" : "Create Donation"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
     </SharedLayout>
   );
 };

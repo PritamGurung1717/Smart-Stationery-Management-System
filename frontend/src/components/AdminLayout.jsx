@@ -5,6 +5,7 @@ import {
   FaTachometerAlt, FaUsers, FaBox, FaShoppingCart, FaUserCheck,
   FaBook, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments
 } from "react-icons/fa";
+import "../styles/landing.css";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -22,15 +23,6 @@ const NAV_ITEMS = [
   { id: "institute-chats",   icon: <FaComments />,      label: "Institute Chats",    path: "/admin-dashboard?tab=institute-chats" },
 ];
 
-/**
- * AdminLayout — wraps any admin page with the persistent sidebar.
- * Props:
- *   activeTab  — which nav item to highlight (e.g. "products")
- *   topBar     — optional JSX rendered in the sticky top bar (right side)
- *   children   — page content
- *   setUser    — optional, for logout
- */
-/** Red count badge for new/unread items in sidebar */
 const NewCountBadge = ({ count, isActive }) => (
   <span
     title={`${count} new`}
@@ -43,14 +35,14 @@ const NewCountBadge = ({ count, isActive }) => (
       minWidth: 20,
       padding: "0.2em 0.5em",
       flexShrink: 0,
-      boxShadow: isActive ? "0 0 0 1px #111" : "none",
+      boxShadow: isActive ? "0 0 0 1px #1D4ED8" : "none",
     }}
   >
     {count > 99 ? "99+" : count}
   </span>
 );
 
-const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => {
+const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser, contentClassName = "ss-page-inner py-4" }) => {
   const navigate = useNavigate();
   const admin = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -62,7 +54,6 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
     unreadChats: 0,
   });
   const [unreadNotifs, setUnreadNotifs] = useState(0);
-  /** Last acknowledged counts per section — dot shows when current > acknowledged */
   const [acknowledged, setAcknowledged] = useState({});
 
   const fetchNewCounts = useCallback(async () => {
@@ -134,62 +125,59 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", background: "#fafafa" }}>
-      {/* ── Sidebar ── */}
+    <div className="d-flex admin-layout" style={{ minHeight: "100vh", background: "#F3F4F6" }}>
       <div className="d-flex flex-column bg-white border-end"
         style={{ width: 240, minHeight: "100vh", position: "sticky", top: 0, height: "100vh", overflowY: "auto", flexShrink: 0 }}>
-        {/* Brand */}
         <div className="px-4 py-4 border-bottom">
-          <h5 className="fw-bold mb-0" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "1.3rem", letterSpacing: "-0.01em" }}>
-            smart stationery.
-          </h5>
-          <span className="text-uppercase fw-bold text-muted" style={{ fontSize: "0.6rem", letterSpacing: "0.12em" }}>Admin Panel</span>
+          <div className="landing-brand mb-1" style={{ fontSize: "1.25rem" }}>
+            <span className="brand-smart">smart</span><span className="brand-stationery">stationery.</span>
+          </div>
+          <span className="ss-section-label" style={{ fontSize: "0.6rem" }}>ADMIN PANEL</span>
         </div>
-        {/* Admin info */}
         <div className="px-4 py-3 border-bottom">
           <div className="d-flex align-items-center gap-2">
-            <div className="rounded-circle bg-dark d-flex align-items-center justify-content-center flex-shrink-0"
-              style={{ width: 36, height: 36 }}>
-              <span className="text-white fw-bold" style={{ fontSize: "0.85rem" }}>
+            <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: 36, height: 36, background: "#1D4ED8", color: "#fff" }}>
+              <span className="fw-bold" style={{ fontSize: "0.85rem" }}>
                 {admin?.name?.charAt(0)?.toUpperCase() || "A"}
               </span>
             </div>
             <div style={{ minWidth: 0 }}>
-              <div className="fw-semibold small text-truncate">{admin?.name}</div>
-              <div className="text-muted" style={{ fontSize: "0.7rem" }}>Administrator</div>
+              <div className="fw-semibold small text-truncate" style={{ color: "#111" }}>{admin?.name}</div>
+              <div style={{ fontSize: "0.7rem", color: "#4B5563" }}>Administrator</div>
             </div>
           </div>
         </div>
-        {/* Nav */}
         <nav className="flex-grow-1 py-3 px-2">
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
             const newCount = getNewCount(item.id);
             return (
-              <button key={item.id} onClick={() => handleNav(item)}
+              <button key={item.id} type="button" onClick={() => handleNav(item)}
                 className="btn border-0 w-100 text-start d-flex align-items-center gap-2 mb-1"
                 style={{
-                  padding: "0.6rem 0.85rem", borderRadius: 8,
-                  background: isActive ? "#111" : "transparent",
-                  color: isActive ? "#fff" : "#374151",
-                  fontSize: "0.875rem", fontWeight: isActive ? 600 : 400,
-                  transition: "background 0.15s",
+                  padding: "0.6rem 0.85rem",
+                  borderRadius: 8,
+                  background: isActive ? "#1D4ED8" : "transparent",
+                  color: isActive ? "#fff" : "#4B5563",
+                  fontSize: "0.875rem",
+                  fontWeight: isActive ? 600 : 400,
+                  transition: "background 0.15s, color 0.15s",
                 }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f3f4f6"; }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#EFF6FF"; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
-                <span style={{ fontSize: "0.85rem", opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                <span style={{ fontSize: "0.85rem", opacity: isActive ? 1 : 0.7 }}>{item.icon}</span>
                 <span className="flex-grow-1">{item.label}</span>
                 {newCount > 0 && <NewCountBadge count={newCount} isActive={isActive} />}
               </button>
             );
           })}
         </nav>
-        {/* Logout */}
         <div className="px-2 py-3 border-top">
-          <button onClick={handleLogout}
+          <button type="button" onClick={handleLogout}
             className="btn border-0 w-100 text-start d-flex align-items-center gap-2"
             style={{ padding: "0.6rem 0.85rem", borderRadius: 8, color: "#ef4444", fontSize: "0.875rem" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"}
+            onMouseEnter={e => e.currentTarget.style.background = "#FEF2F2"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
             <FaSignOutAlt style={{ fontSize: "0.85rem" }} />
             Logout
@@ -197,20 +185,16 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser }) => 
         </div>
       </div>
 
-      {/* ── Main content ── */}
       <div className="flex-grow-1" style={{ minWidth: 0 }}>
-        {/* Top bar */}
         <div className="bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center sticky-top" style={{ zIndex: 100 }}>
           <div>
-            <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
-              {NAV_ITEMS.find(n => n.id === activeTab)?.label || "Admin"}
+            <p className="ss-section-label mb-0">
+              {NAV_ITEMS.find(n => n.id === activeTab)?.label?.toUpperCase() || "ADMIN"}
             </p>
           </div>
-          <div className="d-flex align-items-center gap-2">
-            {topBar}
-          </div>
+          <div className="d-flex align-items-center gap-2">{topBar}</div>
         </div>
-        <div className="p-4">{children}</div>
+        <div className={contentClassName || undefined}>{children}</div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaPlus, FaImage, FaSave, FaCheck, FaTimes, FaTrash } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 
 const API = "http://localhost:5000/api";
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -41,7 +42,7 @@ const AddCategoryModal = ({ onClose, onAdded }) => {
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       style={{ background: "rgba(0,0,0,0.45)", zIndex: 9999 }}>
-      <div className="bg-white rounded-3 shadow p-4" style={{ maxWidth: 420, width: "90%" }}>
+      <div className="ss-card shadow p-4" style={{ maxWidth: 420, width: "90%" }}>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h5 className="fw-bold mb-0">Add New Category</h5>
           <button className="btn btn-link p-0 text-muted" onClick={onClose}><FaTimes /></button>
@@ -58,8 +59,8 @@ const AddCategoryModal = ({ onClose, onAdded }) => {
             className="form-control rounded-0" style={{ borderColor: "#e5e7eb", resize: "none" }} />
         </div>
         <div className="d-flex gap-2 justify-content-end">
-          <button className="btn btn-outline-dark rounded-0" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-dark rounded-0 fw-semibold" onClick={handleAdd} disabled={saving || !name.trim()}>
+          <button className="btn ss-btn-outline rounded-0" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn landing-btn-primary fw-semibold" onClick={handleAdd} disabled={saving || !name.trim()}>
             {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <FaCheck className="me-1" />}
             Add Category
           </button>
@@ -177,7 +178,7 @@ const AddProduct = () => {
     <AdminLayout activeTab="products"
       topBar={
         <button onClick={() => setShowCatModal(true)}
-          className="btn btn-sm btn-outline-dark d-flex align-items-center gap-1">
+          className="btn btn-sm ss-btn-outline d-flex align-items-center gap-1">
           <FaPlus style={{ fontSize: "0.7rem" }} /> New Category
         </button>
       }>
@@ -194,18 +195,14 @@ const AddProduct = () => {
         />
       )}
 
-      {/* Page title */}
-      <div className="mb-4">
-        <p className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>PRODUCTS</p>
-        <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.4rem,3vw,1.9rem)", letterSpacing: "-0.02em" }}>Add New Product</h2>
-      </div>
+      <PageHeader subtitle="PRODUCTS" title="Add New Product" backPath="/admin-dashboard" backState={{ tab: "products" }} backLabel="Back to Products" />
         <form onSubmit={handleSubmit}>
           <div className="row g-4">
 
             {/* Left — main fields */}
             <div className="col-lg-8">
               {/* Basic info */}
-              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card mb-3">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>BASIC INFORMATION</p>
                 </div>
@@ -226,7 +223,7 @@ const AddProduct = () => {
                             {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                           </select>
                           <button type="button" onClick={() => setShowCatModal(true)}
-                            className="btn btn-outline-dark d-flex align-items-center px-3"
+                            className="btn ss-btn-outline d-flex align-items-center px-3"
                             style={{ borderRadius: 0, borderColor: "#e5e7eb", borderLeft: "none" }}>
                             <FaPlus style={{ fontSize: "0.7rem" }} />
                           </button>
@@ -285,7 +282,7 @@ const AddProduct = () => {
             {/* Right — image + summary */}
             <div className="col-lg-4">
               {/* Image */}
-              <div className="bg-white mb-3" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card mb-3">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
                     <FaImage className="me-1" />PRODUCT IMAGE
@@ -331,7 +328,7 @@ const AddProduct = () => {
               </div>
 
               {/* Summary */}
-              <div className="bg-white" style={{ border: "1px solid #e5e7eb" }}>
+              <div className="ss-card">
                 <div className="px-4 py-3 border-bottom" style={{ borderColor: "#e5e7eb" }}>
                   <p className="text-uppercase fw-bold text-muted mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>SUMMARY</p>
                 </div>
@@ -360,11 +357,11 @@ const AddProduct = () => {
           {/* Actions */}
           <div className="d-flex justify-content-between align-items-center mt-4 pt-4" style={{ borderTop: "1px solid #e5e7eb" }}>
             <button type="button" onClick={() => navigate("/admin-dashboard")}
-              className="btn btn-outline-dark rounded-0 px-4" disabled={saving}>
+              className="btn ss-btn-outline px-4" disabled={saving}>
               Cancel
             </button>
             <button type="submit" disabled={saving || !formData.category}
-              className="btn btn-dark rounded-0 fw-bold px-5 d-flex align-items-center gap-2">
+              className="btn landing-btn-primary fw-bold px-5 d-flex align-items-center gap-2">
               {saving
                 ? <><span className="spinner-border spinner-border-sm" /> Adding…</>
                 : <><FaSave style={{ fontSize: "0.85rem" }} /> Add Product</>}
