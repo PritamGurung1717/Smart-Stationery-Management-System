@@ -4,7 +4,8 @@ import axios from "axios";
 import {
   FaHeart, FaShoppingBag, FaShoppingCart,
   FaChevronRight, FaPaperPlane,
-  FaShieldAlt, FaUndo, FaLock, FaHeadset, FaGift
+  FaShieldAlt, FaUndo, FaLock, FaHeadset, FaGift,
+  FaImage, FaTimes
 } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
@@ -209,20 +210,58 @@ const RequestSection = () => {
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [details, setDetails] = useState("");
+  const [images, setImages] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  const handleImages = (e) => {
+    setError("");
+    const files = Array.from(e.target.files);
+    if (files.length + images.length > 5) { setError("Maximum 5 images allowed"); return; }
+    const valid = []; const pv = [];
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) { setError(`${f.name} is not an image`); continue; }
+      if (f.size > 5 * 1024 * 1024) { setError(`${f.name} exceeds 5MB`); continue; }
+      valid.push(f);
+      const reader = new FileReader();
+      reader.onloadend = () => { pv.push(reader.result); if (pv.length === valid.length) setPreviews(p => [...p, ...pv]); };
+      reader.readAsDataURL(f);
+    }
+    setImages(p => [...p, ...valid]);
+  };
+
+  const removeImage = (i) => { setImages(p => p.filter((_, x) => x !== i)); setPreviews(p => p.filter((_, x) => x !== i)); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!itemName.trim()) return;
     try {
       setSubmitting(true);
-      await axios.post(`${API}/requests`, { item_name: itemName, category, quantity_requested: quantity, description: details }, { headers: getAuthHeaders() });
+      setError("");
+      
+      const fd = new FormData();
+      fd.append("item_name", itemName.trim());
+      fd.append("category", category);
+      fd.append("quantity_requested", quantity);
+      fd.append("description", details.trim());
+      images.forEach(img => fd.append("images", img));
+
+      await axios.post(`${API}/requests`, fd, { 
+        headers: { 
+          ...getAuthHeaders(), 
+          "Content-Type": "multipart/form-data" 
+        } 
+      });
+
       setDone(true);
       setItemName(""); setCategory(""); setQuantity(1); setDetails("");
+      setImages([]); setPreviews([]);
       setTimeout(() => setDone(false), 3000);
-    } catch (err) { toast.error(err.response?.data?.message || "Failed to submit request"); }
-    finally { setSubmitting(false); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || "Failed to submit request"); 
+    } finally { setSubmitting(false); }
   };
 
   return (
@@ -258,10 +297,35 @@ const RequestSection = () => {
                   required className="form-control" />
               </div>
             </div>
-            <div className="mb-4">
+            <div className="mb-3">
               <label className="form-label fw-medium small">Details (Optional)</label>
               <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, specifications..." rows={3}
                 className="form-control" style={{ resize: "vertical" }} />
+            </div>
+            <div className="mb-4">
+              <label className="form-label fw-medium small">Images (Optional - 1 or more)</label>
+              <div onClick={() => document.getElementById("reqImgInput").click()}
+                className="text-center p-3 rounded-3"
+                style={{ border: "2px dashed #E5E7EB", cursor: "pointer", background: "#F9FAFB" }}>
+                <FaImage style={{ fontSize: "1.8rem", color: "#9CA3AF" }} className="mb-1 d-block mx-auto" />
+                <p className="small mb-0 text-muted">Click to upload product image(s)</p>
+                <input id="reqImgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+              </div>
+              {error && <div className="text-danger small mt-1">{error}</div>}
+              {previews.length > 0 && (
+                <div className="row g-2 mt-2">
+                  {previews.map((pv, i) => (
+                    <div key={i} className="col-3 position-relative">
+                      <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 80, objectFit: "cover", border: "1px solid #E5E7EB" }} />
+                      <button type="button" onClick={() => removeImage(i)}
+                        className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
+                        style={{ top: 4, right: 4, width: 18, height: 18, fontSize: "0.6rem" }}>
+                        <FaTimes />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button type="submit" disabled={submitting}
               className={`landing-btn-primary w-100 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}

@@ -62,9 +62,9 @@ class DonationService {
     const query = {};
 
     // Status filter
-    if (filters.status) {
+    if (filters.status && filters.status !== "all") {
       query.status = filters.status;
-    } else {
+    } else if (!filters.status) {
       // By default, show available and reserved donations
       query.status = { $in: ["available", "reserved"] };
     }
@@ -86,7 +86,10 @@ class DonationService {
 
     // Search filter
     if (filters.search) {
-      query.$text = { $search: filters.search };
+      query.$or = [
+        { title: { $regex: filters.search, $options: "i" } },
+        { description: { $regex: filters.search, $options: "i" } }
+      ];
     }
 
     const skip = (page - 1) * limit;

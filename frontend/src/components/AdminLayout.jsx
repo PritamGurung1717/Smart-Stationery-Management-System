@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   FaTachometerAlt, FaUsers, FaBox, FaShoppingCart, FaUserCheck,
-  FaBook, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments
+  FaBook, FaGift, FaBoxOpen, FaBell, FaSignOutAlt, FaComments, FaChartLine
 } from "react-icons/fa";
 import "../styles/landing.css";
 
@@ -128,25 +128,11 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser, conte
     <div className="d-flex admin-layout" style={{ minHeight: "100vh", background: "#F3F4F6" }}>
       <div className="d-flex flex-column bg-white border-end"
         style={{ width: 240, minHeight: "100vh", position: "sticky", top: 0, height: "100vh", overflowY: "auto", flexShrink: 0 }}>
-        <div className="px-4 py-4 border-bottom">
-          <div className="landing-brand mb-1" style={{ fontSize: "1.25rem" }}>
+        <div className="px-3 py-4 border-bottom text-center">
+          <div className="landing-brand mb-1" style={{ fontSize: "1.55rem", display: "block" }}>
             <span className="brand-smart">smart</span><span className="brand-stationery">stationery.</span>
           </div>
-          <span className="ss-section-label" style={{ fontSize: "0.6rem" }}>ADMIN PANEL</span>
-        </div>
-        <div className="px-4 py-3 border-bottom">
-          <div className="d-flex align-items-center gap-2">
-            <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-              style={{ width: 36, height: 36, background: "#1D4ED8", color: "#fff" }}>
-              <span className="fw-bold" style={{ fontSize: "0.85rem" }}>
-                {admin?.name?.charAt(0)?.toUpperCase() || "A"}
-              </span>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="fw-semibold small text-truncate" style={{ color: "#111" }}>{admin?.name}</div>
-              <div style={{ fontSize: "0.7rem", color: "#4B5563" }}>Administrator</div>
-            </div>
-          </div>
+          <span className="ss-section-label" style={{ fontSize: "0.65rem", display: "block", textAlign: "center", marginTop: "4px" }}>ADMIN PANEL</span>
         </div>
         <nav className="flex-grow-1 py-3 px-2">
           {NAV_ITEMS.map(item => {
@@ -187,12 +173,45 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser, conte
 
       <div className="flex-grow-1" style={{ minWidth: 0 }}>
         <div className="bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center sticky-top" style={{ zIndex: 100 }}>
-          <div>
-            <p className="ss-section-label mb-0">
-              {NAV_ITEMS.find(n => n.id === activeTab)?.label?.toUpperCase() || "ADMIN"}
-            </p>
+          {/* Active tab heading on the left */}
+          <div className="d-flex align-items-center gap-2">
+            {(() => {
+              const current = NAV_ITEMS.find(i => i.id === activeTab);
+              return current ? (
+                <>
+                  <span style={{ fontSize: "1.15rem", color: "#1D4ED8" }}>{current.icon}</span>
+                  <h1 className="mb-0" style={{ fontSize: "1.6rem", fontFamily: '"Instrument Serif", Georgia, serif', fontWeight: 400, color: "#111827", letterSpacing: "-0.02em" }}>{current.label}</h1>
+                </>
+              ) : (
+                <>
+                  {activeTab === "revenue" ? (
+                    <>
+                      <span style={{ fontSize: "1.15rem", color: "#1D4ED8" }}><FaChartLine /></span>
+                      <h1 className="mb-0" style={{ fontSize: "1.6rem", fontFamily: '"Instrument Serif", Georgia, serif', fontWeight: 400, color: "#111827", letterSpacing: "-0.02em" }}>Revenue Report</h1>
+                    </>
+                  ) : (
+                    <h1 className="mb-0" style={{ fontSize: "1.6rem", fontFamily: '"Instrument Serif", Georgia, serif', fontWeight: 400, color: "#111827", letterSpacing: "-0.02em" }}>Dashboard</h1>
+                  )}
+                </>
+              );
+            })()}
           </div>
-          <div className="d-flex align-items-center gap-2">{topBar}</div>
+
+          <div className="d-flex align-items-center gap-3">
+            {topBar}
+            <div className="d-flex align-items-center gap-2 border-start ps-3" style={{ borderColor: "#E5E7EB" }}>
+              <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: 32, height: 32, background: "#1D4ED8", color: "#fff" }}>
+                <span className="fw-bold" style={{ fontSize: "0.8rem" }}>
+                  {admin?.name?.charAt(0)?.toUpperCase() || "S"}
+                </span>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="fw-semibold small text-truncate" style={{ color: "#111", lineHeight: 1.2 }}>{admin?.name}</div>
+                <div style={{ fontSize: "0.65rem", color: "#4B5563" }}>Super Admin</div>
+              </div>
+            </div>
+          </div>
         </div>
         <div className={contentClassName || undefined}>{children}</div>
       </div>

@@ -8,6 +8,11 @@ const uploadsDir = path.join(__dirname, "../uploads/donations");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+const requestsDir = path.join(__dirname, "../uploads/requests");
+if (!fs.existsSync(requestsDir)) {
+  fs.mkdirSync(requestsDir, { recursive: true });
+}
+
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -164,6 +169,69 @@ const handleChatAttachmentUpload = (req, res, next) => {
   });
 };
 
+
+// Configure multer for request images
+const requestStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, requestsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    const nameWithoutExt = path.basename(file.originalname, ext);
+    const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9]/g, "_");
+    cb(null, `request-${uniqueSuffix}-${sanitizedName}${ext}`);
+  },
+});
+
+const requestUpload = multer({
+  storage: requestStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: fileFilter,
+});
+
+const uploadRequestImages = requestUpload.array("images", 5);
+
+const handleRequestImageUpload = (req, res, next) => {
+  uploadRequestImages(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          success: false,
+          message: "File size too large. Maximum size is 5MB per image.",
+        });
+      }
+      if (err.code === "LIMIT_FILE_COUNT") {
+        return res.status(400).json({
+          success: false,
+          message: "Too many files. Maximum 5 images allowed.",
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: `Upload error: ${err.message}`,
+      });
+    } else if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+    }
+
+    if (req.files && req.files.length > 0) {
+      req.body.images = req.files.map((file) => {
+        return `/uploads/requests/${file.filename}`;
+      });
+    } else {
+      req.body.images = [];
+    }
+
+    next();
+  });
+};
+
 // Helper function to delete files
 const deleteFiles = (filePaths) => {
   if (!Array.isArray(filePaths)) {
@@ -172,17 +240,16 @@ const deleteFiles = (filePaths) => {
 
   filePaths.forEach((filePath) => {
     if (filePath) {
-      // Extract filename from URL
-      const filename = path.basename(filePath);
-      const fullPath = path.join(uploadsDir, filename);
+      // Resolve path relative to backend root
+      const fullPath = path.join(__dirname, "..", filePath);
 
       // Check if file exists and delete
       if (fs.existsSync(fullPath)) {
         try {
           fs.unlinkSync(fullPath);
-          console.log(`Deleted file: ${filename}`);
+          console.log(`Deleted file: ${filePath}`);
         } catch (err) {
-          console.error(`Error deleting file ${filename}:`, err);
+          console.error(`Error deleting file ${filePath}:`, err);
         }
       }
     }
@@ -192,5 +259,7 @@ const deleteFiles = (filePaths) => {
 module.exports = {
   handleDonationImageUpload,
   handleChatAttachmentUpload,
+  handleRequestImageUpload,
   deleteFiles,
 };
+

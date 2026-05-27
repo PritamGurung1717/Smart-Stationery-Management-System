@@ -111,18 +111,20 @@ const MyDonations = () => {
     <SharedLayout activeLink="Donate">
       <section style={{ background: "#F3F4F6", minHeight: "60vh" }}>
         <div className="ss-page-inner">
-          <button type="button" onClick={() => navigate("/donations")} className="ss-back-link">
+          <button type="button" onClick={() => navigate("/donations")} className="ss-back-link" style={{ marginBottom: "0.25rem" }}>
             <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back to Donations
           </button>
 
           <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
             <div>
-              <p className="ss-section-label">DONATE</p>
               <h1 className="ss-page-title mb-0">My Donations</h1>
             </div>
-            <button type="button" onClick={() => navigate("/donations/create")} className="landing-btn-primary border-0">
-              + Create Donation
-            </button>
+            <div className="d-flex flex-column align-items-end gap-1">
+              <span className="small fw-semibold" style={{ color: "#4B5563" }}>Total Donations: {donations.length}</span>
+              <button type="button" onClick={() => navigate("/donations/create")} className="landing-btn-primary border-0">
+                + Create Donation
+              </button>
+            </div>
           </div>
 
           {error && <div className="alert alert-danger small py-2">{error}</div>}

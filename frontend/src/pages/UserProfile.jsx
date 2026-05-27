@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft, FaEnvelope, FaKey, FaLock } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
@@ -11,9 +11,10 @@ const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
 
 const UserProfile = ({ setUser }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setLocalUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "", address: "" });
 
   const [pwStep, setPwStep] = useState("request");
@@ -75,6 +76,11 @@ const UserProfile = ({ setUser }) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) { toast.error("Passwords don't match!"); return; }
     if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    const strongPasswordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+      toast.error("Password must contain at least one uppercase letter, one number, and one special character (@$!%*?&)");
+      return;
+    }
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -97,6 +103,15 @@ const UserProfile = ({ setUser }) => {
     setNewPassword("");
     setConfirmPassword("");
   };
+
+  useEffect(() => {
+    if (location.pathname === "/change-password") {
+      setActiveTab("password");
+      resetPasswordTab();
+    } else if (location.pathname === "/profile") {
+      setActiveTab("profile");
+    }
+  }, [location.pathname]);
 
   if (!user) return (
     <SharedLayout>

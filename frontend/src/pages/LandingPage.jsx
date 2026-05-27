@@ -587,14 +587,8 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
 /* ─── Brand ─────────────────────────────────────────────────── */
 const BrandLogo = ({ className = "", light = false, serif = false }) => (
   <span className={`landing-brand ${serif ? "landing-brand-serif" : ""} ${className}`}>
-    {serif ? (
-      <span style={light ? { color: "#fff" } : { color: "#111" }}>smartstationery.</span>
-    ) : (
-      <>
-        <span className="brand-smart" style={light ? { color: "#fff" } : undefined}>smart</span>
-        <span className="brand-stationery" style={light ? { color: "#93C5FD" } : undefined}>stationery.</span>
-      </>
-    )}
+    <span className="brand-smart" style={light ? { color: "#fff" } : undefined}>smart</span>
+    <span className="brand-stationery" style={light ? { color: "#93C5FD" } : undefined}>stationery.</span>
   </span>
 );
 

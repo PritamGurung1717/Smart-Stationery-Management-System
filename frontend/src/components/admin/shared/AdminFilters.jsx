@@ -51,17 +51,15 @@ export const AdminFilterRow = ({ filters, actions }) => (
 );
 
 const AdminPageToolbar = ({ label, title, total, filters, actions }) => (
-  <div className="admin-page-toolbar mb-4">
-    <div className="admin-page-toolbar__title">
-      <p className="ss-section-label mb-1">{label}</p>
-      <h2 className="ss-page-title mb-0 d-flex align-items-center flex-wrap gap-2">{title}</h2>
-    </div>
-    <div className="admin-page-toolbar__panel">
-      {filters && <div className="admin-page-toolbar__filters">{filters}</div>}
-      {(actions || total != null) && (
-        <div className="admin-page-toolbar__footer">
-          <div className="admin-page-toolbar__actions">{actions}</div>
-          {total != null && <TotalCount value={total} />}
+  <div className="admin-page-toolbar mb-4 w-100">
+    <div className="d-flex justify-content-between align-items-center w-100 flex-wrap gap-3">
+      <div className="d-flex align-items-center flex-wrap gap-2">
+        {filters && <div className="admin-page-toolbar__filters" style={{ justifyContent: "flex-start" }}>{filters}</div>}
+        {actions && <div className="admin-page-toolbar__actions" style={{ marginLeft: "0.25rem" }}>{actions}</div>}
+      </div>
+      {total != null && (
+        <div style={{ marginLeft: "auto" }}>
+          <TotalCount value={total} />
         </div>
       )}
     </div>

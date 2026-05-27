@@ -6,11 +6,11 @@ const NotificationService = require('../services/notificationService');
 exports.createRequest = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { item_name, category, description, quantity_requested } = req.body;
+    const { item_name, category, description, quantity_requested, images } = req.body;
 
     // Validation
-    if (!item_name || item_name.trim().length < 3) {
-      return res.status(400).json({ success: false, message: 'Item name is required (min 3 characters)' });
+    if (!item_name || !item_name.trim()) {
+      return res.status(400).json({ success: false, message: 'Item name is required' });
     }
     if (!category) {
       return res.status(400).json({ success: false, message: 'Category is required' });
@@ -21,7 +21,7 @@ exports.createRequest = async (req, res) => {
     }
 
     const request = await requestService.createRequest(userId, {
-      item_name, category, description, quantity_requested: qty
+      item_name, category, description, quantity_requested: qty, images
     });
 
     // Notify all admins

@@ -311,6 +311,36 @@ router.get('/my-orders', auth, async (req, res) => {
     
     const { limit = 5, page = 1, status = '' } = req.query;
     
+    // Calculate status counts for all user orders (unfiltered by query parameters)
+    const allUserOrders = await Order.find({ user: req.user.id }).select('orderStatus');
+    const statusCounts = {
+      total: allUserOrders.length,
+      pending: 0,
+      confirmed: 0,
+      preparing: 0,
+      shipped: 0,
+      out_for_delivery: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+    allUserOrders.forEach(o => {
+      if (statusCounts[o.orderStatus] !== undefined) {
+        statusCounts[o.orderStatus]++;
+      }
+    });
+
+    if (statusCounts.total === 0) {
+      return res.json({
+        success: true,
+        orders: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+        statusCounts,
+        message: "No orders found for your account."
+      });
+    }
+
     // Build query for this user's orders only
     const query = { user: req.user.id };
     
@@ -330,18 +360,6 @@ router.get('/my-orders', auth, async (req, res) => {
       .select('id products subtotal discount totalAmount shippingAddress paymentMethod paymentStatus orderStatus orderType orderDate trackingNumber');
     
     console.log(`Found ${orders.length} orders for user ${req.user.id}`);
-    
-    // If no orders found
-    if (!orders || orders.length === 0) {
-      return res.json({
-        success: true,
-        orders: [],
-        total: 0,
-        page: 1,
-        totalPages: 0,
-        message: "No orders found for your account."
-      });
-    }
     
     // Get total count for pagination
     const total = await Order.countDocuments(query);
@@ -381,6 +399,7 @@ router.get('/my-orders', auth, async (req, res) => {
       total,
       page: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit)),
+      statusCounts,
       message: `Found ${formattedOrders.length} orders`
     });
     

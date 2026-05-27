@@ -38,9 +38,22 @@ const UserOrders = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [statusCounts, setStatusCounts] = useState({
+    total: 0,
+    pending: 0,
+    confirmed: 0,
+    preparing: 0,
+    shipped: 0,
+    out_for_delivery: 0,
+    delivered: 0,
+    cancelled: 0
+  });
   const LIMIT = 10;
 
-  useEffect(() => { fetchOrders(); }, [page, statusFilter]);
+  useEffect(() => {
+    fetchOrders();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page, statusFilter]);
 
   const fetchOrders = async () => {
     try {
@@ -53,6 +66,9 @@ const UserOrders = () => {
       setOrders(res.data.orders || []);
       setTotal(res.data.total || 0);
       setTotalPages(res.data.totalPages || 1);
+      if (res.data.statusCounts) {
+        setStatusCounts(res.data.statusCounts);
+      }
     } catch (err) {
       if (err.response?.status === 401) navigate("/");
     } finally { setLoading(false); }
@@ -98,10 +114,14 @@ const UserOrders = () => {
   );
 
   const stats = [
-    { label: "Total",     value: total,                                                                              color: "#111111" },
-    { label: "Pending",   value: orders.filter(o => o.orderStatus === "pending").length,                            color: "#f59e0b" },
-    { label: "Shipped",   value: orders.filter(o => ["shipped","out_for_delivery"].includes(o.orderStatus)).length, color: "#1D4ED8" },
-    { label: "Delivered", value: orders.filter(o => o.orderStatus === "delivered").length,                          color: "#16A34A" },
+    { label: "Total",            value: statusCounts.total,            color: "#111111" },
+    { label: "Pending",          value: statusCounts.pending,          color: "#f59e0b" },
+    { label: "Confirmed",        value: statusCounts.confirmed,        color: "#1d4ed8" },
+    { label: "Preparing",        value: statusCounts.preparing,        color: "#8b5cf6" },
+    { label: "Shipped",          value: statusCounts.shipped,          color: "#10b981" },
+    { label: "Out for Delivery", value: statusCounts.out_for_delivery, color: "#10b981" },
+    { label: "Delivered",        value: statusCounts.delivered,        color: "#16a34a" },
+    { label: "Cancelled",        value: statusCounts.cancelled,        color: "#ef4444" },
   ];
 
   return (
@@ -114,21 +134,19 @@ const UserOrders = () => {
 
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
             <div>
-              <p className="ss-section-label">ACCOUNT</p>
               <h1 className="ss-page-title mb-1">My Orders</h1>
-              <p className="small mb-0" style={{ color: "#4B5563" }}>{total} order{total !== 1 ? "s" : ""} total</p>
             </div>
             <button type="button" onClick={() => navigate("/products")} className="landing-btn-primary border-0">
               Browse Products
             </button>
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="d-flex gap-2 mb-4" style={{ overflowX: "auto", paddingBottom: 2 }}>
             {stats.map(s => (
-              <div key={s.label} className="col-6 col-md-3">
-                <div className="ss-stat-tile">
-                  <div className="fw-bold" style={{ fontSize: "1.75rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
-                  <div className="small mt-1" style={{ color: "#4B5563" }}>{s.label}</div>
+              <div key={s.label} style={{ flex: "1 0 0", minWidth: 100 }}>
+                <div className="ss-stat-tile" style={{ padding: "0.75rem 0.5rem" }}>
+                  <div className="fw-bold" style={{ fontSize: "1.35rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: "0.72rem", marginTop: 4, color: "#4B5563", whiteSpace: "nowrap" }}>{s.label}</div>
                 </div>
               </div>
             ))}
@@ -241,17 +259,17 @@ const UserOrders = () => {
 
           {totalPages > 1 && (
             <div className="d-flex justify-content-center align-items-center gap-2 mt-4">
-              <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              <button type="button" onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={page === 1}
                 className="ss-btn-outline btn-sm">
                 <FaChevronLeft style={{ fontSize: "0.75rem" }} />
               </button>
               {[...Array(totalPages)].map((_, i) => (
-                <button key={i} type="button" onClick={() => setPage(i + 1)}
+                <button key={i} type="button" onClick={() => { setPage(i + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   className={`btn btn-sm ${page === i + 1 ? "ss-pagination-active" : "ss-btn-outline"}`}>
                   {i + 1}
                 </button>
               ))}
-              <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              <button type="button" onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={page === totalPages}
                 className="ss-btn-outline btn-sm">
                 <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>

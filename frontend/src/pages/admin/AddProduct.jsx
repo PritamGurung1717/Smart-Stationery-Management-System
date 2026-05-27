@@ -195,7 +195,7 @@ const AddProduct = () => {
         />
       )}
 
-      <PageHeader subtitle="PRODUCTS" title="Add New Product" backPath="/admin-dashboard" backState={{ tab: "products" }} backLabel="Back to Products" />
+      <PageHeader title="Add New Product" backPath="/admin-dashboard" backState={{ tab: "products" }} backLabel="Back to Products" />
         <form onSubmit={handleSubmit}>
           <div className="row g-4">
 

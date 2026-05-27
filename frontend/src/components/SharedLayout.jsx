@@ -200,7 +200,8 @@ export const Navbar = ({ activeLink = "" }) => {
               className="landing-brand landing-brand-serif"
               style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
-              smartstationery.
+              <span className="brand-smart">smart</span>
+              <span className="brand-stationery">stationery.</span>
             </button>
           </div>
 

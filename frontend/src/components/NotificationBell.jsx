@@ -153,13 +153,7 @@ const NotificationBell = () => {
       >
         <FaBell />
         {isAuthed && unreadCount > 0 && (
-          <span style={{
-            position: 'absolute', top: -5, right: -5,
-            background: '#1D4ED8', color: '#fff', borderRadius: '50%',
-            fontSize: '0.6rem', width: 16, height: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, lineHeight: 1
-          }}>
+          <span className="landing-badge">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

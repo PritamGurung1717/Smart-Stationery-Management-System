@@ -5,13 +5,14 @@ const Counter = require('./counter');
 const itemRequestSchema = new mongoose.Schema({
   id: { type: Number, unique: true },
   user_id: { type: Number, required: true, index: true },
-  item_name: { type: String, required: true, trim: true, minlength: 3 },
+  item_name: { type: String, required: true, trim: true },
   category: {
     type: String,
     required: true,
     enum: ['book', 'stationery', 'electronics', 'sports', 'other']
   },
   description: { type: String, trim: true, default: '' },
+  images: { type: [String], default: [] },
   quantity_requested: { type: Number, required: true, min: 1 },
   status: {
     type: String,

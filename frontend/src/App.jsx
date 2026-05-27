@@ -16,7 +16,9 @@ import OrderDetails from "./pages/OrderDetails.jsx";
 import InstituteVerification from "./pages/InstituteVerification.jsx";
 import InstituteBookSetRequest from "./pages/InstituteBookSetRequest.jsx";
 import InstituteBookSetRequestExcel from "./pages/InstituteBookSetRequestExcel.jsx";
+import InstituteBookSetRequestDetails from "./pages/InstituteBookSetRequestDetails.jsx";
 import AddProduct from "./pages/admin/AddProduct.jsx";
+import AddAdmin from "./pages/admin/AddAdmin.jsx";
 import EditProduct from "./pages/admin/EditProduct.jsx";
 import AdminOrderDetails from "./pages/admin/AdminOrderDetails.jsx";
 import AdminBookSetRequestDetails from "./pages/admin/AdminBookSetRequestDetails.jsx";
@@ -207,6 +209,12 @@ function App() {
             user ? <UserProfile setUser={setUser} /> : <Navigate to="/" replace />
           }
         />
+        <Route
+          path="/change-password"
+          element={
+            user ? <UserProfile setUser={setUser} /> : <Navigate to="/" replace />
+          }
+        />
 
         <Route
           path="/book-sets"
@@ -261,6 +269,17 @@ function App() {
           element={
             user && user.role === "institute" ? (
               <InstituteBookSetRequestExcel />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/institute/book-set-request/:id"
+          element={
+            user && user.role === "institute" ? (
+              <InstituteBookSetRequestDetails />
             ) : (
               <Navigate to="/" replace />
             )
@@ -369,6 +388,17 @@ function App() {
           element={
             user && user.role === "admin" ? (
               <AddProduct />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        <Route
+          path="/admin/add-admin"
+          element={
+            user && user.role === "admin" ? (
+              <AddAdmin />
             ) : (
               <Navigate to="/" replace />
             )

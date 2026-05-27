@@ -334,23 +334,18 @@ const ProductsPage = () => {
               >
                 <FaFilter style={{ fontSize: "0.75rem", marginRight: 4 }} /> Filters
               </button>
-              {(selectedCategories.length > 0 || minPrice || maxPrice) && (
-                <button type="button" onClick={clearFilters} className="landing-view-all" style={{ fontSize: "0.82rem" }}>
-                  Clear filters
-                </button>
-              )}
             </div>
           </div>
 
           <div className="landing-shop-inner" style={{ gridTemplateColumns: "240px 1fr", gap: "1.5rem" }}>
             <aside className="landing-sidebar d-none d-lg-block" style={{ position: "sticky", top: 80 }}>
-              <div className="d-flex justify-content-between align-items-center" style={{ padding: "0 1rem 0.75rem", borderBottom: "1px solid #E5E7EB" }}>
+              <div className="d-flex justify-content-between align-items-center" style={{ padding: "1rem 1rem 0.75rem", borderBottom: "1px solid #E5E7EB" }}>
                 <h3 style={{ margin: 0, padding: 0, border: "none" }}>Filters</h3>
                 {(selectedCategories.length > 0 || minPrice || maxPrice) && (
                   <button type="button" onClick={clearFilters} className="landing-view-all" style={{ fontSize: "0.78rem" }}>Clear</button>
                 )}
               </div>
-              <p className="small fw-semibold text-uppercase mb-2 mt-3 px-3" style={{ letterSpacing: "0.06em", color: "#4B5563" }}>Categories</p>
+              <p className="fw-bold text-uppercase mb-2 mt-4 px-3" style={{ fontSize: "0.78rem", letterSpacing: "0.08em", color: "#111" }}>Categories</p>
               {availableCategories.map(cat => (
                 <button
                   key={cat}
@@ -361,7 +356,7 @@ const ProductsPage = () => {
                   {formatCategoryName(cat)}
                 </button>
               ))}
-              <p className="small fw-semibold text-uppercase mb-2 mt-3 px-3" style={{ letterSpacing: "0.06em", color: "#4B5563" }}>Price Range</p>
+              <p className="fw-bold text-uppercase mb-2 mt-4 px-3" style={{ fontSize: "0.78rem", letterSpacing: "0.08em", color: "#111" }}>Price Range</p>
               {[["Under ₹500", "", "500"], ["₹500 – ₹1,200", "500", "1200"], ["₹1,200 – ₹3,000", "1200", "3000"], ["Above ₹3,000", "3000", ""]].map(([label, min, max]) => {
                 const active = minPrice === min && maxPrice === max;
                 return (

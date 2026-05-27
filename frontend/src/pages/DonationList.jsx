@@ -83,16 +83,13 @@ const DonationList = () => {
         <div className="ss-page-inner" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
             <div>
-              <button type="button" onClick={() => navigate("/dashboard")} className="ss-back-link" style={{ marginBottom: "0.5rem" }}>
-                <FaChevronLeft style={{ fontSize: "0.7rem" }} /> Back
-              </button>
               <p className="ss-section-label">COMMUNITY</p>
               <h1 className="ss-page-title mb-1">Donation Marketplace</h1>
               <p className="small mb-0" style={{ color: "#4B5563" }}>Browse and claim free items donated by the community.</p>
             </div>
             <div className="d-flex gap-2 align-items-center flex-wrap">
               <button type="button" onClick={() => navigate("/my-donations")} className="landing-btn-outline"
-                style={{ color: "#111", borderColor: "#E5E7EB", padding: "0.45rem 1rem", borderRadius: 8, fontSize: "0.88rem" }}>
+                style={{ color: "#111", borderColor: "#E5E7EB", padding: "0.75rem 1.5rem", borderRadius: 8, fontSize: "0.9rem" }}>
                 My Donations
               </button>
               <button type="button" onClick={() => navigate("/donations/create")} className="landing-btn-primary">

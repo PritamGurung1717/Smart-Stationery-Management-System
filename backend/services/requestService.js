@@ -5,13 +5,14 @@ const User = require('../models/user');
 class RequestService {
   // Create a new item request
   async createRequest(userId, data) {
-    const { item_name, category, description, quantity_requested } = data;
+    const { item_name, category, description, quantity_requested, images } = data;
 
     const request = new ItemRequest({
       user_id: userId,
       item_name: item_name.trim(),
       category,
       description: description?.trim() || '',
+      images: images || [],
       quantity_requested: parseInt(quantity_requested),
       status: 'pending'
     });

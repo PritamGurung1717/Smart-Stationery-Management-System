@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPlus, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft } from "react-icons/fa";
+import { FaPlus, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft, FaImage, FaTrash, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import confirm from "../utils/confirm.js";
@@ -33,6 +33,11 @@ const MyItemRequests = () => {
   const [cancelling, setCancelling] = useState(null);
   const [form, setForm] = useState({ item_name: "", category: "", quantity_requested: 1, description: "" });
   const [formErrors, setFormErrors] = useState({});
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [filePreviews, setFilePreviews] = useState([]);
+  const fileInputRef = useRef(null);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => { fetchRequests(); }, []);
 
@@ -49,10 +54,38 @@ const MyItemRequests = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.item_name.trim() || form.item_name.trim().length < 3) e.item_name = "Item name required (min 3 chars)";
+    if (!form.item_name.trim()) e.item_name = "Item name is required";
     if (!form.category) e.category = "Category required";
     if (!form.quantity_requested || form.quantity_requested < 1) e.quantity_requested = "Quantity must be ≥ 1";
     return e;
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const totalAllowed = 5 - selectedFiles.length;
+    const newFiles = files.slice(0, totalAllowed);
+    if (files.length > totalAllowed) {
+      setError(`Only ${totalAllowed} more image(s) allowed (max 5). Extra files were ignored.`);
+      setTimeout(() => setError(""), 4000);
+    }
+    const validFiles = newFiles.filter(f => {
+      if (f.size > 5 * 1024 * 1024) { setError(`"${f.name}" exceeds 5MB limit`); setTimeout(() => setError(""), 4000); return false; }
+      if (!/\.(jpe?g|png|gif|webp)$/i.test(f.name)) { setError(`"${f.name}" is not a supported image format`); setTimeout(() => setError(""), 4000); return false; }
+      return true;
+    });
+    if (!validFiles.length) return;
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => setFilePreviews(prev => [...prev, { name: file.name, url: ev.target.result }]);
+      reader.readAsDataURL(file);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (idx) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+    setFilePreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (ev) => {
@@ -61,9 +94,18 @@ const MyItemRequests = () => {
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     try {
       setSubmitting(true);
-      await axios.post(`${API}/requests`, form, { headers: authH() });
+      const fd = new FormData();
+      fd.append("item_name", form.item_name);
+      fd.append("category", form.category);
+      fd.append("quantity_requested", form.quantity_requested);
+      if (form.description) fd.append("description", form.description);
+      selectedFiles.forEach(file => fd.append("images", file));
+      await axios.post(`${API}/requests`, fd, {
+        headers: { ...authH(), "Content-Type": "multipart/form-data" }
+      });
       setSuccess("Request submitted!"); setShowForm(false);
-      setForm({ item_name: "", category: "", quantity_requested: 1, description: "" }); setFormErrors({});
+      setForm({ item_name: "", category: "", quantity_requested: 1, description: "" });
+      setFormErrors({}); setSelectedFiles([]); setFilePreviews([]);
       fetchRequests(); setTimeout(() => setSuccess(""), 4000);
     } catch (err) { setError(err.response?.data?.message || "Failed to submit"); }
     finally { setSubmitting(false); }
@@ -107,7 +149,7 @@ const MyItemRequests = () => {
 
           <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
             <div>
-              <p className="ss-section-label">{user?.role === "institute" ? "INSTITUTE" : "ACCOUNT"}</p>
+  
               <h1 className="ss-page-title mb-0">My Item Requests</h1>
             </div>
             <button type="button" onClick={() => setShowForm(true)}
@@ -148,7 +190,7 @@ const MyItemRequests = () => {
                 <table className="table table-hover mb-0 align-middle">
                   <thead>
                     <tr className="ss-table-head">
-                      {["#","Item Name","Category","Qty","Status","Admin Remark","Date","Action"].map(h => (
+                      {["S.N","Item Name","Category","Qty","Images","Status","Admin Remark","Date","Action"].map(h => (
                         <th key={h} className="fw-bold small py-3 border-0">{h}</th>
                       ))}
                     </tr>
@@ -171,6 +213,25 @@ const MyItemRequests = () => {
                             <span className="ss-badge-blue text-capitalize">{req.category}</span>
                           </td>
                           <td className="fw-semibold">{req.quantity_requested}</td>
+                          <td>
+                            {req.images && req.images.length > 0 ? (
+                              <div className="d-flex align-items-center gap-1">
+                                {req.images.slice(0, 2).map((img, i) => (
+                                  <img key={i} src={`http://localhost:5000${img}`} alt=""
+                                    onClick={() => { setLightboxImages(req.images); setLightboxIndex(0); }}
+                                    style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 4, cursor: "pointer", border: "1px solid #e5e7eb" }} />
+                                ))}
+                                {req.images.length > 2 && (
+                                  <span className="badge bg-light text-dark" style={{ fontSize: "0.65rem", cursor: "pointer" }}
+                                    onClick={() => { setLightboxImages(req.images); setLightboxIndex(0); }}>
+                                    +{req.images.length - 2}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted" style={{ fontSize: "0.75rem" }}>—</span>
+                            )}
+                          </td>
                           <td>
                             <span className={`badge ${ss.cls} d-inline-flex align-items-center gap-1`} style={{ fontSize: "0.72rem" }}>
                               {ss.icon} {ss.label}
@@ -237,11 +298,36 @@ const MyItemRequests = () => {
                     </select>
                     {formErrors.category && <div className="invalid-feedback">{formErrors.category}</div>}
                   </div>
-                  <div>
+                  <div className="mb-3">
                     <label className="form-label fw-semibold small">Description <span style={{ color: "#9CA3AF" }}>(optional)</span></label>
                     <textarea name="description" value={form.description} onChange={handleChange}
                       rows={3} placeholder="Edition, brand, specifications…"
                       className="form-control" style={{ ...inp, resize: "none" }} />
+                  </div>
+                  <div>
+                    <label className="form-label fw-semibold small">Images <span style={{ color: "#9CA3AF" }}>(optional, max 5)</span></label>
+                    <div onClick={() => fileInputRef.current?.click()}
+                      style={{ border: "2px dashed #D1D5DB", borderRadius: 8, padding: "12px 16px", cursor: "pointer", textAlign: "center", background: "#FAFAFA" }}>
+                      <FaImage style={{ color: "#9CA3AF", fontSize: "1.2rem" }} />
+                      <div className="small mt-1" style={{ color: "#6B7280" }}>Click to add images (jpg, png, webp, gif — 5MB each)</div>
+                    </div>
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple onChange={handleFileSelect} style={{ display: "none" }} />
+                    {filePreviews.length > 0 && (
+                      <div className="d-flex flex-wrap gap-2 mt-2">
+                        {filePreviews.map((fp, i) => (
+                          <div key={i} style={{ position: "relative", width: 64, height: 64 }}>
+                            <img src={fp.url} alt={fp.name}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, border: "1px solid #e5e7eb" }} />
+                            <button type="button" onClick={() => removeFile(i)}
+                              style={{ position: "absolute", top: -6, right: -6, background: "#EF4444", color: "#fff", border: "none",
+                                borderRadius: "50%", width: 18, height: 18, fontSize: "0.6rem", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                              <FaTimes />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer border-top">
@@ -255,6 +341,40 @@ const MyItemRequests = () => {
               </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImages.length > 0 && (
+        <div onClick={() => setLightboxImages([])} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 4000,
+          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={(e) => { e.stopPropagation(); setLightboxImages([]); }}
+            style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.15)", color: "#fff", border: "none",
+              borderRadius: "50%", width: 36, height: 36, fontSize: "1.1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FaTimes />
+          </button>
+          {lightboxImages.length > 1 && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => (i - 1 + lightboxImages.length) % lightboxImages.length); }}
+                style={{ position: "absolute", left: 16, background: "rgba(255,255,255,0.15)", color: "#fff", border: "none",
+                  borderRadius: "50%", width: 40, height: 40, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <FaChevronLeft />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => (i + 1) % lightboxImages.length); }}
+                style={{ position: "absolute", right: 16, background: "rgba(255,255,255,0.15)", color: "#fff", border: "none",
+                  borderRadius: "50%", width: 40, height: 40, fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <FaChevronRight />
+              </button>
+            </>
+          )}
+          <img src={`http://localhost:5000${lightboxImages[lightboxIndex]}`} alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "85vw", maxHeight: "85vh", borderRadius: 8, objectFit: "contain" }} />
+          {lightboxImages.length > 1 && (
+            <div style={{ position: "absolute", bottom: 20, color: "#fff", fontSize: "0.85rem", background: "rgba(0,0,0,0.5)", padding: "4px 12px", borderRadius: 12 }}>
+              {lightboxIndex + 1} / {lightboxImages.length}
+            </div>
+          )}
         </div>
       )}
     </SharedLayout>

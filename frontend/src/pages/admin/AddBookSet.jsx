@@ -48,7 +48,6 @@ function AddBookSet() {
       <Toast msg={toast.msg} type={toast.type} onClose={clearToast} />
 
       <PageHeader
-        subtitle="BOOK SETS"
         title="Create new book set"
         backPath="/admin-dashboard"
         backState={{ tab: "book-sets" }}
