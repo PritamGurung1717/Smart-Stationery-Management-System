@@ -101,7 +101,7 @@ const PopularPicks = ({ products, selected, onSelect, onCart, onWishlist, isInWi
           </div>
         ) : (
           <div className="landing-product-grid">
-            {products.slice(0, 12).map(p => (
+            {products.slice(0, 15).map(p => (
               <ProductCard
                 key={p.id}
                 product={p}
@@ -155,9 +155,11 @@ const BookSetsSection = ({ navigate }) => {
         <div className="row g-5 align-items-start">
           <div className="col-md-4">
             <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>SCHOOL SETS</p>
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
-            <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
-              Get complete book sets for your child's class with a single click. Select your school and grade to find the perfect set.
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>
+              Your child's syllabus, <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>in a single box.</em>
+            </h2>
+            <p className="lh-base mb-4" style={{ fontSize: "1.05rem", color: "#4B5563" }}>
+              Pick a school. Pick a grade. We've already packed every prescribed book and supply for the year.
             </p>
             <div className="d-flex gap-2 mb-2">
               <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select form-select-sm" style={{ flex: 1 }}>
@@ -267,73 +269,113 @@ const RequestSection = () => {
   return (
     <section className="py-5" style={{ background: "#F3F4F6" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }} className="px-3">
-        <p className="text-uppercase fw-bold small mb-1" style={{ letterSpacing: "0.1em", color: "#4B5563" }}>REQUEST</p>
-        <h2 className="fw-bold mb-2" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>Can't Find Something?</h2>
-        <p className="mb-5 lh-base" style={{ fontSize: "1.05rem", maxWidth: 560, color: "#4B5563" }}>
-          Tell us what you're looking for and we'll source it for you. From rare textbooks to specific sports gear.
-        </p>
-        <div className="rounded-3 bg-white p-4" style={{ maxWidth: 560, border: "1px solid #E5E7EB" }}>
-          <h5 className="fw-bold mb-4">Submit a Request</h5>
-          {done && <div className="alert alert-success small py-2 mb-3">✓ Request submitted! We'll respond within 24 hours.</div>}
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-medium small">Item Name *</label>
-              <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g., RD Sharma Class 12"
-                required className="form-control" />
-            </div>
-            <div className="row g-3 mb-3">
-              <div className="col-6">
-                <label className="form-label fw-medium small">Category *</label>
-                <select value={category} onChange={e => setCategory(e.target.value)} required className="form-select">
-                  <option value="">Select category</option>
-                  {["book","stationery","electronics","sports","other"].map(c => (
-                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                  ))}
-                </select>
+        <div className="row g-5 align-items-center">
+          {/* Left Side: Info */}
+          <div className="col-lg-5">
+            <p className="text-uppercase fw-bold small mb-1" style={{ letterSpacing: "0.1em", color: "#4B5563" }}>REQUEST</p>
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>
+              Can't Find <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>Something?</em>
+            </h2>
+            <p className="mb-4 lh-base" style={{ fontSize: "1.05rem", color: "#4B5563" }}>
+              Tell us what you're looking for and we'll source it for you. From rare textbooks to specific sports gear.
+            </p>
+            
+            <div className="d-flex align-items-center gap-3 p-3 rounded-3" style={{ background: "#EBF2FF", border: "1px solid #BFDBFE", maxWidth: 360 }}>
+              <div className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle" style={{ width: 40, height: 40, background: "#fff", color: "#1D4ED8" }}>
+                <FaShieldAlt />
               </div>
-              <div className="col-6">
-                <label className="form-label fw-medium small">Quantity *</label>
-                <input type="number" min={1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)}
-                  required className="form-control" />
+              <div>
+                <div className="fw-bold small" style={{ color: "#1E3A8A" }}>We'll source it for you</div>
+                <div className="small" style={{ color: "#3B82F6" }}>Our team will find the best match and get back to you.</div>
               </div>
             </div>
-            <div className="mb-3">
-              <label className="form-label fw-medium small">Details (Optional)</label>
-              <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, specifications..." rows={3}
-                className="form-control" style={{ resize: "vertical" }} />
-            </div>
-            <div className="mb-4">
-              <label className="form-label fw-medium small">Images (Optional - 1 or more)</label>
-              <div onClick={() => document.getElementById("reqImgInput").click()}
-                className="text-center p-3 rounded-3"
-                style={{ border: "2px dashed #E5E7EB", cursor: "pointer", background: "#F9FAFB" }}>
-                <FaImage style={{ fontSize: "1.8rem", color: "#9CA3AF" }} className="mb-1 d-block mx-auto" />
-                <p className="small mb-0 text-muted">Click to upload product image(s)</p>
-                <input id="reqImgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+          </div>
+
+          {/* Right Side: Form Card */}
+          <div className="col-lg-7">
+            <div className="rounded-4 bg-white shadow-sm" style={{ border: "1px solid #E5E7EB", overflow: "hidden" }}>
+              <div className="px-4 py-3 border-bottom bg-light">
+                <h5 className="fw-bold mb-0" style={{ fontSize: "1.1rem" }}>Submit a Request</h5>
               </div>
-              {error && <div className="text-danger small mt-1">{error}</div>}
-              {previews.length > 0 && (
-                <div className="row g-2 mt-2">
-                  {previews.map((pv, i) => (
-                    <div key={i} className="col-3 position-relative">
-                      <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 80, objectFit: "cover", border: "1px solid #E5E7EB" }} />
-                      <button type="button" onClick={() => removeImage(i)}
-                        className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
-                        style={{ top: 4, right: 4, width: 18, height: 18, fontSize: "0.6rem" }}>
-                        <FaTimes />
+              
+              <div className="p-4">
+                {done && <div className="alert alert-success small py-2 mb-3">✓ Request submitted! We'll respond within 24 hours.</div>}
+                
+                <form onSubmit={handleSubmit}>
+                  <div className="row g-4">
+                    {/* Form Left: Text Inputs */}
+                    <div className="col-md-7">
+                      <div className="mb-3">
+                        <label className="form-label fw-medium small">Item Name *</label>
+                        <input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="e.g., RD Sharma Class 12"
+                          required className="form-control" />
+                      </div>
+                      
+                      <div className="row g-3 mb-3">
+                        <div className="col-7">
+                          <label className="form-label fw-medium small">Category *</label>
+                          <select value={category} onChange={e => setCategory(e.target.value)} required className="form-select">
+                            <option value="">Select category</option>
+                            {["book","stationery","electronics","sports","other"].map(c => (
+                              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-5">
+                          <label className="form-label fw-medium small">Quantity *</label>
+                          <input type="number" min={1} value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)}
+                            required className="form-control" />
+                        </div>
+                      </div>
+                      
+                      <div className="mb-0">
+                        <label className="form-label fw-medium small">Details (Optional)</label>
+                        <textarea value={details} onChange={e => setDetails(e.target.value)} placeholder="Edition, brand, specifications..." rows={3}
+                          className="form-control" style={{ resize: "none" }} />
+                      </div>
+                    </div>
+
+                    {/* Form Right: Upload & Submit */}
+                    <div className="col-md-5 d-flex flex-column">
+                      <div className="flex-grow-1 mb-3">
+                        <label className="form-label fw-medium small">Images (Optional - 1 or more)</label>
+                        <div onClick={() => document.getElementById("reqImgInput").click()}
+                          className="text-center p-3 rounded-3 d-flex flex-column align-items-center justify-content-center h-100"
+                          style={{ border: "2px dashed #E5E7EB", cursor: "pointer", background: "#F9FAFB", minHeight: 140 }}>
+                          <FaImage style={{ fontSize: "1.8rem", color: "#9CA3AF" }} className="mb-2" />
+                          <p className="small mb-1 text-muted fw-medium">Click to upload product image(s)</p>
+                          <p className="extra-small text-muted mb-0" style={{ fontSize: "0.7rem" }}>PNG, JPG up to 5MB each</p>
+                          <input id="reqImgInput" type="file" accept="image/*" multiple onChange={handleImages} style={{ display: "none" }} />
+                        </div>
+                        {error && <div className="text-danger small mt-1">{error}</div>}
+                        
+                        {previews.length > 0 && (
+                          <div className="row g-2 mt-2">
+                            {previews.map((pv, i) => (
+                              <div key={i} className="col-4 position-relative">
+                                <img src={pv} alt="" className="rounded-2 w-100" style={{ height: 50, objectFit: "cover", border: "1px solid #E5E7EB" }} />
+                                <button type="button" onClick={() => removeImage(i)}
+                                  className="btn btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0"
+                                  style={{ top: -4, right: -4, width: 16, height: 16, fontSize: "0.55rem" }}>
+                                  <FaTimes />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <button type="submit" disabled={submitting}
+                        className={`landing-btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}
+                        style={{ height: 48 }}>
+                        {submitting ? "Submitting…" : "Submit Request"}
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                </form>
+              </div>
             </div>
-            <button type="submit" disabled={submitting}
-              className={`landing-btn-primary w-100 d-flex align-items-center justify-content-center gap-2 ${submitting ? "opacity-75" : ""}`}
-              style={{ justifyContent: "center" }}>
-              <FaPaperPlane /> {submitting ? "Submitting…" : "Submit Request"}
-            </button>
-            <p className="text-center text-muted mt-2 mb-0 small">Usually responds within 24 hours</p>
-          </form>
+          </div>
         </div>
       </div>
     </section>
@@ -359,7 +401,7 @@ const DonationSectionNew = ({ navigate }) => {
           <div className="col-md-6">
             <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>COMMUNITY</p>
             <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.75rem)", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
-              Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400 }}>Learning</em>
+              Share the Gift of <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>Learning</em>
             </h2>
             <p className="text-muted lh-base mb-4" style={{ fontSize: "0.95rem" }}>
               Have books or supplies you no longer need? Donate them to help other students. Or browse available donations to find what you need — for free.

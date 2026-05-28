@@ -872,7 +872,7 @@ const LandingPage = ({ setUser }) => {
                 <p className="text-center py-5" style={{ color: "#4B5563" }}>No products in this category yet.</p>
               ) : (
                 <div className="landing-product-grid">
-                  {products.slice(0, 12).map(p => (
+                  {products.slice(0, 15).map(p => (
                     <ProductCard
                       key={p.id}
                       product={p}
@@ -949,11 +949,16 @@ const LandingPage = ({ setUser }) => {
           <div style={{ maxWidth: 1200, margin: "0 auto" }} className="px-3">
             <p className="text-uppercase fw-bold small text-muted mb-1" style={{ letterSpacing: "0.1em" }}>SCHOOL SETS</p>
             <div className="d-flex justify-content-between align-items-end mb-4">
-              <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em" }}>Complete Book Sets</h2>
-              <button onClick={openRegister} className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1">
+              <h2 className="fw-bold mb-0" style={{ fontSize: "clamp(1.75rem,4vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>
+                Your child's syllabus, <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>in a single box.</em>
+              </h2>
+              <button onClick={openRegister} className="btn btn-link text-muted text-decoration-none fw-medium d-inline-flex align-items-center gap-1 ms-auto">
                 Sign up to order <FaChevronRight style={{ fontSize: "0.75rem" }} />
               </button>
             </div>
+            <p className="lh-base mb-4" style={{ fontSize: "1.05rem", color: "#4B5563" }}>
+              Pick a school. Pick a grade. We've already packed every prescribed book and supply for the year.
+            </p>
             {bookSets.length === 0 ? (
               <p className="text-muted">No book sets available yet.</p>
             ) : (

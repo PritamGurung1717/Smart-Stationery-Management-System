@@ -79,8 +79,8 @@ const DonationList = () => {
 
   return (
     <SharedLayout activeLink="Donate">
-      <section className="landing-shop" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
-        <div className="ss-page-inner" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
+      <section className="landing-shop" style={{ paddingTop: "0.25rem", paddingBottom: "2.5rem" }}>
+        <div className="ss-page-inner" style={{ paddingTop: "1rem", paddingBottom: "2.5rem" }}>
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
             <div>
               <p className="ss-section-label">COMMUNITY</p>

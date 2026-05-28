@@ -458,7 +458,10 @@
 }
 
 .landing-bookset-cell:hover {
-  background: var(--ss-gray-100);
+  background: #eff6ff;
+  color: var(--ss-blue);
+  outline: 1px solid var(--ss-blue);
+  outline-offset: -1px;
 }
 
 .landing-donation-list {
@@ -476,11 +479,14 @@
   gap: 0.75rem;
   padding: 0.65rem 1rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.15s;
 }
 
 .landing-donation-row:hover {
   background: #eff6ff;
+  color: var(--ss-blue);
+  outline: 1px solid var(--ss-blue);
+  outline-offset: -1px;
 }
 
 @media (max-width: 767px) {
@@ -1173,6 +1179,7 @@
 
 .ss-bookset-card:hover {
   border-color: var(--ss-blue);
+  background: #eff6ff;
   box-shadow: var(--ss-shadow-blue);
 }
 
@@ -1216,6 +1223,7 @@
 
 .ss-donation-card:hover {
   border-color: var(--ss-blue);
+  background: #eff6ff;
   box-shadow: var(--ss-shadow-blue);
 }
 

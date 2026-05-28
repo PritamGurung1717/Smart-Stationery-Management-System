@@ -149,7 +149,7 @@ const FeaturedProducts = ({ products, selected, onSelect, onCart, onWishlist, is
           </div>
         ) : (
           <div className="landing-product-grid">
-            {products.slice(0, 12).map(p => (
+            {products.slice(0, 15).map(p => (
               <ProductCard
                 key={p.id}
                 product={p}
@@ -199,9 +199,11 @@ const BookSetsSection = ({ navigate }) => {
         <div className="row g-5 align-items-start">
           <div className="col-md-4">
             <p className="ss-section-label">SCHOOL SETS</p>
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>Complete Book Sets</h2>
-            <p className="lh-base mb-4" style={{ fontSize: "0.95rem", color: "#4B5563" }}>
-              Browse approved book sets by school and grade. Submit a request if your school's set isn't listed yet.
+            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(1.75rem,3.5vw,2.5rem)", letterSpacing: "-0.02em", color: "#111" }}>
+              Your child's syllabus, <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>in a single box.</em>
+            </h2>
+            <p className="lh-base mb-4" style={{ fontSize: "1.05rem", color: "#4B5563" }}>
+              Pick a school. Pick a grade. We've already packed every prescribed book and supply for the year.
             </p>
             <div className="d-flex gap-2 mb-2 flex-wrap">
               <select value={grade} onChange={e => setGrade(e.target.value)} className="form-select form-select-sm" style={{ flex: 1, minWidth: 120, borderColor: "#E5E7EB" }}>

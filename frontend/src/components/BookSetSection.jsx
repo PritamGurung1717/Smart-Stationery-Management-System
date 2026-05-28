@@ -148,23 +148,15 @@ const BookSetSection = () => {
             fontWeight: 600
           }}
         >
-          Complete Book Sets
+          School Sets
         </Badge>
-        <h2 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: 800, 
-          color: '#1a1a2e',
-          marginBottom: '0.75rem' 
-        }}>
-          School Book Sets
-        </h2>
         <p style={{ 
-          fontSize: '1.1rem', 
-          color: '#6b7280',
+          fontSize: '1.2rem', 
+          color: '#4B5563',
           maxWidth: '700px',
           margin: '0 auto'
         }}>
-          Get complete book sets for your child's class with a single click. Select your school and grade to find the perfect set.
+          Your child's syllabus, <em style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#1D4ED8" }}>in a single box.</em>
         </p>
       </div>
 

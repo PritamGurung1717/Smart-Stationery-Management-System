@@ -120,8 +120,8 @@ const AdminLayout = ({ activeTab = "dashboard", topBar, children, setUser, conte
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    if (setUser) setUser(null);
-    navigate("/login");
+    window.dispatchEvent(new Event("app:logout"));
+    navigate("/login", { replace: true });
   };
 
   return (

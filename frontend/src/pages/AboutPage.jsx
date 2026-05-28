@@ -25,7 +25,7 @@ const AboutPage = () => {
             <h2 className="fw-bold mb-4" style={{ fontSize: "1.5rem", color: "#111" }}>What We Offer</h2>
             <div className="row g-3">
               {[
-                { icon: "📚", title: "Complete Book Sets", desc: "Pre-curated book sets for schools across Nepal. Order everything your child needs in one click." },
+                { icon: "📚", title: "Complete Book Sets", desc: "Your child's syllabus, in a single box. Pre-curated book sets for schools across Nepal." },
                 { icon: "✏️", title: "Stationery & Supplies", desc: "Notebooks, pens, art supplies, and everything in between — sourced from trusted suppliers." },
                 { icon: "🏃", title: "Sports Equipment", desc: "Quality sports gear for school activities, PE classes, and extracurricular sports." },
                 { icon: "🎁", title: "Donation Marketplace", desc: "Donate unused books and supplies, or browse free items donated by the community." },

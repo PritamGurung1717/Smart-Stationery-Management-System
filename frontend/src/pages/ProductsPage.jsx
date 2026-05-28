@@ -305,8 +305,8 @@ const ProductsPage = () => {
   return (
     <>
     <SharedLayout activeLink="Collections">
-      <section className="landing-shop" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
-        <div className="ss-page-inner" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
+      <section className="landing-shop" style={{ paddingTop: "0.25rem", paddingBottom: "2.5rem" }}>
+        <div className="ss-page-inner" style={{ paddingTop: "1rem", paddingBottom: "2.5rem" }}>
           <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
             <div>
               <p className="ss-section-label">CATALOGUE</p>

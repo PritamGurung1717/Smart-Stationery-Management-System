@@ -64,8 +64,8 @@ const BookSetBrowser = () => {
 
   return (
     <SharedLayout activeLink="School Sets">
-      <section className="landing-shop" style={{ paddingTop: "1.5rem", paddingBottom: "2.5rem" }}>
-        <div className="ss-page-inner" style={{ paddingTop: 0, paddingBottom: 0 }}>
+      <section className="landing-shop" style={{ paddingTop: "0.5rem", paddingBottom: "2.5rem" }}>
+        <div className="ss-page-inner" style={{ paddingTop: "0.5rem", paddingBottom: 0 }}>
           <p className="ss-section-label">SCHOOL SETS</p>
           <h1 className="ss-page-title">Book Sets</h1>
           <p style={{ color: "#4B5563", marginTop: "0.5rem", marginBottom: "1.75rem", fontSize: "0.95rem" }}>

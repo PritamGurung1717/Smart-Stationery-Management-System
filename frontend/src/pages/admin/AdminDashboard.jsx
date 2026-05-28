@@ -769,11 +769,13 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
     const tab = location.state?.tab;
     if (tab) {
       handleTabChange(tab);
-      navigate(location.pathname, { replace: true, state: {} });
+      // Clear the state so we don't trigger again on re-renders
+      window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state?.tab]); // Only react when the tab in state actually changes
 
   const fetchUserNames = async () => {
+    if (!localStorage.getItem("token")) return;
     try {
       const r = await axios.get(`${API}/users/admin/users?limit=500`);
       const map = {};
@@ -783,6 +785,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
   };
 
   const fetchDashboard = async () => {
+    if (!localStorage.getItem("token")) return;
     try {
       setLoading(true);
       const [prodRes, usersRes, ordersRes, verifRes] = await Promise.all([
@@ -791,6 +794,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
         axios.get(`${API}/orders?limit=100`).catch(() => ({ data: { orders: [] } })),
         axios.get(`${API}/users/admin/verifications/pending`).catch(() => ({ data: { pendingVerifications: [] } })),
       ]);
+      if (!localStorage.getItem("token")) return;
       const prods = prodRes.data.products || [];
       const allUsers = usersRes.data.users || [];
       const allOrders = ordersRes.data.orders || [];
@@ -813,9 +817,11 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
   };
 
   const paginated = async (url, setter, page = 1) => {
+    if (!localStorage.getItem("token")) return;
     try {
       setFetchingData(true);
       const r = await axios.get(`${url}&page=${page}&limit=${itemsPerPage}`);
+      if (!localStorage.getItem("token")) return;
       setter(r.data);
       setTotalPages(r.data.totalPages || 1);
       setTotalItems(r.data.total || 0);
@@ -1166,8 +1172,10 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user"); localStorage.removeItem("token");
-    setUser(null); navigate("/login");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    window.dispatchEvent(new Event("app:logout"));
+    navigate("/login", { replace: true });
   };
 
   const getSortIcon = (field) => {
