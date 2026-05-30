@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import toast from "../utils/toast.js";
+import toast from "../utils/toast";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const inp = { borderColor: "#E5E7EB", borderRadius: 8 };
@@ -50,16 +51,17 @@ const InstituteVerification = ({ setUser }) => {
     try {
       const token = localStorage.getItem("token");
       const gradesArray = formData.grades.split(",").map(g => g.trim()).filter(Boolean);
-      const res = await axios.post(
-        "http://localhost:5000/api/users/institute/verification/submit",
+   const res = await axios.post(
+        `${API_URL}/users/institute/verification/submit`,
         { ...formData, grades: gradesArray },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedUser = { ...user, instituteVerification: res.data.verification, instituteInfo: res.data.instituteInfo };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setLocalUser(updatedUser);
-      toast.success("Verification request submitted! Please wait for admin approval.");
-      navigate("/institute-dashboard");
+      toast.success("Verification request submitted! Please log in to check status.");
+      // Log out user and redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (setUser) setUser(null);
+      navigate("/");
     } catch (err) {
       toast.error("Failed to submit: " + (err.response?.data?.message || err.message));
     } finally { setLoading(false); }
@@ -76,6 +78,9 @@ const InstituteVerification = ({ setUser }) => {
   return (
     <section style={{ background: "#F3F4F6", minHeight: "100vh" }} className="py-5 px-3">
       <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <button type="button" onClick={() => navigate("/institute-dashboard")} className="ss-back-link mb-4">
+          <span style={{ fontSize: "0.7rem" }}>←</span> Back to Dashboard
+        </button>
         <div className="text-center mb-5">
           <div className="landing-brand mb-2" style={{ fontSize: "1.75rem", cursor: "pointer" }}
             onClick={() => navigate("/institute-dashboard")} role="button" tabIndex={0}>
@@ -177,7 +182,7 @@ const InstituteVerification = ({ setUser }) => {
 
             <div className="d-flex justify-content-between align-items-center">
               <button type="button" onClick={() => navigate("/institute-dashboard")} className="ss-btn-outline px-4 py-2">
-                Cancel
+                Back
               </button>
               <button type="submit" disabled={loading} className={`landing-btn-primary border-0 px-4 ${loading ? "opacity-75" : ""}`}>
                 {loading ? "Submitting…" : "Submit for Verification"}

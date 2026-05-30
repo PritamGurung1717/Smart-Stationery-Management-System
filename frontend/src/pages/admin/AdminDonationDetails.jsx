@@ -7,9 +7,12 @@ import {
 } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
 import PageHeader from "../../components/admin/shared/PageHeader.jsx";
+import { API_URL } from "../../utils/api.js";
+import { getAuthHeaders } from "../../utils/auth.js";
+import { imgUrl } from "../../utils/imgUrl.js";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 const CONDITION_MAP = { new: "New", like_new: "Like New", good: "Good", used: "Used", fair: "Fair" };
 const CAT_ICON = { books: "📚", stationery: "✏️", electronics: "💻", furniture: "🪑", other: "📦" };
@@ -158,7 +161,9 @@ function AdminDonationDetails() {
         <div className="col-md-6">
           <div style={{ border: "1px solid #e5e7eb", overflow: "hidden", marginBottom: "0.75rem" }}>
             {imgs.length > 0
-              ? <img src={imgs[imgIdx].startsWith("http") ? imgs[imgIdx] : `http://localhost:5000${imgs[imgIdx]}`} alt={donation.title}
+              ? <img src={imgUrl(imgs[imgIdx])} alt={donation.title}
+                  crossOrigin="anonymous"
+                  loading="lazy"
                   style={{ width: "100%", height: 380, objectFit: "cover" }}
                   onError={e => e.target.src = "https://via.placeholder.com/400x380?text=No+Image"} />
               : <div className="d-flex align-items-center justify-content-center bg-light" style={{ height: 380, fontSize: "5rem" }}>
@@ -168,7 +173,9 @@ function AdminDonationDetails() {
           {imgs.length > 1 && (
             <div className="d-flex gap-2 overflow-auto">
               {imgs.map((img, i) => (
-                <img key={i} src={img.startsWith("http") ? img : `http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
+                <img key={i} src={imgUrl(img)} alt="" onClick={() => setImgIdx(i)}
+                  crossOrigin="anonymous"
+                  loading="lazy"
                   style={{ width: 72, height: 72, objectFit: "cover", cursor: "pointer", flexShrink: 0,
                     border: i === imgIdx ? "2px solid #1D4ED8" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
               ))}

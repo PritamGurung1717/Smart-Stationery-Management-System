@@ -1,6 +1,7 @@
 // Shared ProductCard component used across Dashboard, InstituteDashboard, ProductsPage, LandingPage
 import { useState } from "react";
 import { FaHeart, FaShoppingCart, FaShoppingBag, FaStar } from "react-icons/fa";
+import { imgUrl } from "../utils/imgUrl.js";
 
 const CATEGORY_COLORS = {
   book: "#2563EB",
@@ -39,11 +40,7 @@ const ProductCard = ({
     : null;
   const categoryColor = getCategoryColor(product.category);
 
-  const imgSrc = product.image_url
-    ? product.image_url.startsWith("http")
-      ? product.image_url
-      : `http://localhost:5000${product.image_url}`
-    : null;
+  const imgSrc = imgUrl(product.image_url || product.image);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -83,18 +80,33 @@ const ProductCard = ({
           <img
             src={imgSrc}
             alt={product.name}
+            crossOrigin="anonymous"
             style={{
               width: "100%", height: "100%", objectFit: "cover",
               transition: "transform 0.3s",
               transform: hovered ? "scale(1.05)" : "scale(1)",
             }}
-            onError={e => { e.target.style.display = "none"; }}
+            onError={(e) => {
+              // If image fails to load, replace it with placeholder instead of hiding
+              e.target.style.display = "none";
+              e.target.nextElementSibling.style.display = "flex";
+            }}
+            loading="lazy" // Lazy load images to prevent lag
           />
-        ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />
-          </div>
-        )}
+        ) : null}
+        {/* Placeholder always available for fallback */}
+        <div
+          id="product-placeholder"
+          style={{
+            width: "100%",
+            height: "100%",
+            display: imgSrc ? "none" : "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />
+        </div>
 
         {/* Hover overlay */}
         <div style={{

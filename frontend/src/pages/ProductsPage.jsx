@@ -7,9 +7,10 @@ import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import { getAuthHeaders, isAuthenticated } from "../utils/auth.js";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 
 /* ─── Category Row with horizontal scroll + arrow buttons ── */
 const CategoryRow = ({ category, products, formatCategoryName, addToCart, setSelectedProduct, toggleWishlist, isInWishlist }) => {

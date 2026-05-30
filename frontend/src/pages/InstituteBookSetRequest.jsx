@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaPlus, FaTrash, FaBook, FaCheckCircle, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const emptyBook = () => ({
@@ -46,7 +47,7 @@ const InstituteBookSetRequest = () => {
     try {
       setLoadingRequests(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/institute/book-set-request", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API_URL}/institute/book-set-request`, { headers: { Authorization: `Bearer ${token}` } });
       setMyRequests(res.data.requests || []);
     } catch (e) { console.error(e); }
     finally { setLoadingRequests(false); }
@@ -84,7 +85,7 @@ const InstituteBookSetRequest = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/institute/book-set-request", {
+      await axios.post(`${API_URL}/institute/book-set-request`, {
         school_name: formData.school_name.trim(),
         grade: formData.grade.trim(),
         items: books.map(b => ({

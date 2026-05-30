@@ -4,8 +4,10 @@ import axios from "axios";
 import { FaSave, FaTrash, FaImage, FaExclamationTriangle } from "react-icons/fa";
 import AdminLayout from "../../components/AdminLayout.jsx";
 import PageHeader from "../../components/admin/shared/PageHeader.jsx";
-const API = "http://localhost:5000/api";
+import { API_URL } from "../../utils/api.js";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+import { imgUrl } from "../../utils/imgUrl.js";
 
 /* ─── Toast ─────────────────────────────────────────────────── */
 const Toast = ({ msg, type, onClose }) => {
@@ -106,7 +108,7 @@ const EditProduct = () => {
         // Show existing image as preview
         if (p.image_url || p.image) {
           const url = p.image_url || p.image;
-          setImagePreview(url.startsWith("http") ? url : `http://localhost:5000${url}`);
+          setImagePreview(imgUrl(url));
         }
       } catch (e) {
         setLoadError(e.response?.data?.message || e.message || "Failed to load product");

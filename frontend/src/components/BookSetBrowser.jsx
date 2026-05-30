@@ -4,6 +4,7 @@ import { FaShoppingCart, FaInfoCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "./SharedLayout.jsx";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const GRADES = ["Nursery","LKG","UKG","1","2","3","4","5","6","7","8","9","10","11","12"];
@@ -32,7 +33,7 @@ const BookSetBrowser = () => {
     try {
       setLoading(true); setError("");
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/book-sets", {
+      const res = await axios.get(`${API_URL}/book-sets`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (res.data.success) {
@@ -51,7 +52,7 @@ const BookSetBrowser = () => {
     for (const item of bookSet.items) {
       if (item.product_id) {
         try {
-          await axios.post("http://localhost:5000/api/users/cart/add", { productId: item.product_id, quantity: 1 }, { headers: { Authorization: `Bearer ${token}` } });
+          await axios.post(`${API_URL}/users/cart/add`, { productId: item.product_id, quantity: 1 }, { headers: { Authorization: `Bearer ${token}` } });
           added++;
         } catch { skipped++; }
       } else { skipped++; }

@@ -4,13 +4,15 @@ import axios from "axios";
 import { FaPaperPlane, FaPaperclip, FaSearch, FaTimes, FaFileAlt, FaFileCsv, FaCircle, FaPlus } from "react-icons/fa";
 import { connectSocket } from "../services/socketService";
 import toast from "../utils/toast.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const SS_BLUE = "#1D4ED8";
 const SS_GRAY_100 = "#F3F4F6";
 const SS_GRAY_200 = "#E5E7EB";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 /* ─── Helpers ───────────────────────────────────────────────── */
@@ -29,7 +31,7 @@ const fmtDate = (d) => {
 
 /* ─── File Preview ──────────────────────────────────────────── */
 const FilePreview = ({ file_url, file_type, file_name }) => {
-  const url = file_url.startsWith("http") ? file_url : `http://localhost:5000${file_url}`;
+  const url = imgUrl(file_url);
   if (file_type === "image") {
     return (
       <a href={url} target="_blank" rel="noreferrer">

@@ -4,9 +4,10 @@ import { FaShoppingCart, FaBook, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const BookSetDetails = () => {

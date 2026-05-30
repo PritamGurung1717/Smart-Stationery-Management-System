@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const CheckoutPage = () => {
@@ -34,7 +35,7 @@ const CheckoutPage = () => {
 
   const fetchCart = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/users/cart");
+      const res = await axios.get(`${API_URL}/users/cart`);
       const cartData = res.data.cart?.items ? res.data.cart : { items: [] };
 
       if (cartData.items?.length) {
@@ -44,7 +45,7 @@ const CheckoutPage = () => {
           }
           try {
             const productId = typeof item.product === "object" ? item.product.id : item.product;
-            const productRes = await axios.get(`http://localhost:5000/api/products/${productId}`);
+            const productRes = await axios.get(`${API_URL}/products/${productId}`);
             return {
               ...item,
               productDetails: productRes.data.product || { name: `Product #${productId}`, id: productId }
@@ -71,7 +72,7 @@ const CheckoutPage = () => {
   const validateStock = async () => {
     for (const item of cart.items) {
       try {
-        const res = await axios.get(`http://localhost:5000/api/products/${item.product}`);
+        const res = await axios.get(`${API_URL}/products/${item.product}`);
         const p = res.data.product;
         if (p.stock < item.quantity) return { valid: false, message: `"${p.name}" has only ${p.stock} in stock.` };
       } catch { return { valid: false, message: "Failed to check stock. Please try again." }; }
@@ -91,13 +92,13 @@ const CheckoutPage = () => {
     try {
       const stock = await validateStock();
       if (!stock.valid) { toast.error(stock.message); return; }
-      const res = await axios.post("http://localhost:5000/api/orders", {
+      const res = await axios.post(`${API_URL}/orders`, {
         products: cart.items.map(i => ({ productId: i.product, quantity: i.quantity })),
         shippingAddress, paymentMethod, orderType, notes: ""
       });
       localStorage.setItem("shippingAddress", JSON.stringify(shippingAddress));
       localStorage.setItem("contactDetails", JSON.stringify(contactDetails));
-      try { await axios.delete("http://localhost:5000/api/users/cart/clear"); } catch {}
+      try { await axios.delete(`${API_URL}/users/cart/clear`); } catch {}
 
       const orderId = res.data.order.id || res.data.order._id;
 

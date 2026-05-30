@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaTrash, FaCheck, FaComments, FaBell, FaUser, FaClock, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { getAuthHeaders } from "../utils/auth.js";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 const STATUS_BADGE = {
   available: "text-success-emphasis bg-success-subtle",
@@ -158,7 +161,7 @@ const MyDonations = () => {
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             {d.images?.[0]
-                              ? <img src={d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`} alt={d.title} className="rounded-2 flex-shrink-0" style={{ width: 44, height: 44, objectFit: "cover" }} />
+                              ? <img src={imgUrl(d.images[0])} alt={d.title} className="rounded-2 flex-shrink-0" style={{ width: 44, height: 44, objectFit: "cover" }} />
                               : <div className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 44, height: 44, background: "#EFF6FF" }}>📦</div>}
                             <span className="fw-semibold small" style={{ color: "#111" }}>{d.title}</span>
                           </div>

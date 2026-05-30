@@ -5,6 +5,7 @@ const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
@@ -23,7 +24,10 @@ const io     = new Server(server, {
 // Make io accessible in controllers via req.app.get("io")
 app.set("io", io);
 
-// Middleware
+// Middleware - Only use Helmet in PRODUCTION for maximum security and compatibility
+if (process.env.NODE_ENV === 'production') {
+  app.use(helmet()); // Full security headers only in production
+}
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
@@ -58,8 +62,17 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve static files from uploads directory
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve static files from uploads directory with CORS headers
+app.use("/uploads", (req, res, next) => {
+  const origin = process.env.FRONTEND_URL || "http://localhost:5173";
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+}, express.static(path.join(__dirname, "uploads")));
 
 // ============================================
 // RATE LIMITING - DISABLED FOR DEVELOPMENT
@@ -91,15 +104,17 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// DISABLED FOR DEVELOPMENT - Uncomment before production:
-// app.use("/api/users/login", authLimiter);
-// app.use("/api/users/register", authLimiter);
-// app.use("/api/users/verify-otp", authLimiter);
-// app.use("/api/users/resend-otp", authLimiter);
-// app.use("/api/", apiLimiter);
-
-console.log("⚠️  Rate limiting is DISABLED for development");
-console.log("⚠️  Remember to enable before production!");
+// Enable rate limiting in production
+if (process.env.NODE_ENV === "production") {
+  app.use("/api/users/login", authLimiter);
+  app.use("/api/users/register", authLimiter);
+  app.use("/api/users/verify-otp", authLimiter);
+  app.use("/api/users/resend-otp", authLimiter);
+  app.use("/api/", apiLimiter);
+  console.log("✅ Rate limiting enabled for production");
+} else {
+  console.log("⚠️  Rate limiting is DISABLED for development");
+}
 
 // MongoDB connection
 mongoose

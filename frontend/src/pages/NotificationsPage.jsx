@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { FaBell, FaCheck, FaTrash, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const getTimeAgo = (date) => {

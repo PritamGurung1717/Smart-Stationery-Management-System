@@ -5,6 +5,7 @@ import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const PlaceOrder = () => {
@@ -22,7 +23,7 @@ const PlaceOrder = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/products");
+      const res = await axios.get(`${API_URL}/products`);
       setProducts(res.data.products || res.data || []);
     } catch (e) { console.error(e); }
   };
@@ -49,7 +50,7 @@ const PlaceOrder = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/orders", {
+      await axios.post(`${API_URL}/orders`, {
         products: cart.map(i => ({ productId: i.productId, quantity: i.quantity })),
         shippingAddress, paymentMethod, notes: ""
       }, { headers: { Authorization: `Bearer ${token}` } });

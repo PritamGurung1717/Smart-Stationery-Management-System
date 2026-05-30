@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { FaGift, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { imgUrl } from "../utils/imgUrl.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000";
+const API = API_URL;
 
 const CardImages = ({ images, title }) => {
   const [idx, setIdx] = useState(0);
@@ -22,13 +24,15 @@ const CardImages = ({ images, title }) => {
     );
   }
 
-  const imgSrc = images[idx].startsWith("http") ? images[idx] : `${API}${images[idx].startsWith("/") ? "" : "/"}${images[idx]}`;
+  const imgSrc = imgUrl(images[idx]);
 
   return (
     <div style={{ height: 180, position: "relative", overflow: "hidden", background: "#F3F4F6" }}>
       <img key={idx} src={imgSrc} alt={title}
+        crossOrigin="anonymous"
+        loading="lazy"
         style={{ width: "100%", height: "100%", objectFit: "cover", transition: "opacity 0.4s" }}
-        onError={e => { e.target.style.display = "none"; }} />
+        onError={(e) => { e.target.style.display = "none"; }} />
       {images.length > 1 && (
         <>
           <div className="position-absolute d-flex gap-1" style={{ bottom: 6, left: "50%", transform: "translateX(-50%)" }}>
@@ -63,11 +67,10 @@ const DonationList = () => {
 
   const fetchDonations = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API}/api/donations`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API}/donations`);
       if (res.data.success) setDonations(res.data.donations || []);
     } catch (err) {
-      if (err.response?.status === 401) navigate("/");
+      console.error("Error fetching donations:", err);
     } finally { setLoading(false); }
   };
 

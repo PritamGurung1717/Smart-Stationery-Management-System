@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaChevronLeft } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
+import { getAuthHeaders } from "../utils/auth.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 const STATUS_BADGE = {
   accepted: "text-success-emphasis bg-success-subtle",

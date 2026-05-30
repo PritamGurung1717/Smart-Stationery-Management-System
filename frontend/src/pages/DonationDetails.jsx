@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaChevronLeft, FaMapMarkerAlt, FaClock, FaUser, FaEnvelope, FaPhone, FaEdit, FaTrash, FaComments, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { getAuthHeaders } from "../utils/auth.js";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
 
 const getTimeAgo = (date) => {
   const s = Math.floor((new Date() - new Date(date)) / 1000);
@@ -39,7 +41,7 @@ const DonationDetails = () => {
   const fetchDonation = async () => {
     try {
       setLoading(true);
-      const r = await axios.get(`${API}/donations/${id}`, { headers: authH() });
+      const r = await axios.get(`${API}/donations/${id}`, { headers: getAuthHeaders() });
       if (r.data.success) setDonation(r.data.donation);
     } catch (err) { setError(err.response?.data?.message || "Failed to load donation details"); }
     finally { setLoading(false); }
@@ -49,10 +51,13 @@ const DonationDetails = () => {
     if (!requestMsg.trim() || requestMsg.trim().length < 10) { toast.warning("Please write at least 10 characters"); return; }
     try {
       setSubmitting(true);
-      await axios.post(`${API}/donations/${id}/request`, { message: requestMsg }, { headers: authH() });
+      await axios.post(`${API}/donations/${id}/request`, { message: requestMsg }, { headers: getAuthHeaders() });
       toast.success("Request sent! The donor will review your request.");
       setShowModal(false); setRequestMsg(""); fetchDonation();
-    } catch (err) { toast.error(err.response?.data?.message || "Failed to send request"); }
+    } catch (err) { 
+      console.error("Request error:", err.response?.data);
+      toast.error(err.response?.data?.message || "Failed to send request"); 
+    }
     finally { setSubmitting(false); }
   };
 
@@ -64,7 +69,7 @@ const DonationDetails = () => {
     });
     if (!confirmed) return;
     try {
-      await axios.delete(`${API}/donations/${id}`, { headers: authH() });
+      await axios.delete(`${API}/donations/${id}`, { headers: getAuthHeaders() });
       toast.success("Deleted successfully"); navigate("/donations");
     } catch (err) { toast.error(err.response?.data?.message || "Failed to delete"); }
   };
@@ -103,7 +108,9 @@ const DonationDetails = () => {
             <div className="col-md-6">
               <div className="ss-card overflow-hidden p-0 mb-3">
                 {imgs.length > 0
-                  ? <img src={imgs[imgIdx].startsWith("http") ? imgs[imgIdx] : `http://localhost:5000${imgs[imgIdx]}`} alt={donation.title}
+                  ? <img src={imgUrl(imgs[imgIdx])} alt={donation.title}
+                      crossOrigin="anonymous"
+                      loading="lazy"
                       style={{ width: "100%", height: 380, objectFit: "cover" }}
                       onError={e => { e.target.src = "https://via.placeholder.com/400x380?text=No+Image"; }} />
                   : <div className="d-flex align-items-center justify-content-center" style={{ height: 380, fontSize: "5rem", background: "#F3F4F6" }}>
@@ -113,7 +120,9 @@ const DonationDetails = () => {
               {imgs.length > 1 && (
                 <div className="d-flex gap-2 overflow-auto">
                   {imgs.map((img, i) => (
-                    <img key={i} src={img.startsWith("http") ? img : `http://localhost:5000${img}`} alt="" onClick={() => setImgIdx(i)}
+                    <img key={i} src={imgUrl(img)} alt="" onClick={() => setImgIdx(i)}
+                      crossOrigin="anonymous"
+                      loading="lazy"
                       className="rounded-2 flex-shrink-0"
                       style={{ width: 72, height: 72, objectFit: "cover", cursor: "pointer", border: i === imgIdx ? "2px solid #1D4ED8" : "2px solid #E5E7EB", opacity: i === imgIdx ? 1 : 0.7 }} />
                   ))}

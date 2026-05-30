@@ -5,9 +5,10 @@ import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 
 const STATUS_CONFIG = {
   pending:          { cls: "text-warning-emphasis bg-warning-subtle",  dot: "#f59e0b", label: "Pending" },

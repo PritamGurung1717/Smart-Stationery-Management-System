@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaTimes, FaShoppingCart, FaChevronLeft, FaChevronRight, FaStar, FaHeart, FaTrash } from "react-icons/fa";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { getAuthHeaders } from "../utils/auth.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 /* ─── Star Rating Input ─────────────────────────────────────── */
 const StarInput = ({ value, onChange }) => (
@@ -228,8 +231,8 @@ const ProductModal = ({ product, onClose, onCart, onWishlist, inWishlist, isGues
   const discount = product.original_price ? Math.round((1 - product.price / product.original_price) * 100) : null;
   const inStock = (product.stock_quantity || product.stock || 0) > 0;
   const images = product.images?.length
-    ? product.images.map(img => img.startsWith("http") ? img : `http://localhost:5000/${img}`)
-    : product.image_url ? [product.image_url.startsWith("http") ? product.image_url : `http://localhost:5000${product.image_url}`] : [];
+    ? product.images.map(img => imgUrl(img))
+    : product.image_url ? [imgUrl(product.image_url)] : [];
 
   const handleCart = () => {
     if (isGuest) { onGuestAction?.(); return; }

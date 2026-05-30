@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
 import "../styles/landing.css";
@@ -30,7 +32,7 @@ const CartPage = () => {
 
   const fetchCart = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/users/cart");
+      const res = await axios.get(`${API_URL}/users/cart`);
       const cartData = res.data.cart || { items: [] };
 
       if (cartData.items?.length) {
@@ -38,7 +40,7 @@ const CartPage = () => {
           if (item.product && typeof item.product === "object" && item.product.name) return item;
           try {
             const pid = typeof item.product === "object" ? item.product.id : item.product;
-            const pr = await axios.get(`http://localhost:5000/api/products/${pid}`);
+            const pr = await axios.get(`${API_URL}/products/${pid}`);
             return { ...item, product: pr.data.product || item.product };
           } catch { return item; }
         }));
@@ -53,14 +55,14 @@ const CartPage = () => {
   const updateQuantity = async (productId, quantity) => {
     if (quantity < 1) { await removeFromCart(productId); return; }
     try {
-      await axios.put("http://localhost:5000/api/users/cart/update", { productId, quantity });
+      await axios.put(`${API_URL}/users/cart/update`, { productId, quantity });
       fetchCart();
     } catch { toast.error("Failed to update quantity"); }
   };
 
   const removeFromCart = async (productId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/users/cart/remove/${productId}`);
+      await axios.delete(`${API_URL}/users/cart/remove/${productId}`);
       fetchCart();
     } catch { toast.error("Failed to remove item"); }
   };
@@ -72,7 +74,7 @@ const CartPage = () => {
       cancelText: "Cancel"
     });
     if (!confirmed) return;
-    try { await axios.delete("http://localhost:5000/api/users/cart/clear"); setCart({ items: [] }); }
+    try { await axios.delete(`${API_URL}/users/cart/clear`); setCart({ items: [] }); }
     catch { toast.error("Failed to clear cart"); }
   };
 
@@ -145,7 +147,7 @@ const CartPage = () => {
                       style={{ gridTemplateColumns: "1fr 80px 120px 80px 70px", gap: "1rem" }}>
                       <div className="d-flex align-items-center gap-2">
                         {(item.product?.image || item.product?.image_url) && (
-                          <img src={(() => { const u = item.product.image || item.product.image_url; return u.startsWith("http") ? u : `http://localhost:5000${u}`; })()} alt={item.product.name} className="rounded-2" style={{ width: 44, height: 44, objectFit: "cover", border: "1px solid #E5E7EB" }} />
+                          <img src={imgUrl(item.product.image || item.product.image_url)} alt={item.product.name} className="rounded-2" crossOrigin="anonymous" loading="lazy" style={{ width: 44, height: 44, objectFit: "cover", border: "1px solid #E5E7EB" }} />
                         )}
                         <div>
                           <div className="fw-semibold small" style={{ color: "#111" }}>{item.product?.name || item.name || `Product #${item.product}`}</div>

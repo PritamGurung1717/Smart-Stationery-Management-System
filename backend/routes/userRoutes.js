@@ -824,7 +824,7 @@ router.put("/admin/verifications/:id/status", adminAuth, async (req, res) => {
               <p style="color: #374151; line-height: 1.6;">
                 Continue shopping with us and enjoy exclusive institute benefits. If you have any questions, feel free to reach out to our support team.
               </p>
-              <a href="http://localhost:5173" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px;">
+              <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px;">
                 Start Shopping →
               </a>
             </div>

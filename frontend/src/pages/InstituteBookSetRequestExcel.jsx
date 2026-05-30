@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft, FaFileExcel, FaDownload, FaUpload } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const Toast = ({ msg, type, onClose }) => {

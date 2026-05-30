@@ -43,6 +43,7 @@ class DonationController {
   // Get all donations
   async getDonations(req, res) {
     try {
+      console.log("📥 /api/donations GET request received");
       const { status, category, condition, search, page = 1, limit = 20 } = req.query;
 
       const filters = {

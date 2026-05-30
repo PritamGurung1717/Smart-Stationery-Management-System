@@ -8,8 +8,9 @@ import {
 import AdminLayout from "../../components/AdminLayout.jsx";
 import PageHeader from "../../components/admin/shared/PageHeader.jsx";
 import LoadingSpinner from "../../components/admin/shared/LoadingSpinner.jsx";
+import { API_URL } from "../../utils/api.js";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 const STATUS_CONFIG = {

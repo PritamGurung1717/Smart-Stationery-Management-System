@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { FaCheckCircle, FaTimesCircle, FaReceipt, FaSpinner, FaShoppingCart } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const PaymentVerifyPage = () => {
@@ -51,7 +52,7 @@ const PaymentVerifyPage = () => {
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.post(
-        "http://localhost:5000/api/payment/khalti/verify",
+        `${API_URL}/payment/khalti/verify`,
         { pidx, orderId },
         { headers: { Authorization: `Bearer ${token}` } }
       );

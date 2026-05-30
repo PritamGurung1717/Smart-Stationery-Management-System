@@ -9,8 +9,9 @@ import ConfirmModal from "../../components/admin/shared/ConfirmModal";
 import LoadingSpinner from "../../components/admin/shared/LoadingSpinner";
 import ErrorMessage from "../../components/admin/shared/ErrorMessage";
 import { useToast } from "../../hooks/useToast";
+import { API_URL } from "../../utils/api.js";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 function AdminBookSetDetails() {

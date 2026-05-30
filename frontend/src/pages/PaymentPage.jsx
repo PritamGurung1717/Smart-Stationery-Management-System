@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaChevronLeft, FaSpinner } from "react-icons/fa";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const PaymentPage = () => {
@@ -23,7 +24,7 @@ const PaymentPage = () => {
 
   const fetchOrder = async () => {
     try {
-      const { data } = await axios.get(`http://localhost:5000/api/orders/${orderId}`);
+      const { data } = await axios.get(`${API_URL}/orders/${orderId}`);
       const o = data.order || data;
       setOrder(o);
 
@@ -44,7 +45,7 @@ const PaymentPage = () => {
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.post(
-        "http://localhost:5000/api/payment/khalti/initiate",
+        `${API_URL}/payment/khalti/initiate`,
         { orderId: order.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

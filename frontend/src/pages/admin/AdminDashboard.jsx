@@ -2,6 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AdminLayout from "../../components/AdminLayout.jsx";
+import { API_URL } from "../../utils/api.js";
+import { imgUrl } from "../../utils/imgUrl.js";
+import { getAuthHeaders } from "../../utils/auth.js";
 import "../../styles/landing.css";
 import {
   FaPlus, FaEdit, FaTrash, FaEye, FaChartLine,
@@ -18,8 +21,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 const ADMIN_NOTIF_TAB = {
   admin_new_order: "orders",
@@ -1239,7 +1242,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
               </button>
             )}
 
-            <img src={lightboxImages[lightboxIndex].startsWith("http") ? lightboxImages[lightboxIndex] : `http://localhost:5000${lightboxImages[lightboxIndex]}`}
+            <img src={imgUrl(lightboxImages[lightboxIndex])}
               alt="" className="rounded-3 shadow-lg" style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", border: "1px solid rgba(255, 255, 255, 0.1)" }} />
 
             {lightboxImages.length > 1 && (
@@ -1262,7 +1265,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
             <div className="d-flex gap-2 mt-3 overflow-auto max-w-100 px-3">
               {lightboxImages.map((img, i) => (
                 <img key={i}
-                  src={img.startsWith("http") ? img : `http://localhost:5000${img}`}
+                  src={imgUrl(img)}
                   alt="" onClick={() => setLightboxIndex(i)}
                   className="rounded-2"
                   style={{
@@ -1497,7 +1500,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
                   <td className="px-3">
                     <div className="d-flex align-items-center gap-2">
                       {p.image_url && (
-                        <img src={p.image_url.startsWith("http") ? p.image_url : `http://localhost:5000${p.image_url}`} alt={p.name}
+                        <img src={imgUrl(p.image_url)} alt={p.name}
                           style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
                           onError={e => e.target.style.display = "none"} />
                       )}
@@ -1834,7 +1837,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
                 <td className="px-3">
                   <div className="d-flex align-items-center gap-2">
                     {d.images?.[0] && (
-                      <img src={d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`} alt={d.title}
+                      <img src={imgUrl(d.images[0])} alt={d.title}
                         style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
                         onError={e => e.target.style.display = "none"} />
                     )}
@@ -1895,7 +1898,7 @@ const [bookSetRequestStatusFilter, setBookSetRequestStatusFilter] = useState("al
                     {req.images && req.images.length > 0 && (
                       <div className="position-relative" style={{ cursor: "pointer" }}
                         onClick={() => { setLightboxImages(req.images); setLightboxIndex(0); }}>
-                        <img src={req.images[0].startsWith("http") ? req.images[0] : `http://localhost:5000${req.images[0]}`}
+                        <img src={imgUrl(req.images[0])}
                           alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 4, flexShrink: 0 }}
                           onError={e => e.target.style.display = "none"} />
                         {req.images.length > 1 && (

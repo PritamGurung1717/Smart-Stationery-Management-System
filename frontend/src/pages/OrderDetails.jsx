@@ -5,6 +5,7 @@ import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import toast from "../utils/toast.js";
 import confirm from "../utils/confirm.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
 const STATUS_CONFIG = {
@@ -110,8 +111,8 @@ const OrderDetails = () => {
       const orderId = parseInt(id);
       if (isNaN(orderId)) { setError("Invalid order ID"); return; }
       const [orderRes, timelineRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`http://localhost:5000/api/orders/${orderId}/timeline`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { timeline: [] } }))
+        axios.get(`${API_URL}/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/orders/${orderId}/timeline`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: { timeline: [] } }))
       ]);
       if (orderRes.data.success) { setOrder(orderRes.data.order); setTimeline(timelineRes.data.timeline || []); }
       else setError(orderRes.data.message || "Order not found");
@@ -132,7 +133,7 @@ const OrderDetails = () => {
     try {
       setActionLoading("cancel");
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:5000/api/orders/${order.id}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${API_URL}/orders/${order.id}/cancel`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrder();
     } catch (err) { toast.error(err.response?.data?.message || "Failed to cancel"); }
     finally { setActionLoading(""); }
@@ -148,7 +149,7 @@ const OrderDetails = () => {
     try {
       setActionLoading("confirm");
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:5000/api/orders/${order.id}/confirm-delivery`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${API_URL}/orders/${order.id}/confirm-delivery`, {}, { headers: { Authorization: `Bearer ${token}` } });
       fetchOrder();
     } catch (err) { toast.error(err.response?.data?.message || "Failed to confirm"); }
     finally { setActionLoading(""); }
@@ -156,7 +157,7 @@ const OrderDetails = () => {
 
   const handleInvoice = () => {
     const token = localStorage.getItem("token");
-    window.open(`http://localhost:5000/api/orders/${order.id}/invoice?token=${token}`, "_blank");
+    window.open(`${API_URL}/orders/${order.id}/invoice?token=${token}`, "_blank");
   };
 
   if (loading) return (

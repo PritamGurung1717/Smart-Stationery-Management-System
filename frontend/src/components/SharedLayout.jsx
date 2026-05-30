@@ -8,9 +8,11 @@ import {
 } from "react-icons/fa";
 import NotificationBell from "./NotificationBell.jsx";
 import { getAuthHeaders } from "../utils/auth.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 
 const TICKER_ITEMS = [
   { icon: <FaShieldAlt style={{ color: "#16A34A" }} />, text: "100% Authentic Products" },
@@ -56,7 +58,7 @@ const WishlistDrawer = ({ wishlist, onClose, onRemove, onMoveToCart }) => (
           <div key={item.id ?? item.product_id ?? idx} style={{ display: "flex", gap: "0.75rem", padding: "0.75rem 0", borderBottom: "1px solid #f3f4f6" }}>
             <div style={{ width: 60, height: 60, background: "#f3f4f6", borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
               {item.image_url
-                ? <img src={item.image_url.startsWith("http") ? item.image_url : `http://localhost:5000${item.image_url}`} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ? <img src={imgUrl(item.image_url)} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><FaShoppingBag style={{ color: "#d1d5db" }} /></div>}
             </div>
             <div style={{ flex: 1 }}>

@@ -3,16 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaChevronLeft, FaPaperPlane, FaComments, FaPaperclip, FaFileAlt, FaFileCsv } from "react-icons/fa";
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
+import { API_URL } from "../utils/api.js";
+import { getAuthHeaders } from "../utils/auth.js";
+import { imgUrl } from "../utils/imgUrl.js";
 import toast from "../utils/toast.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 const FilePreview = ({ attachment_url, attachment_type, attachment_name }) => {
   if (!attachment_url) return null;
 
-  const url = attachment_url.startsWith("http") ? attachment_url : `http://localhost:5000${attachment_url}`;
+  const url = imgUrl(attachment_url);
 
   if (attachment_type === "image") {
     return (

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 
 const VerifyOtp = ({ setUser }) => {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ const VerifyOtp = ({ setUser }) => {
     setLoading(true); setError(""); setSuccess("");
     try {
       const res = await axios.post(`${API}/users/verify-otp`, { email, otp: otpString });
-      setSuccess("Email verified successfully!");
+      setSuccess("Email verified successfully! Please complete institute verification.");
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("token", res.data.token);
       if (setUser) setUser(res.data.user);

@@ -9,10 +9,12 @@ import {
 } from "react-icons/fa";
 import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
 import toast from "../utils/toast.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 
 /* ─── Google Button (stable — defined outside AuthModal to prevent re-creation) ── */
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -916,7 +918,7 @@ const LandingPage = ({ setUser }) => {
                   {donations.length === 0 ? (
                     <div className="bg-white text-center text-muted small p-4">No donations yet</div>
                   ) : donations.map(d => {
-                    const imgSrc = d.images?.[0] ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`) : null;
+                    const imgSrc = d.images?.[0] ? imgUrl(d.images[0]) : null;
                     return (
                       <div key={d.id || d._id} className="bg-white d-flex align-items-center gap-3 px-3 py-2"
                         onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}

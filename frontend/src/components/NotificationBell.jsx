@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBell, FaCheck, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URL } from '../utils/api.js';
 
-const API = 'http://localhost:5000/api';
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const getTimeAgo = (date) => {

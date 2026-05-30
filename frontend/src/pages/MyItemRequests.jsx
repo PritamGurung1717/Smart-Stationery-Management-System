@@ -4,9 +4,11 @@ import { FaPlus, FaTimes, FaCheck, FaClock, FaBan, FaChevronLeft, FaImage, FaTra
 import axios from "axios";
 import SharedLayout from "../components/SharedLayout.jsx";
 import confirm from "../utils/confirm.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { API_URL } from "../utils/api.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
+const API = API_URL;
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 const CATEGORIES = ["book", "stationery", "electronics", "sports", "other"];
 
@@ -217,7 +219,7 @@ const MyItemRequests = () => {
                             {req.images && req.images.length > 0 ? (
                               <div className="d-flex align-items-center gap-1">
                                 {req.images.slice(0, 2).map((img, i) => (
-                                  <img key={i} src={`http://localhost:5000${img}`} alt=""
+                                  <img key={i} src={imgUrl(img)} alt=""
                                     onClick={() => { setLightboxImages(req.images); setLightboxIndex(0); }}
                                     style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 4, cursor: "pointer", border: "1px solid #e5e7eb" }} />
                                 ))}
@@ -367,7 +369,7 @@ const MyItemRequests = () => {
               </button>
             </>
           )}
-          <img src={`http://localhost:5000${lightboxImages[lightboxIndex]}`} alt=""
+          <img src={imgUrl(lightboxImages[lightboxIndex])} alt=""
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: "85vw", maxHeight: "85vh", borderRadius: 8, objectFit: "contain" }} />
           {lightboxImages.length > 1 && (

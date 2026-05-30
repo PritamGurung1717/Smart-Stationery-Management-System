@@ -10,11 +10,14 @@ import SharedLayout from "../components/SharedLayout.jsx";
 import ProductModal from "../components/ProductModal.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import ChatPage from "./ChatPage.jsx";
+import { API_URL } from "../utils/api.js";
+import { imgUrl } from "../utils/imgUrl.js";
+import { getAuthHeaders } from "../utils/auth.js";
 import toast from "../utils/toast.js";
 import "../styles/landing.css";
 
-const API = "http://localhost:5000/api";
-const authH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+const API = API_URL;
+const authH = getAuthHeaders;
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 const Hero = ({ user, navigate }) => (
@@ -362,7 +365,7 @@ const DonationSection = ({ navigate }) => {
                 </div>
               ) : donations.map(d => {
                 const imgSrc = d.images?.[0]
-                  ? (d.images[0].startsWith("http") ? d.images[0] : `http://localhost:5000${d.images[0]}`)
+                  ? imgUrl(d.images[0])
                   : null;
                 return (
                   <div key={d.id} onClick={() => navigate(`/donations/${d.id}`)} className="landing-donation-row" role="button" tabIndex={0}>

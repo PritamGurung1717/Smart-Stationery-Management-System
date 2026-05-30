@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, Badge, Spinner, Alert } from "react-bootstrap";
-import { FaGift, FaHeart, FaMapMarkerAlt, FaClock } from "react-icons/fa";
+import { FaGift, FaHeart, FaMapMarkerAlt, FaClock, FaShoppingBag } from "react-icons/fa";
 import axios from "axios";
+import { imgUrl } from "../utils/imgUrl";
+import { API_URL } from "../utils/api";
 
 const DonationSection = () => {
   const navigate = useNavigate();
@@ -19,17 +21,7 @@ const DonationSection = () => {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please login to view donations");
-        setLoading(false);
-        return;
-      }
-
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get("http://localhost:5000/api/donations?limit=4", {
-        headers,
-      });
+      const response = await axios.get(`${API_URL}/donations?limit=4`);
 
       if (response.data.success) {
         setDonations(response.data.donations || []);
@@ -292,18 +284,37 @@ const DonationSection = () => {
                       }}
                     >
                       {donation.images && donation.images.length > 0 ? (
-                        <img
-                          src={donation.images[0].startsWith("http") ? donation.images[0] : `http://localhost:5000${donation.images[0]}`}
-                          alt={donation.title}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                          onError={(e) => {
-                            e.target.src = "https://via.placeholder.com/300x300?text=No+Image";
-                          }}
-                        />
+                        <>
+                          <img
+                            src={imgUrl(donation.images[0])}
+                            alt={donation.title}
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              transition: "transform 0.3s",
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextElementSibling.style.display = "flex";
+                            }}
+                          />
+                          {/* Placeholder */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              display: "none",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: "#f9fafb",
+                            }}
+                          >
+                            <FaShoppingBag style={{ fontSize: "3rem", color: "#d1d5db" }} />
+                          </div>
+                        </>
                       ) : (
                         <div
                           style={{

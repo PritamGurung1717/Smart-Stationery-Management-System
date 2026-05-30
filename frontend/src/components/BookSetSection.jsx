@@ -4,6 +4,7 @@ import { Row, Col, Card, Button, Form, Badge, Spinner, Alert } from "react-boots
 import { FaShoppingCart } from "react-icons/fa";
 import axios from "axios";
 import toast from "../utils/toast.js";
+import { API_URL } from "../utils/api.js";
 
 const BookSetSection = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const BookSetSection = () => {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
-      const response = await axios.get("http://localhost:5000/api/book-sets", { headers });
+      const response = await axios.get(`${API_URL}/book-sets`, { headers });
       
       if (response.data.success) {
         setBookSets(response.data.bookSets || []);
@@ -82,7 +83,7 @@ const BookSetSection = () => {
       for (const item of bookSet.items) {
         if (item.product_id) {
           try {
-            await axios.post("http://localhost:5000/api/users/cart/add", {
+            await axios.post(`${API_URL}/users/cart/add`, {
               productId: item.product_id,
               quantity: 1
             }, {
