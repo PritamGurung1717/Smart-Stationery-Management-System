@@ -284,153 +284,159 @@ const verifyKhaltiPaymentHandler = async (req, res) => {
       });
     }
 
-    // --- Send notification (non-blocking) - with duplicate check using upsert ---
-    try {
-      console.log("🟡 Creating/updating notification for order:", order.id);
-      
-      const Notification = require("../models/notification");
-      
-      // Use findOneAndUpdate with upsert to prevent duplicates atomically
-      const notificationData = {
-        user_id: req.user.id,
-        type: "order_payment_success",
-        title: "Payment Successful! 🎉",
-        message: `Your payment of ₹${order.totalAmount} for Order #${order.id} has been confirmed. Transaction ID: ${khaltiResponse.transaction_id}`,
-        link: `/orders/${order.id}`,
-        icon: "✅",
-        is_read: false,
-      };
-      
-      // Atomic upsert - creates if doesn't exist, updates if exists
-      const notification = await Notification.findOneAndUpdate(
-        {
+    // --- Send notification (non-blocking, no await) ---
+    (async () => {
+      try {
+        console.log("🟡 Creating/updating notification for order:", order.id);
+        
+        const Notification = require("../models/notification");
+        
+        // Use findOneAndUpdate with upsert to prevent duplicates atomically
+        const notificationData = {
           user_id: req.user.id,
           type: "order_payment_success",
-          link: `/orders/${order.id}`
-        },
-        notificationData,
-        {
-          upsert: true,  // Create if doesn't exist
-          new: true,     // Return the updated document
-          setDefaultsOnInsert: true
-        }
-      );
-      
-      console.log("🟢 Notification created/updated successfully:", notification._id);
-    } catch (notifErr) {
-      console.error("❌ Failed to send user payment notification:");
-      console.error("Error name:", notifErr.name);
-      console.error("Error message:", notifErr.message);
-      console.error("Full error:", notifErr);
-      // Don't fail the payment if notification fails
-    }
+          title: "Payment Successful! 🎉",
+          message: `Your payment of ₹${order.totalAmount} for Order #${order.id} has been confirmed. Transaction ID: ${khaltiResponse.transaction_id}`,
+          link: `/orders/${order.id}`,
+          icon: "✅",
+          is_read: false,
+        };
+        
+        // Atomic upsert - creates if doesn't exist, updates if exists
+        const notification = await Notification.findOneAndUpdate(
+          {
+            user_id: req.user.id,
+            type: "order_payment_success",
+            link: `/orders/${order.id}`
+          },
+          notificationData,
+          {
+            upsert: true,  // Create if doesn't exist
+            new: true,     // Return the updated document
+            setDefaultsOnInsert: true
+          }
+        );
+        
+        console.log("🟢 Notification created/updated successfully:", notification._id);
+      } catch (notifErr) {
+        console.error("❌ Failed to send user payment notification:");
+        console.error("Error name:", notifErr.name);
+        console.error("Error message:", notifErr.message);
+        console.error("Full error:", notifErr);
+        // Don't fail the payment if notification fails
+      }
+    })();
 
-    // --- Notify all admins (non-blocking) ---
-    try {
-      const payer = await User.findOne({ id: req.user.id });
-      await NotificationService.notifyAdminPayment(
-        order.id,
-        payer?.name || `User #${req.user.id}`,
-        order.totalAmount,
-        khaltiResponse.transaction_id
-      );
-    } catch (adminNotifErr) {
-      console.error("⚠️ Failed to notify admins of payment:", adminNotifErr.message);
-    }
+    // --- Notify all admins (non-blocking, no await) ---
+    (async () => {
+      try {
+        const payer = await User.findOne({ id: req.user.id });
+        await NotificationService.notifyAdminPayment(
+          order.id,
+          payer?.name || `User #${req.user.id}`,
+          order.totalAmount,
+          khaltiResponse.transaction_id
+        );
+      } catch (adminNotifErr) {
+        console.error("⚠️ Failed to notify admins of payment:", adminNotifErr.message);
+      }
+    })();
 
-    // --- Send email (non-blocking) ---
-    try {
-      const user = await User.findOne({ id: req.user.id });
-      if (user && user.email) {
-        console.log("🟡 Sending email to:", user.email);
-        const sendEmail = require("../utils/sendEmail");
-        const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #111; font-size: 28px; margin: 0;">smart stationery.</h1>
-              <p style="color: #6b7280; margin: 5px 0;">Smart Stationery Management System</p>
-            </div>
-            
-            <div style="background: #16a34a; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px;">
-              <h2 style="margin: 0; font-size: 24px;">✅ Payment Successful!</h2>
-            </div>
-            
-            <p style="color: #374151; font-size: 16px; line-height: 1.6;">Dear ${user.name},</p>
-            
-            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              Your payment has been successfully processed via Khalti. Thank you for your order!
-            </p>
-            
-            <div style="background: #f3f4f6; padding: 25px; border-radius: 8px; margin: 25px 0;">
-              <h3 style="margin: 0 0 15px 0; color: #111; font-size: 18px;">Order Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Order ID:</td>
-                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">#${order.id}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Amount Paid:</td>
-                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">₹${order.totalAmount}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Transaction ID:</td>
-                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">${khaltiResponse.transaction_id}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Payment Method:</td>
-                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">Khalti</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Payment Status:</td>
-                  <td style="padding: 8px 0; color: #16a34a; font-weight: 600; text-align: right;">✅ Completed</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Order Status:</td>
-                  <td style="padding: 8px 0; color: #2563eb; font-weight: 600; text-align: right;">Confirmed</td>
-                </tr>
-              </table>
-            </div>
-            
-            <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 15px; margin: 25px 0;">
-              <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                <strong>📦 What's Next?</strong><br>
-                Your order is now confirmed and will be processed shortly. We'll notify you once it's shipped.
+    // --- Send email (non-blocking, no await) ---
+    (async () => {
+      try {
+        const user = await User.findOne({ id: req.user.id });
+        if (user && user.email) {
+          console.log("🟡 Sending email to:", user.email);
+          const sendEmail = require("../utils/sendEmail");
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #111; font-size: 28px; margin: 0;">smart stationery.</h1>
+                <p style="color: #6b7280; margin: 5px 0;">Smart Stationery Management System</p>
+              </div>
+              
+              <div style="background: #16a34a; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px;">
+                <h2 style="margin: 0; font-size: 24px;">✅ Payment Successful!</h2>
+              </div>
+              
+              <p style="color: #374151; font-size: 16px; line-height: 1.6;">Dear ${user.name},</p>
+              
+              <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                Your payment has been successfully processed via Khalti. Thank you for your order!
+              </p>
+              
+              <div style="background: #f3f4f6; padding: 25px; border-radius: 8px; margin: 25px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #111; font-size: 18px;">Order Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Order ID:</td>
+                    <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">#${order.id}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Amount Paid:</td>
+                    <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">₹${order.totalAmount}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Transaction ID:</td>
+                    <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">${khaltiResponse.transaction_id}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Payment Method:</td>
+                    <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">Khalti</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Payment Status:</td>
+                    <td style="padding: 8px 0; color: #16a34a; font-weight: 600; text-align: right;">✅ Completed</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Order Status:</td>
+                    <td style="padding: 8px 0; color: #2563eb; font-weight: 600; text-align: right;">Confirmed</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                  <strong>📦 What's Next?</strong><br>
+                  Your order is now confirmed and will be processed shortly. We'll notify you once it's shipped.
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.FRONTEND_URL}/orders/${order.id}" 
+                   style="display: inline-block; background: #111; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                  View Order Details
+                </a>
+              </div>
+              
+              <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                Thank you for shopping with Smart Stationery!
+              </p>
+              
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+              
+              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+                This is an automated email. Please do not reply to this message.<br>
+                © 2026 Smart Stationery Management System. All rights reserved.
               </p>
             </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL}/orders/${order.id}" 
-                 style="display: inline-block; background: #111; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                View Order Details
-              </a>
-            </div>
-            
-            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              Thank you for shopping with Smart Stationery!
-            </p>
-            
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-            
-            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-              This is an automated email. Please do not reply to this message.<br>
-              © 2026 Smart Stationery Management System. All rights reserved.
-            </p>
-          </div>
-        `;
-        
-        await sendEmail(
-          user.email,
-          "Payment Successful - Order Confirmed",
-          emailHtml
-        );
-        console.log("🟢 Email sent successfully to:", user.email);
-      } else {
-        console.log("⚠️  User or email not found, skipping email");
+          `;
+          
+          await sendEmail(
+            user.email,
+            "Payment Successful - Order Confirmed",
+            emailHtml
+          );
+          console.log("🟢 Email sent successfully to:", user.email);
+        } else {
+          console.log("⚠️  User or email not found, skipping email");
+        }
+      } catch (emailErr) {
+        console.error("⚠️  Failed to send email:", emailErr.message);
+        // Don't fail the payment if email fails
       }
-    } catch (emailErr) {
-      console.error("⚠️  Failed to send email:", emailErr.message);
-      // Don't fail the payment if email fails
-    }
+    })();
 
     return res.status(200).json({
       success: true,
