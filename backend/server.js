@@ -26,7 +26,9 @@ app.set("io", io);
 
 // Middleware - Only use Helmet in PRODUCTION for maximum security and compatibility
 if (process.env.NODE_ENV === 'production') {
-  app.use(helmet()); // Full security headers only in production
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded from other origins
+  })); // Full security headers only in production
 }
 app.use(
   cors({
