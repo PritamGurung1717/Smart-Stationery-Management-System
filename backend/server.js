@@ -64,8 +64,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Serve static files from uploads directory with CORS headers
 app.use("/uploads", (req, res, next) => {
-  const origin = process.env.FRONTEND_URL || "http://localhost:5173";
-  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Origin", "*"); // Allow any origin for images
   res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   if (req.method === "OPTIONS") {
