@@ -46,8 +46,8 @@ router.post("/register", async (req, res) => {
     // Generate token for immediate login after OTP
     const token = await user.generateAuthToken();
 
-    // Send OTP email
-    await transporter.sendMail({
+    // Send OTP email (don't wait for it)
+    transporter.sendMail({
       to: email,
       subject: "Verify OTP - Smart Stationery",
       html: `
@@ -64,7 +64,7 @@ router.post("/register", async (req, res) => {
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
       `,
-    });
+    }).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
 
     res.json({
       success: true,
@@ -93,7 +93,7 @@ router.post("/resend-otp", async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    await transporter.sendMail({
+    transporter.sendMail({
       to: email,
       subject: "New OTP - Smart Stationery",
       html: `
@@ -110,7 +110,7 @@ router.post("/resend-otp", async (req, res) => {
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
       `,
-    });
+    }).catch(err => console.error("Email send failed:", err)); // Don't fail resend on email error
 
     res.json({ success: true, message: "New OTP sent to your email", email });
   } catch (err) {
@@ -184,30 +184,53 @@ router.post("/google-auth", async (req, res) => {
       return res.json({ success: true, isNewUser: true, needsRole: true, email, name, picture });
     }
 
-    // Create new user (Google users are pre-verified, no password needed)
+    // Create new user
     const newUser = new User({
       name,
       email,
       password: `google_${googleId}_${Date.now()}`, // Random password they'll never use
       role,
-      isVerified: true, // Google accounts are pre-verified
+      isVerified: role === "personal", // Only personal is pre-verified, institute needs OTP
       googleId,
       avatar: picture,
     });
-    await newUser.save();
 
-    const token = await newUser.generateAuthToken();
-
-    // Institute users need to go through verification
+    // For institute users, generate and send OTP
     if (role === "institute") {
+      const otp = newUser.generateOTP();
+      await newUser.save();
+
+      // Send OTP email (don't wait for it)
+      transporter.sendMail({
+        to: email,
+        subject: "Verify OTP - Smart Stationery",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2c3e50;">Smart Stationery - Email Verification</h2>
+            <p>Hello ${name},</p>
+            <p>Thank you for registering. Use the following OTP to verify your email:</p>
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+              <h1 style="color: #3498db; margin: 0; letter-spacing: 10px;">${otp}</h1>
+            </div>
+            <p>This OTP will expire in 10 minutes.</p>
+            <p>If you didn't request this, ignore this email.</p>
+            <hr>
+            <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+          </div>
+        `,
+      }).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
+
       return res.json({
         success: true,
         isNewUser: true,
-        needsVerification: true,
-        user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, instituteVerification: newUser.instituteVerification },
-        token,
+        needsOtp: true,
+        email,
       });
     }
+
+    // Personal user - pre-verified
+    await newUser.save();
+    const token = await newUser.generateAuthToken();
 
     res.json({
       success: true,

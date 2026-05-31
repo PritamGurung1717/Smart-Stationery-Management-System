@@ -158,14 +158,19 @@ const AuthModal = ({ mode, onClose, setUser, switchMode, navigate }) => {
     setError("");
     try {
       const res = await axios.post(`${API}/users/google-auth`, { credential: googlePending.credential, role: googleRole });
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("token", res.data.token);
-      setUser(res.data.user);
-      onClose();
-      if (googleRole === "institute") {
-        navigate("/institute-verification");
+      if (res.data.needsOtp) {
+        onClose();
+        navigate("/verify-otp", { state: { email: res.data.email } });
       } else {
-        navigate("/dashboard");
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        localStorage.setItem("token", res.data.token);
+        setUser(res.data.user);
+        onClose();
+        if (res.data.needsVerification || googleRole === "institute") {
+          navigate("/institute-verification");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Google sign-in failed");
