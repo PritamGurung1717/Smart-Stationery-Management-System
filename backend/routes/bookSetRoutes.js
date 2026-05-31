@@ -191,36 +191,39 @@ router.post("/institute/book-set-request/upload-excel", instituteAuth, excelUplo
       }
     }
 
-    // Send notification email to admins
-    try {
-      if (transporter && createdRequests.length > 0) {
-        const admins = await User.find({ role: "admin" });
-        const adminEmails = admins.map(admin => admin.email).filter(Boolean);
+    // Send notification email to admins (non-blocking)
+    (async () => {
+      try {
+        if (transporter && createdRequests.length > 0) {
+          const admins = await User.find({ role: "admin" });
+          const adminEmails = admins.map(admin => admin.email).filter(Boolean);
 
-        if (adminEmails.length > 0) {
-          await transporter.sendMail({
-            to: adminEmails.join(","),
-            subject: `${createdRequests.length} New Book Set Requests - Smart Stationery`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2c3e50;">Bulk Book Set Requests Uploaded</h2>
-                <p>${req.user.name} has uploaded ${createdRequests.length} book set requests via Excel:</p>
-                <ul>
-                  ${createdRequests.map(r => `<li>${r.school_name} - Grade ${r.grade} (${r.items.length} books)</li>`).join("")}
-                </ul>
-                <p>Please review and approve/reject these requests.</p>
-                <hr>
-                <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
-              </div>
-            `,
-          });
-          console.log("✅ Notification email sent to admins");
+          if (adminEmails.length > 0) {
+            await transporter.sendMail({
+              to: adminEmails.join(","),
+              subject: `${createdRequests.length} New Book Set Requests - Smart Stationery`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #2c3e50;">Bulk Book Set Requests Uploaded</h2>
+                  <p>${req.user.name} has uploaded ${createdRequests.length} book set requests via Excel:</p>
+                  <ul>
+                    ${createdRequests.map(r => `<li>${r.school_name} - Grade ${r.grade} (${r.items.length} books)</li>`).join("")}
+                  </ul>
+                  <p>Please review and approve/reject these requests.</p>
+                  <hr>
+                  <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+                </div>
+              `,
+            });
+            console.log("✅ Notification email sent to admins");
+          }
         }
+      } catch (emailError) {
+        console.error("Failed to send notification email:", emailError);
       }
-    } catch (emailError) {
-      console.error("Failed to send notification email:", emailError);
-    }
+    })();
 
+    // Send notifications (non-blocking)
     if (createdRequests.length > 0) {
       NotificationService.notifyAdminBulkBookSetRequests(
         createdRequests.length,
@@ -375,42 +378,44 @@ router.post("/institute/book-set-request", instituteAuth, async (req, res) => {
       items.length
     ).catch(() => {});
 
-    // Send notification email to admins
-    try {
-      if (transporter) {
-        const admins = await User.find({ role: "admin" });
-        const adminEmails = admins.map(admin => admin.email).filter(Boolean);
+    // Send notification email to admins (non-blocking)
+    (async () => {
+      try {
+        if (transporter) {
+          const admins = await User.find({ role: "admin" });
+          const adminEmails = admins.map(admin => admin.email).filter(Boolean);
 
-        if (adminEmails.length > 0) {
-          await transporter.sendMail({
-            to: adminEmails.join(","),
-            subject: "New Book Set Request - Smart Stationery",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2c3e50;">New Book Set Request</h2>
-                <p>A new book set request has been submitted:</p>
-                <ul>
-                  <li><strong>Institute:</strong> ${req.user.name}</li>
-                  <li><strong>School:</strong> ${school_name}</li>
-                  <li><strong>Grade:</strong> ${grade}</li>
-                  <li><strong>Number of Books:</strong> ${items.length}</li>
-                  <li><strong>Total Estimated Price:</strong> ₹${bookSetRequest.total_estimated_price.toFixed(2)}</li>
-                </ul>
-                <p>Please review and approve/reject this request.</p>
-                <hr>
-                <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
-              </div>
-            `,
-          });
-          console.log("✅ Notification email sent to admins");
+          if (adminEmails.length > 0) {
+            await transporter.sendMail({
+              to: adminEmails.join(","),
+              subject: "New Book Set Request - Smart Stationery",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #2c3e50;">New Book Set Request</h2>
+                  <p>A new book set request has been submitted:</p>
+                  <ul>
+                    <li><strong>Institute:</strong> ${req.user.name}</li>
+                    <li><strong>School:</strong> ${school_name}</li>
+                    <li><strong>Grade:</strong> ${grade}</li>
+                    <li><strong>Number of Books:</strong> ${items.length}</li>
+                    <li><strong>Total Estimated Price:</strong> ₹${bookSetRequest.total_estimated_price.toFixed(2)}</li>
+                  </ul>
+                  <p>Please review and approve/reject this request.</p>
+                  <hr>
+                  <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+                </div>
+              `,
+            });
+            console.log("✅ Notification email sent to admins");
+          }
+        } else {
+          console.log("⚠️ Email transporter not available, skipping notification");
         }
-      } else {
-        console.log("⚠️ Email transporter not available, skipping notification");
+      } catch (emailError) {
+        console.error("Failed to send notification email:", emailError);
+        // Don't fail the request if email fails
       }
-    } catch (emailError) {
-      console.error("Failed to send notification email:", emailError);
-      // Don't fail the request if email fails
-    }
+    })();
 
     console.log("🎉 Request submitted successfully!");
     res.status(201).json({
@@ -964,38 +969,40 @@ router.put("/admin/book-set-requests/:id/approve", adminAuth, async (req, res) =
     request.approved_at = new Date();
     await request.save();
 
-    // Send notification email to institute
-    try {
-      if (transporter) {
-        const institute = await User.findOne({ id: request.institute_id });
-        if (institute && institute.email) {
-          await transporter.sendMail({
-            to: institute.email,
-            subject: "Book Set Request Approved - Smart Stationery",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #27ae60;">Book Set Request Approved! ✓</h2>
-                <p>Hello ${institute.name},</p>
-                <p>Great news! Your book set request has been approved:</p>
-                <ul>
-                  <li><strong>School:</strong> ${request.school_name}</li>
-                  <li><strong>Grade:</strong> ${request.grade}</li>
-                  <li><strong>Number of Books:</strong> ${request.items.length}</li>
-                  <li><strong>Total Price:</strong> ₹${bookSet.total_price.toFixed(2)}</li>
-                </ul>
-                <p><strong>All books are now available for purchase!</strong></p>
-                <p>The book set is now available for customers to view and purchase. You can also add this book set to your cart directly.</p>
-                <hr>
-                <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
-              </div>
-            `,
-          });
-          console.log("✅ Approval email sent to institute");
+    // Send notification email to institute (non-blocking)
+    (async () => {
+      try {
+        if (transporter) {
+          const institute = await User.findOne({ id: request.institute_id });
+          if (institute && institute.email) {
+            await transporter.sendMail({
+              to: institute.email,
+              subject: "Book Set Request Approved - Smart Stationery",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #27ae60;">Book Set Request Approved! ✓</h2>
+                  <p>Hello ${institute.name},</p>
+                  <p>Great news! Your book set request has been approved:</p>
+                  <ul>
+                    <li><strong>School:</strong> ${request.school_name}</li>
+                    <li><strong>Grade:</strong> ${request.grade}</li>
+                    <li><strong>Number of Books:</strong> ${request.items.length}</li>
+                    <li><strong>Total Price:</strong> ₹${bookSet.total_price.toFixed(2)}</li>
+                  </ul>
+                  <p><strong>All books are now available for purchase!</strong></p>
+                  <p>The book set is now available for customers to view and purchase. You can also add this book set to your cart directly.</p>
+                  <hr>
+                  <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
+                </div>
+              `,
+            });
+            console.log("✅ Approval email sent to institute");
+          }
         }
+      } catch (emailError) {
+        console.error("Failed to send approval email:", emailError);
       }
-    } catch (emailError) {
-      console.error("Failed to send approval email:", emailError);
-    }
+    })();
 
     res.json({
       success: true,
@@ -1058,39 +1065,41 @@ router.put("/admin/book-set-requests/:id/reject", adminAuth, async (req, res) =>
     request.rejected_at = new Date();
     await request.save();
 
-    // Send notification email to institute
-    try {
-      if (transporter) {
-        const institute = await User.findOne({ id: request.institute_id });
-        if (institute && institute.email) {
-          await transporter.sendMail({
-            to: institute.email,
-            subject: "Book Set Request Rejected - Smart Stationery",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #e74c3c;">Book Set Request Rejected</h2>
-                <p>Hello ${institute.name},</p>
-                <p>Unfortunately, your book set request has been rejected:</p>
-                <ul>
-                  <li><strong>School:</strong> ${request.school_name}</li>
-                  <li><strong>Grade:</strong> ${request.grade}</li>
-                </ul>
-                <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #e74c3c; margin: 20px 0;">
-                  <strong>Reason:</strong><br>
-                  ${admin_remark}
+    // Send notification email to institute (non-blocking)
+    (async () => {
+      try {
+        if (transporter) {
+          const institute = await User.findOne({ id: request.institute_id });
+          if (institute && institute.email) {
+            await transporter.sendMail({
+              to: institute.email,
+              subject: "Book Set Request Rejected - Smart Stationery",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #e74c3c;">Book Set Request Rejected</h2>
+                  <p>Hello ${institute.name},</p>
+                  <p>Unfortunately, your book set request has been rejected:</p>
+                  <ul>
+                    <li><strong>School:</strong> ${request.school_name}</li>
+                    <li><strong>Grade:</strong> ${request.grade}</li>
+                  </ul>
+                  <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #e74c3c; margin: 20px 0;">
+                    <strong>Reason:</strong><br>
+                    ${admin_remark}
+                  </div>
+                  <p>You can edit and resubmit your request from your dashboard.</p>
+                  <hr>
+                  <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
                 </div>
-                <p>You can edit and resubmit your request from your dashboard.</p>
-                <hr>
-                <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
-              </div>
-            `,
-          });
-          console.log("✅ Rejection email sent to institute");
+              `,
+            });
+            console.log("✅ Rejection email sent to institute");
+          }
         }
+      } catch (emailError) {
+        console.error("Failed to send rejection email:", emailError);
       }
-    } catch (emailError) {
-      console.error("Failed to send rejection email:", emailError);
-    }
+    })();
 
     res.json({
       success: true,
