@@ -255,7 +255,6 @@ router.post("/forgot-password", async (req, res) => {
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
       `);
-    });
 
     res.json({ success: true, message: "If that email exists, an OTP has been sent." });
   } catch (err) {
@@ -533,7 +532,6 @@ router.post("/send-change-password-otp", auth, async (req, res) => {
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
       `);
-    });
 
     res.json({ success: true, message: `OTP sent to ${user.email}` });
   } catch (err) {
