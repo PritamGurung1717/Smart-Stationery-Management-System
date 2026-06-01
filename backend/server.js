@@ -13,6 +13,9 @@ const fs = require("fs");
 // Initialize Express app FIRST
 const app    = express();
 const server = http.createServer(app);
+
+// Trust proxy for Render hosting (fixes rate-limit warning)
+app.set("trust proxy", 1);
 const io     = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
