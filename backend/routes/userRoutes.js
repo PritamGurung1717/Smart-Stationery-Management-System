@@ -1,22 +1,13 @@
-// backend/routes/userRoutes.js - UPDATED WITH INTEGER IDs
+// backend/routes/userRoutes.js - UPDATED WITH INTEGER IDs and Resend
 const express = require("express");
 const User = require("../models/user");
 const Product = require("../models/product");
 const router = express.Router();
-const nodemailer = require("nodemailer");
+const sendEmail = require("../utils/sendEmail");
 const { OAuth2Client } = require("google-auth-library");
 const { auth, adminAuth, instituteAuth } = require("../middleware/auth");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-// Gmail transporter for sending OTP and notifications
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 // ---------------- PUBLIC ROUTES ----------------
 
@@ -47,10 +38,7 @@ router.post("/register", async (req, res) => {
     const token = await user.generateAuthToken();
 
     // Send OTP email (don't wait for it)
-    transporter.sendMail({
-      to: email,
-      subject: "Verify OTP - Smart Stationery",
-      html: `
+    sendEmail(email, "Verify OTP - Smart Stationery", `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Smart Stationery - Email Verification</h2>
           <p>Hello ${name},</p>
@@ -63,8 +51,7 @@ router.post("/register", async (req, res) => {
           <hr>
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
-      `,
-    }).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
+      `).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
 
     res.json({
       success: true,
@@ -93,10 +80,7 @@ router.post("/resend-otp", async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    transporter.sendMail({
-      to: email,
-      subject: "New OTP - Smart Stationery",
-      html: `
+    sendEmail(email, "New OTP - Smart Stationery", `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Smart Stationery - New OTP Request</h2>
           <p>Hello ${user.name},</p>
@@ -109,8 +93,7 @@ router.post("/resend-otp", async (req, res) => {
           <hr>
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
-      `,
-    }).catch(err => console.error("Email send failed:", err)); // Don't fail resend on email error
+      `).catch(err => console.error("Email send failed:", err)); // Don't fail resend on email error
 
     res.json({ success: true, message: "New OTP sent to your email", email });
   } catch (err) {
@@ -201,10 +184,7 @@ router.post("/google-auth", async (req, res) => {
       await newUser.save();
 
       // Send OTP email (don't wait for it)
-      transporter.sendMail({
-        to: email,
-        subject: "Verify OTP - Smart Stationery",
-        html: `
+      sendEmail(email, "Verify OTP - Smart Stationery", `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2c3e50;">Smart Stationery - Email Verification</h2>
             <p>Hello ${name},</p>
@@ -217,8 +197,7 @@ router.post("/google-auth", async (req, res) => {
             <hr>
             <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
           </div>
-        `,
-      }).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
+        `).catch(err => console.error("Email send failed:", err)); // Don't fail registration on email error
 
       return res.json({
         success: true,
@@ -262,10 +241,7 @@ router.post("/forgot-password", async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    await transporter.sendMail({
-      to: email,
-      subject: "Reset Your Password - Smart Stationery",
-      html: `
+    await sendEmail(email, "Reset Your Password - Smart Stationery", `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Smart Stationery - Password Reset</h2>
           <p>Hello ${user.name},</p>
@@ -278,7 +254,7 @@ router.post("/forgot-password", async (req, res) => {
           <hr>
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
-      `,
+      `);
     });
 
     res.json({ success: true, message: "If that email exists, an OTP has been sent." });
@@ -543,10 +519,7 @@ router.post("/send-change-password-otp", auth, async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    await transporter.sendMail({
-      to: user.email,
-      subject: "Password Change OTP - Smart Stationery",
-      html: `
+    await sendEmail(user.email, "Password Change OTP - Smart Stationery", `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c3e50;">Smart Stationery - Password Change Request</h2>
           <p>Hello ${user.name},</p>
@@ -559,7 +532,7 @@ router.post("/send-change-password-otp", auth, async (req, res) => {
           <hr>
           <p style="color: #7f8c8d; font-size: 12px;">Smart Stationery © 2025</p>
         </div>
-      `,
+      `);
     });
 
     res.json({ success: true, message: `OTP sent to ${user.email}` });
@@ -822,12 +795,10 @@ router.put("/admin/verifications/:id/status", adminAuth, async (req, res) => {
     // Email notification
     if (user.email) {
       const isApproved = status === "approved";
-      await transporter.sendMail({
-        to: user.email,
-        subject: isApproved
+      await sendEmail(user.email, isApproved
           ? "🎉 Your Institute Account is Approved — Smart Stationery"
           : `Institute Verification ${status.charAt(0).toUpperCase() + status.slice(1)} — Smart Stationery`,
-        html: isApproved ? `
+        isApproved ? `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
             <div style="background: #111; padding: 24px 32px;">
               <h1 style="color: #fff; margin: 0; font-size: 1.5rem; font-family: Georgia, serif;">smartstationery.</h1>
@@ -876,7 +847,7 @@ router.put("/admin/verifications/:id/status", adminAuth, async (req, res) => {
             </div>
           </div>
         `
-      });
+      );
     }
 
     res.json({ 
