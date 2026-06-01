@@ -67,7 +67,7 @@ const SIDEBAR_CATS = [
   { id: "all", label: "All Products" },
   { id: "book", label: "Books" },
   { id: "stationery", label: "Stationery" },
-  { id: "electronics", label: "School Sets" },
+  { id: "electronics", label: "Electronics" },
   { id: "sports", label: "Sports" },
   { id: "others", label: "Others" },
 ];
